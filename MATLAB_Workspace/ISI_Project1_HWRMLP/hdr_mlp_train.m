@@ -1,4 +1,4 @@
-function hdr_mlp_train(trainingDataSet, nHiddenLayer, nHiddenNeuron, functionType, learningRate, maxError)
+function hdr_mlp_train(trainingDataSet, nHiddenLayer, nHiddenNeuron, functionType, learningRate, stoppingCondition)
 
 % HDR_MLP_TRAIN Train a Multilayer Perceptron for solving the Handwritten Digit Recognition problem
 %  HDR_MLP_TRAIN(...) generates a Multilayer Perceptron and trains it using
@@ -7,10 +7,10 @@ function hdr_mlp_train(trainingDataSet, nHiddenLayer, nHiddenNeuron, functionTyp
 %  problem. 
 %
 %  During the training the total error along the epochs is plotted and
-%  training only stops when the total error becomes lower than a given
-%  threshold. If required the user can manually stop the training before
-%  this condition comes true. At the end of the training, the entire
-%  workspace is saved in a mat file
+%  training only stops when the stopping condition is achieved (see below 
+%  for more information). If required the user can manually stop the 
+%  training. At the end of the training, the trained network is saved to a 
+%  mat file.
 %
 %  Inputs:
 %     trainingDataSet - A cell array containing both the inputs and the
@@ -22,7 +22,24 @@ function hdr_mlp_train(trainingDataSet, nHiddenLayer, nHiddenNeuron, functionTyp
 %         functionType = 1 -> Logistic Function
 %         functionType = 2 -> Hyperbolic Tangent
 %     learningRate - Scale factor for the weight updates step size
-%     maxError - Threshold value for stopping the training
+%     stoppingCondition - A cell array containing the following parameters
+%        * maxEpochError
+%        * maxEpochMissRate
+%        * maxDeltaEpochError
+%        * maxDeltaEpochMissRate
+%
+%  Training Stop Condition:
+%    The network training is stopped when one or more of the following
+%    conditions becomes true:
+%      * When the cumulated error throughout an entire epoch is smaller 
+%        than maxEpochError;
+%      * When the network misclassification rate throughout an entire epoch 
+%        is smaller than maxEpochMissRate;
+%      * When the standard deviation of the network cumulated error among 
+%        the last 10 epochs is smaller than maxDeltaEpochError;
+%      * When the standard deviation of the misclassification rate among 
+%        the last 10 epochs is smaller than maxDeltaEpochMissRate;
+%
 %
 %  Other m-files required: none
 %  Subfunctions: activationFunction, derivativeFunction
@@ -34,7 +51,13 @@ function hdr_mlp_train(trainingDataSet, nHiddenLayer, nHiddenNeuron, functionTyp
 % Email: andregeraldes@lara.unb.br
 % September 2013; Last revision: 11-September-2013
 
-%% Process the inputs and generates global parameters
+%% Global variables
+%  The variables described here are global and can be accessed from Matlab
+%  main terminal. The description of each variable can be found later in
+%  the code where the variable is initialized.
+global stopTraining pauseTraining;
+
+%% Process the inputs and generates main parameters
 
 % input is a matrix containing all the input data for the entire training
 % data set. The matrix dimensions are:
@@ -61,34 +84,51 @@ nLayer = nHiddenLayer + 1;
 nNeuron = [nHiddenNeuron nOutput];
 
 % outputFileName is a formated string containing the current date and time
-outputFileName = sprintf('%s.mat', datestr(now,31));
+outputFileName = sprintf('networks/%s.mat', datestr(now,30));
+
+% maxEpochError is the threshold value for the cumulated error throughout 
+% an entire epoch of the training
+maxEpochError = stoppingCondition{1};
+
+% maxEpochMissRate is the threshold value for the cumulated classification
+% error throughout an entire epoch of the training
+maxEpochMissRate = stoppingCondition{2};
+
+% maxDeltaEpochError is the threshold value for the variance over the last
+% 10 values of epochError
+maxDeltaEpochError = stoppingCondition{3};
+
+% maxDeltaEpochError is the threshold value for the variance over the last
+% 10 values of epochMissRate
+maxDeltaEpochMissRate = stoppingCondition{4};
+
+%%% DEBUG - ONLINEMODE = 1 (must be set as parameter)
+onlineMode = 1;
 
 %% Initialize the data structure used to represent the neural network
 
-% neuronOut is a matrix that stores the output of each neuron in the 
-% network in the current iteration of the learning algorithm. Each column
-% of neuronOut represents one layer of neurons, except the first column,
-% which represents the inputs. Therefore, the matrix dimensions are:
-%    M - Max number of neurons in all layers
-%        (for each column, only nNeuron(iLayer) contains valid data)
-%    N - Number of layers + 1 (for the inputs)
-neuronOut = zeros(max(nNeuron),nLayer+1);
+% neuronOut is a cell array that stores the output of each neuron in the 
+% network in the current iteration of the learning algorithm. Each cell 'i'
+% represents one layer of the network, except the first one, which 
+% represents the inputs.
+neuronOut = cell(1,nLayer+1);
 
-% neuronSum is a matrix that stores the weighted sum of of the inputs for
-% each neuron in the network in the current iteration of the learning
-% algorithm. Each column of neuronSum represents one layer of neurons.
-%    M - Max number of neurons in all layers
-%        (for each column, only nNeuron(iLayer) contains valid data)
-%    N - Number of layers
-neuronSum = zeros(max(nNeuron),nLayer);
+% neuronSum is a cell array that stores the weighted sum of of the inputs
+% for each neuron in the network in the current iteration of the learning
+% algorithm. Each cell 'i' represents one layer of neurons.
+neuronSum = cell(1,nLayer);
 
-% neuronError is a matrix that stores the error of each neuron in the 
-% network in the current iteration of the learning algorithm. Each column 
-% of neuronError represents one layer of neurons.
-%    M - Max number of neurons in all layers
-%        (for each column, only nNeuron(iLayer) contains valid data)
-%    N - Number of layers
-neuronError = zeros(max(nNeuron),nLayer);
+% neuronError is a cell array that stores the error of each neuron in the 
+% network in the current iteration of the learning algorithm. Each cell 'i' 
+% represents one layer of neurons.
+neuronError = cell(1,nLayer);
+
+neuronOut{1} = zeros(nInput,1);
+for iLayer = 1:nLayer
+    neuronOut{iLayer+1} = zeros(nNeuron(iLayer),1);
+    neuronSum{iLayer} = zeros(nNeuron(iLayer),1);
+    neuronError{iLayer} = zeros(nNeuron(iLayer),1);
+end
 
 % weight is a cell array that stores all the weight matrices of the
 % network. Each cell 'i' contains a matrix of dimensions:
@@ -111,28 +151,38 @@ end
 
 %% Initialize the performance measurement variables
 
-% totalError is the cumulated error throughout an entire epoch
-% (it's initialized with a high value just to enter the while loop)
-epochError = maxError + 1;
+% epochError is the cumulated error throughout an entire epoch
+epochError = 0;
 
-% networkError stores the progression of epochError (used for plotting)
-% (networkError is initialized with maxEpochs slots in order to make the
-% program more efficient during the first epochs. If the number of epochs
+% epochMissrate is the total number of times the network fails to classify
+% an input correctly throughout an entire epoch
+epochMissRate = 0;
+
+% networkError stores the progression of epochError 
+% networkMissRate stores the progression of epochMissRate
+% (both arrays are initialized with maxEpochs slots in order to make the 
+% program more efficient during the first epochs. If the number of epochs 
 % exceeds maxEpochs the program starts losing performance)
 maxEpochs = 10000;
 networkError = zeros(1,maxEpochs);
+networkMissRate = zeros(1,maxEpochs);
 
 % Epoch counter
-iEpoch = 1;
+iEpoch = 0;
 
-% User request stop training command
+% Loop flag - It becomes 1 when the stopping condition is reached or the
+% user manually requests the program to stop
 stopTraining = 0;
+
+% Pause flag - User request flag that allows pausing the training algorithm
+% for analyzing global variables
+pauseTraining = 0;
 
 %% Print all parameters on screen before training the network
 
-disp('\nFunction HDR_MLP_train\n\n');
-disp('Starting to train the Multilayer Perceptron with the parameters:\n');
-fprintf('\t Number of layers: %d', nLayer);
+fprintf('\nFunction HDR_MLP_train\n\n');
+fprintf('Starting to train the Multilayer Perceptron with the parameters:\n');
+fprintf('\t Number of layers: %d\n', nLayer);
 fprintf('\t Number of neurons per layer: [ ');
 for iLayer = 1:nLayer
     fprintf('%d ',nNeuron(iLayer));
@@ -140,52 +190,61 @@ end
 fprintf('] \n');
 fprintf('\t Selected activation functions:\n');
 for iLayer = 1:nLayer
-    if(nNeuron(iLayer) == 1)
-        fprintf('\t\t Layer %d: Sigmoid\n',nNeuron(iLayer));
+    if(functionType(iLayer) == 1)
+        fprintf('\t\t Layer %d: Sigmoid\n',iLayer);
     else
-        fprintf('\t\t Layer %d: Hyperbolic Tangent (scaled to [0,1])\n',nNeuron(iLayer));
+        fprintf('\t\t Layer %d: Hyperbolic Tangent (scaled to [0,1])\n',iLayer);
     end
 end
 fprintf('\t Learning rate: %f\n', learningRate);
-fprintf('\t Stopping condition: Epoch error < %f\n',maxError);
+fprintf('\t Stopping conditions: \n');
+fprintf('\t\t Epoch error < %f\n', maxEpochError);
+fprintf('\t\t Epoch miss rate < %f\n', maxEpochMissRate);
+fprintf('\t\t Standard deviation on epoch error < %f\n', maxDeltaEpochError);
+fprintf('\t\t Standard deviation on epoch miss rate < %f\n', maxDeltaEpochMissRate);
 fprintf('\n Once the network is trained it will be saved to the file %s\n', outputFileName);
 
-%% Prepare a figure for displaying the progression of epochError
+%% Prepare a figure for displaying the progression of the network performance
 
 errorFigure = figure;
-uicontrol('style','push','string','Stop Training','callback','stopTraining = 1');
+uicontrol('style','push','string','Pause','callback','global pauseTraining; pauseTraining = 1 - pauseTraining;');
+% uicontrol('style','push','string','Stop','callback','global stopTraining; stopTraining = 1;');
 % place other commands here related to the graph presentation
 
 %% Learning loop
 
-while(epochError > maxError && ~stopTraining)
+while(~stopTraining)
+
+    % Increase the epoch counter
+    iEpoch = iEpoch + 1;
     
-    % Clear the totalError at the beginning of the epoch
+    % Clear the error variables at the beginning of the epoch
     epochError = 0;
+    epochMissRate = 0;
     
     % Iterate through all the examples of the training data set 
     for iExample = 1:nExample
-        
+           
         % Initialize the first column of neuronOut with the inputs
-        neuronOut(:,1) = input(iExample,:)';
+        neuronOut{1} = input(iExample,:)';
         
         % Calculate the sum and output for each neuron of each layer
         for iLayer = 1:nLayer
-            neuronSum(:,iLayer) = weight{iLayer} * [neuronOut(:,iLayer) ; 1];
-            neuronOut(:,iLayer+1) = activationFunction(neuronSum, functionType(iLayer));
+            neuronSum{iLayer} = weight{iLayer} * [neuronOut{iLayer} ; 1];
+            neuronOut{iLayer+1} = activationFunction(neuronSum{iLayer}, functionType(iLayer));
         end
         
         % Calculate the error of the final layer of neurons and
         % backpropagate it to the entire network
         for iLayer = nLayer:-1:1
             if(iLayer == nLayer)
-                neuronError(:,iLayer) = (output(iExample,:)' - neuronOut(:,iLayer+1)) * derivativeFunction(neuronOut, functionType(iLayer));
+                neuronError{iLayer} = (output(iExample,:)' - neuronOut{iLayer+1}) .* derivativeFunction(neuronOut{iLayer+1}, functionType(iLayer));
             else
-                neuronError(:,iLayer) = weight{iLayer+1}(:,1:nNeuron(iLayer)) * neuronError(:,iLayer+1) * derivativeFunction(neuronOut, functionType(iLayer));
+                neuronError{iLayer} = (weight{iLayer+1}(:,1:nNeuron(iLayer))' * neuronError{iLayer+1}) .* derivativeFunction(neuronOut{iLayer+1}, functionType(iLayer));
             end
             
             % Calculate the weight updates 
-            deltaWeight{iLayer} = deltaWeight{iLayer} + neuronError(:,iLayer) * [neuronOut(:,iLayer) ; 1]';
+            deltaWeight{iLayer} = deltaWeight{iLayer} + neuronError{iLayer} * [neuronOut{iLayer} ; 1]';
         end
         
         % If in on-line mode, process the weight updates after each example
@@ -197,7 +256,14 @@ while(epochError > maxError && ~stopTraining)
         end
         
         % Adds the current quadratic error in the epochError variable
-        epochError = epochError + sum((output(iExample)' - neuronOut(:,nLayer+1)).^2);
+        epochError = epochError + sum((output(iExample)' - neuronOut{nLayer+1}).^2);
+        
+        % Verify if the network has correctly classifie this example
+        [~, correctClass] = max(output(iExample));
+        [~, networkClass] = max(neuronOut{nLayer+1});
+        if(networkClass ~= correctClass)
+            epochMissRate = epochMissRate + 1;
+        end
         
     end
     
@@ -209,21 +275,45 @@ while(epochError > maxError && ~stopTraining)
         end
     end
         
-    % Store the current value of epochError for plotting
+    % Store the current value of epochError and epochMissRate for plotting
     networkError(iEpoch) = epochError;
+    networkMissRate(iEpoch) = double(epochMissRate) / nExample;
     
-    % Increase the epoch counter
-    iEpoch = iEpoch + 1;
+   % Verify the stopping condition
+    if(epochError < maxEpochError || epochMissRate < maxEpochMissRate)
+        stopTraining = 1;
+    end
     
-    % Update the networkError graph
+    if(iEpoch > 10)
+        if(std(networkError((iEpoch-10):iEpoch) < maxDeltaEpochError))
+            stopTraining = 1;
+        end
+        
+        if(std(networkMissRate((iEpoch-10):iEpoch) < maxDeltaEpochMissRate))
+            stopTraining = 1;
+        end
+    end 
+    
+    % Update the networkError and networkMissRate graphs
     figure(errorFigure);
-    plot(networkError);
+    plot(networkError(1:iEpoch));
+    plot(networkMissRate(1:iEpoch));
+    
+    % Pause the program execution at the end of the Epoch, if the user has
+    % requested for it
+    while(pauseTraining)
+        pause(0.1);
+    end
+    
+    %%%% DEBUG
+%     fprintf('End of Epoch %d; \n',iEpoch);
+%     fprintf('Stop Training = %d\n',stopTraining);
     
 end
 
 %% Store the generated network and its parameters in an external file
 
-save(outputFileName, 'weight', 'networkError', 'iEpoch', 'trainingDataSet', 'nLayer', 'nNeuron', 'functionType', 'learningRate', 'maxError');
+save(outputFileName, 'weight', 'networkError', 'iEpoch', 'trainingDataSet', 'nLayer', 'nNeuron', 'functionType', 'learningRate', 'stoppingCondition');
 
 
 
@@ -235,7 +325,7 @@ switch(functionType)
     
     % Logistic Function
     case 1
-        outputArray = 1/(1 + exp(-inputArray));
+        outputArray = 1 ./ (1 + exp(-inputArray));
         
     % Hyerbolic Tangent (scaled to [0,1]
     otherwise
