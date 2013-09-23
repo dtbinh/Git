@@ -1,0 +1,13 @@
+pendigits.tra , [16] , [2 2] , 0.0010 , 1 , 0.0 , 2000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.0018 , 1 , 0.0 , 2000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.0032 , 1 , 0.0 , 2000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.0056 , 1 , 0.0 , 2000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.0100 , 1 , 0.0 , 2000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.0180 , 1 , 0.0 , 2000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.0320 , 1 , 0.0 , 2000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.0560 , 1 , 0.0 , 2000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.0100 , 1 , 0.0 , 1000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.0180 , 1 , 0.0 , 1000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.3200 , 1 , 0.0 , 1000 , learningRate
+pendigits.tra , [16] , [2 2] , 0.5600 , 1 , 0.0 , 1000 , learningRate
+pendigits.tra , [16] , [2 2] , 1.0000 , 1 , 0.0 , 1000 , learningRate

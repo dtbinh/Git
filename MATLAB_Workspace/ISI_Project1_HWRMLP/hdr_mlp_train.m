@@ -1,4 +1,4 @@
-function hdr_mlp_train(trainingDataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition)
+function hdr_mlp_train(trainingDataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition, outputFolder)
 
 % HDR_MLP_TRAIN Train a Multilayer Perceptron for solving the Handwritten Digit Recognition problem
 %  HDR_MLP_TRAIN(...) generates a Multilayer Perceptron and trains it using
@@ -88,7 +88,7 @@ maxEpochError = stoppingCondition{1};
 maxEpoch = stoppingCondition{2};
 
 % outputFileName is a formated string containing the current date and time
-outputFileName = sprintf('networks/%s.mat', datestr(now,30));
+outputFileName = sprintf('networks/%s/%s.mat', outputFolder, datestr(now,30));
 
 %% Initialize the data structure used to represent the neural network
 
@@ -194,7 +194,7 @@ uicontrol('style','push', 'Position', [360 5 100 25], 'string','Stop Training','
 
 %% Learning loop
 
-iEpoch = 0;
+timeStart = tic;
 for iEpoch = 1:maxEpoch
     
     % Clear the error variables at the beginning of the epoch
@@ -276,8 +276,9 @@ for iEpoch = 1:maxEpoch
     end
     
 end
+elapsedTime = toc(timeStart);
 
 %% Store the generated network and its parameters in an external file
 
-save(outputFileName, 'weight', 'nLayer', 'nNeuron', 'functionType', 'iEpoch', 'networkError', 'networkMissRate', 'learningRate', 'onlineMode');
+save(outputFileName, 'weight', 'networkError', 'networkMissRate', 'elapsedTime', 'nLayer', 'nNeuron', 'functionType', 'iEpoch', 'learningRate', 'onlineMode');
 

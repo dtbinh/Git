@@ -1,4 +1,4 @@
-function [networkMissRate networkError] = hdr_mlp_test(networkFile, dataSetFile)
+function resultCell = hdr_mlp_test(dataSetFile, networkFile)
 
 % HDR_MLP_TEST 
 %  [error missRate] = hdr_mlp_test(networkFile, dataSetFile) tests the
@@ -77,4 +77,14 @@ end
 
 % Convert the network miss rate to a percentage value
 networkMissRate = networkMissRate / nExample;
-    
+
+% Generate output cell array grouping the control variable with the network
+% error and network missrate
+
+resultCell = cell(1,3);
+resultCell{2} = networkError;
+resultCell{3} = networkMissRate;
+
+%%%% OBS: This cell should contain the control variable. This line should
+%%%% be modified for each evaluation of the trained neural networks
+resultCell{1} = network.learningRate;

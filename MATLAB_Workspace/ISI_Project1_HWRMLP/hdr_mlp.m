@@ -41,6 +41,7 @@ d_learningRate = 0.01;
 d_onlineMode = 1;
 d_maxEpochErrr = 0.0;
 d_maxEpoch = 10000;
+d_outputFolder = 'test';
 
 %% Decodes VARARGIN
 
@@ -61,7 +62,7 @@ switch(nargin)
             stoppingCondition = cell(1,2);
             stoppingCondition{1} = d_maxEpochErrr;
             stoppingCondition{2} = d_maxEpoch;
-            hdr_mlp_train(trainingDataSet, d_nHiddenNeuron, d_functionType, d_learningRate, d_onlineMode, stoppingCondition);
+            hdr_mlp_train(trainingDataSet, d_nHiddenNeuron, d_functionType, d_learningRate, d_onlineMode, stoppingCondition, d_outputFolder);
         end
         
     % Case 2 - run hdr_mlp loading the parameters from an external file    
@@ -70,17 +71,21 @@ switch(nargin)
             inputError = 1;
         else
             inputFile = fopen(varargin{2});
-            parameters = textscan(inputFile,'%s %s %s %f %d %f %d', 'delimiter', ',');
+            parameters = textscan(inputFile,'%s %s %s %f %d %f %d %s', 'delimiter', ',');
             fclose(inputFile);
-            trainingDataSet = loadDataSet(parameters{1}{1});
-            nHiddenNeuron = str2num(parameters{2}{1});
-            functionType = str2num(parameters{3}{1});
-            learningRate = parameters{4}(1);
-            onlineMode = parameters{5}(1);
-            stoppingCondition = cell(1,2);
-            stoppingCondition{1} = parameters{6}(1);
-            stoppingCondition{2} = parameters{7}(1);
-            hdr_mlp_train(trainingDataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition);
+            [~, nTestCase] = size(parameters);
+            for iTestCase = 1:nTestCase
+                trainingDataSet = loadDataSet(parameters{1}{iTestCase});
+                nHiddenNeuron = str2num(parameters{2}{iTestCase});
+                functionType = str2num(parameters{3}{iTestCase});
+                learningRate = parameters{4}(iTestCase);
+                onlineMode = parameters{5}(iTestCase);
+                stoppingCondition = cell(1,2);
+                stoppingCondition{1} = parameters{6}(iTestCase);
+                stoppingCondition{2} = parameters{7}(iTestCase);
+                outputFolder = parameters{8}{iTestCase};
+                hdr_mlp_train(trainingDataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition, outputFolder);
+            end
         end        
     otherwise
         inputError = 1;
