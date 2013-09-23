@@ -1,4 +1,4 @@
-function [networkError networkMissRate] = hdr_mlp_test(networkFile, dataSetFile)
+function [networkMissRate networkError] = hdr_mlp_test(networkFile, dataSetFile)
 
 % HDR_MLP_TEST 
 %  [error missRate] = hdr_mlp_test(networkFile, dataSetFile) tests the

@@ -1,4 +1,4 @@
-function hdr_mlp_train(trainingDataSet, nHiddenLayer, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition)
+function hdr_mlp_train(trainingDataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition)
 
 % HDR_MLP_TRAIN Train a Multilayer Perceptron for solving the Handwritten Digit Recognition problem
 %  HDR_MLP_TRAIN(...) generates a Multilayer Perceptron and trains it using
@@ -37,11 +37,13 @@ function hdr_mlp_train(trainingDataSet, nHiddenLayer, nHiddenNeuron, functionTyp
 %      * After the number of epochs reaches maxEpoch
 %
 %
-%  Other m-files required: none
+%  Other m-files required: neuronActivationFunction.m,
+%  neuronDerivativeFunction.m
 %  Subfunctions: none
 %  MAT-files required: none
 %
-%  See also: HDR_MLP, HDR_MLP_TEST, LOADDATASET
+%  See also: HDR_MLP, HDR_MLP_TEST, LOADDATASET, NEURONACTIVATIONFUNCTION,
+%  NEURONDERIVATIVEFUNCTION
 
 % Author: André Augusto Geraldes
 % Email: andregeraldes@lara.unb.br
@@ -73,11 +75,11 @@ output = trainingDataSet{2};
 [nExample nInput] = size(input);
 [~, nOutput] = size(output);
 
-% nLayer contains the total number of layers in the neural network
-nLayer = nHiddenLayer + 1;
-
 % nNeuron is an array containing the number of neurons per layer
+% nLayer contains the total number of layers in the neural network
 nNeuron = [nHiddenNeuron nOutput];
+[~, nHiddenLayer] = size(nHiddenNeuron);
+nLayer = nHiddenLayer + 1;
 
 % maxEpochError
 maxEpochError = stoppingCondition{1};
