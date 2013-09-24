@@ -1,4 +1,4 @@
-function hdr_mlp_test_all(dataSetFile, outputFile)
+function result = hdr_mlp_test_all(dataSetFile, outputFile)
 
 allFiles = dir;
 [nFile ~] = size(allFiles);
@@ -9,8 +9,6 @@ matFiles = cell(nMatFile,1);
 for iFile = 1:nMatFile
     matFiles{iFile} = allFiles(iFile+2).name;
 end
-
-matFiles
 
 results = cell(1, nFile);
 
@@ -46,4 +44,11 @@ plot(controlVariableSorted, networkErrorSorted);
 subplot(1,2,2);
 plot(controlVariableSorted, networkMissRateSorted);
 
-save(outputFile, 'controlVariableSorted', 'networkErrorSorted', 'networkMissRateSorted', 'dataSetFile', 'matFiles');
+if(~strcmp(outputFile,'none'))
+    save(outputFile, 'controlVariableSorted', 'networkErrorSorted', 'networkMissRateSorted', 'dataSetFile', 'matFiles');
+end
+
+result = cell(1,3);
+result{1} = controlVariableSorted;
+result{2} = networkErrorSorted;
+result{3} = networkMissRateSorted;

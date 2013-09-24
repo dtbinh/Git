@@ -1,4 +1,4 @@
-function hdr_mlp_train(trainingDataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition, outputFolder)
+function hdr_mlp_train(dataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition, outputFolder)
 
 % HDR_MLP_TRAIN Train a Multilayer Perceptron for solving the Handwritten Digit Recognition problem
 %  HDR_MLP_TRAIN(...) generates a Multilayer Perceptron and trains it using
@@ -61,18 +61,33 @@ global stopTraining pauseTraining;
 % data set. The matrix dimensions are:
 %    M - Number of examples in the data set
 %    N - Number of inputs per example
-input = trainingDataSet{1};
+input = dataSet{1};
 
 % input is a matrix containing all the desired outputs for the entire 
 % training data set. The matrix dimensions are:
 %    M - Number of examples in the data set
 %    N - Number of outputs per example
-output = trainingDataSet{2};
+output = dataSet{2};
 
-% nExample stores the total number of examples in the data set
+% nDataSet is the size of the dataSet parameter. If nDataSet is greater
+% than 2, it means that not only the training data set is present but there
+% is also a validation data set available
+[~, nDataSet] = size(dataSet);
+if(nDataSet > 2)
+    validationDataSet = 1;
+    validationInput = dataSet{3};
+    validationOutput = dataSet{4};
+else
+    validationDataSet = 0;
+end
+
+% nExample stores the total number of examples in the training data set
+% nValidationExample stores the total number of examples in the validation
+% data set
 % nInput stores the number of inputs per example
 % nOutput stores the number of outputs per example
 [nExample nInput] = size(input);
+[nValidationExample ~] = size(validationInput);
 [~, nOutput] = size(output);
 
 % nNeuron is an array containing the number of neurons per layer
@@ -82,7 +97,7 @@ nNeuron = [nHiddenNeuron nOutput];
 nLayer = nHiddenLayer + 1;
 
 % maxEpochError
-maxEpochError = stoppingCondition{1};
+maxValidationMissRate = stoppingCondition{1};
 
 % maxEpochs
 maxEpoch = stoppingCondition{2};
@@ -146,9 +161,18 @@ epochError = 0;
 epochMissRate = 0;
 
 % networkError stores the progression of epochError 
-% networkMissRate stores the progression of epochMissRate
 networkError = zeros(1,maxEpoch);
+
+% networkMissRate stores the progression of epochMissRate
 networkMissRate = zeros(1,maxEpoch);
+
+% validationError stores the progression of epochError when measured in the
+% validation data set
+validationError = zeros(1,maxEpoch);
+
+% validationmissRate stores the progression of epochError when measured in 
+% the validation data set
+validationMissRate = zeros(1,maxEpoch);
 
 % Loop flag - It becomes 1 when the stopping condition is reached or the
 % user manually requests the program to stop
@@ -157,6 +181,8 @@ stopTraining = 0;
 % Pause flag - User request flag that allows pausing the training algorithm
 % for analyzing global variables
 pauseTraining = 0;
+
+programPaused = 0;
 
 %% Print all parameters on screen before training the network
 
@@ -189,8 +215,8 @@ fprintf('\n Once the network is trained it will be saved to the file %s\n', outp
 %% Prepare a figure for displaying the progression of the network performance
 
 errorFigure = figure;
-uicontrol('style','push', 'Position', [110 5 100 25], 'string','Pause Training','callback','global pauseTraining; pauseTraining = 1 - pauseTraining;');
-uicontrol('style','push', 'Position', [360 5 100 25], 'string','Stop Training','callback','global stopTraining; stopTraining = 1;');
+pauseButton = uicontrol('style','push', 'Position', [110 5 100 25], 'string','Pause Training','callback','global pauseTraining; pauseTraining = 1 - pauseTraining;');
+stopButton = uicontrol('style','push', 'Position', [360 5 100 25], 'string','Stop Training','callback','global stopTraining; stopTraining = 1;');
 
 %% Learning loop
 
@@ -243,12 +269,6 @@ for iEpoch = 1:maxEpoch
         if(networkClass ~= correctClass)
             epochMissRate = epochMissRate + 1.0;
         end
-
-        % Pause program execution, if a pauseTraining has been requested
-        while(pauseTraining)
-            pause(0.1);
-        end
-        
     end
     
     % If in batch mode, process the weight updates at the end of the epoch
@@ -260,18 +280,75 @@ for iEpoch = 1:maxEpoch
     end
 
     % Store the current value of epochError and epochMissRate for plotting
-    networkError(iEpoch) = epochError;
+    networkError(iEpoch) = epochError / nExample;
     networkMissRate(iEpoch) = epochMissRate / nExample;
     
+    % If a validation data set is present, evaluate the current performance
+    % of the network in it
+    if(validationDataSet)
+        
+        % Clear the error variables at the beginning of the epoch
+        epochError = 0;
+        epochMissRate = 0;
+        
+        % Iterate through all the examples of the training data set
+        for iExample = 1:nValidationExample
+            
+            % Initialize the first column of neuronOut with the inputs
+            neuronOut{1} = validationInput(iExample,:)';
+            
+            % Calculate the sum and output for each neuron of each layer
+            for iLayer = 1:nLayer
+                neuronSum{iLayer} = weight{iLayer} * [neuronOut{iLayer} ; 1];
+                neuronOut{iLayer+1} = neuronActivationFunction(neuronSum{iLayer}, functionType(iLayer));
+            end
+            
+            % Adds the current quadratic error in the epochError variable
+            epochError = epochError + sum((validationOutput(iExample,:)' - neuronOut{nLayer+1}).^2);
+            
+            % Verify if the network has correctly classifie this example
+            [~, correctClass] = max(validationOutput(iExample,:));
+            [~, networkClass] = max(neuronOut{nLayer+1});
+            if(networkClass ~= correctClass)
+                epochMissRate = epochMissRate + 1.0;
+            end
+        end
+        
+        % Store the current value of validationError and validationMissRate
+        % for plotting
+        validationError(iEpoch) = epochError / nValidationExample;
+        validationMissRate(iEpoch) = epochMissRate / nValidationExample;
+        
+        if(validationMissRate < maxValidationMissRate)
+            stopTraining = 1;
+        end
+    end
+    
+    % Pause program execution, if a pauseTraining has been requested
+    while(pauseTraining)
+        set(pauseButton, 'string', 'Resume Training');
+        programPaused = 1;
+        pause(0.1);
+    end
+    
+    if(programPaused)
+        set(pauseButton, 'string', 'Pause Training');
+        programPaused = 0;
+    end
+    
     % Update the networkError and networkMissRate graphs
-    if(mod(iEpoch,10) == 0)
+    if(mod(iEpoch,100) == 0)
         figure(errorFigure)
-        subplot(1,2,1); plot(networkError(1:iEpoch));
-        subplot(1,2,2); plot(networkMissRate(1:iEpoch));
+        subplot(1,2,1); 
+        hold off; plot(networkError(1:iEpoch), '-b');
+        hold on;  plot(validationError(1:iEpoch), '-r');
+        subplot(1,2,2); 
+        hold off; plot(networkMissRate(1:iEpoch), '-b');
+        hold on;  plot(validationMissRate(1:iEpoch), '-r');
     end
     
     % Stop program execution, if a stopTraining has been requested
-    if(stopTraining || epochError < maxEpochError)
+    if(stopTraining)
         break;
     end
     
@@ -280,5 +357,5 @@ elapsedTime = toc(timeStart);
 
 %% Store the generated network and its parameters in an external file
 
-save(outputFileName, 'weight', 'networkError', 'networkMissRate', 'elapsedTime', 'nLayer', 'nNeuron', 'functionType', 'iEpoch', 'learningRate', 'onlineMode');
+save(outputFileName, 'weight', 'elapsedTime', 'iEpoch', 'networkError', 'networkMissRate', 'validationError', 'validationMissRate', 'nLayer', 'nNeuron', 'functionType', 'learningRate', 'onlineMode');
 

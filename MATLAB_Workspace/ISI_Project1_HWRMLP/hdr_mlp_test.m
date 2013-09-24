@@ -76,6 +76,7 @@ for iExample = 1:nExample
 end
 
 % Convert the network miss rate to a percentage value
+networkError = networkError / nExample;
 networkMissRate = networkMissRate / nExample;
 
 % Generate output cell array grouping the control variable with the network

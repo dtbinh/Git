@@ -34,7 +34,8 @@ close all;
 
 %% Default Parameters
 
-d_dataSetFile = 'pendigits.tra';
+d_trainingFile = 'pendigits.tra';
+d_validationFile = 'pendigits.val';
 d_nHiddenNeuron = [16];
 d_functionType = [2 2];
 d_learningRate = 0.01;
@@ -58,11 +59,17 @@ switch(nargin)
         if(varargin{1} ~= 'd')
             inputError = 1;   
         else
-            trainingDataSet = loadDataSet(d_dataSetFile);
+            trainingDataSet = loadDataSet(sprintf('datasets/%s', d_trainingFile));
+            validationDataSet = loadDataSet(sprintf('datasets/%s', d_validationFile));
+            completeDataSet = cell(1,4);
+            completeDataSet{1} = trainingDataSet{1};
+            completeDataSet{2} = trainingDataSet{2};
+            completeDataSet{3} = validationDataSet{1};
+            completeDataSet{4} = validationDataSet{2};
             stoppingCondition = cell(1,2);
             stoppingCondition{1} = d_maxEpochErrr;
             stoppingCondition{2} = d_maxEpoch;
-            hdr_mlp_train(trainingDataSet, d_nHiddenNeuron, d_functionType, d_learningRate, d_onlineMode, stoppingCondition, d_outputFolder);
+            hdr_mlp_train(completeDataSet, d_nHiddenNeuron, d_functionType, d_learningRate, d_onlineMode, stoppingCondition, d_outputFolder);
         end
         
     % Case 2 - run hdr_mlp loading the parameters from an external file    
@@ -71,21 +78,30 @@ switch(nargin)
             inputError = 1;
         else
             inputFile = fopen(varargin{2});
-            parameters = textscan(inputFile,'%s %s %s %f %d %f %d %s', 'delimiter', ',');
+            parameters = textscan(inputFile,'%s %s %s %s %f %d %f %d %s', 'delimiter', ',');
             fclose(inputFile);
             [~, nTestCase] = size(parameters);
+            
             for iTestCase = 1:nTestCase
-                trainingDataSet = loadDataSet(parameters{1}{iTestCase});
-                nHiddenNeuron = str2num(parameters{2}{iTestCase});
-                functionType = str2num(parameters{3}{iTestCase});
-                learningRate = parameters{4}(iTestCase);
-                onlineMode = parameters{5}(iTestCase);
+                trainingDataSet = loadDataSet(sprintf('datasets/%s',parameters{1}{iTestCase}));
+                validationDataSet = loadDataSet(sprintf('datasets/%s',parameters{2}{iTestCase}));
+                completeDataSet = cell(1,4);
+                completeDataSet{1} = trainingDataSet{1};
+                completeDataSet{2} = trainingDataSet{2};
+                completeDataSet{3} = validationDataSet{1};
+                completeDataSet{4} = validationDataSet{2};
+            
+                nHiddenNeuron = str2num(parameters{3}{iTestCase});
+                functionType = str2num(parameters{4}{iTestCase});
+                learningRate = parameters{5}(iTestCase);
+                onlineMode = parameters{6}(iTestCase);
                 stoppingCondition = cell(1,2);
-                stoppingCondition{1} = parameters{6}(iTestCase);
-                stoppingCondition{2} = parameters{7}(iTestCase);
-                outputFolder = parameters{8}{iTestCase};
-                hdr_mlp_train(trainingDataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition, outputFolder);
+                stoppingCondition{1} = parameters{7}(iTestCase);
+                stoppingCondition{2} = parameters{8}(iTestCase);
+                outputFolder = parameters{9}{iTestCase};
+                hdr_mlp_train(completeDataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition, outputFolder);
             end
+            
         end        
     otherwise
         inputError = 1;
