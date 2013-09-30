@@ -1,3 +1,6 @@
 *.pdf
 *.mat
 *.asv
+Thumbs.db
+matlab-toolboxes-robotics-vision
+

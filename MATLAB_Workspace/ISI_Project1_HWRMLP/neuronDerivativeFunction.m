@@ -14,6 +14,7 @@ function outputArray = neuronDerivativeFunction(inputArray, functionType)
 %           1  --  Linear Function
 %           2  --  Logistic Function
 %           3  --  Hyperbolic Tangent (scaled to [0,1])
+%           4  --  Hyperbolic Tangent ([-1,1])
 %
 %  Other m-files required: none
 %  Subfunctions: none
@@ -38,6 +39,10 @@ switch(functionType)
         outputArray = (inputArray .* (1-inputArray));
         
     % Hyerbolic Tangent (scaled to [0,1])
-    otherwise
+    case 3
         outputArray = 0.5 .* sech(inputArray) .* sech(inputArray);
+    
+    % Hyerbolic Tangent ([-1,1])
+    otherwise
+        outputArray = sech(inputArray) .* sech(inputArray);
 end

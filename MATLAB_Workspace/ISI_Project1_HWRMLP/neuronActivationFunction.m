@@ -12,6 +12,7 @@ function neuronOut = neuronActivationFunction(neuronSum, functionType)
 %           1  --  Linear Function
 %           2  --  Logistic Function
 %           3  --  Hyperbolic Tangent (scaled to [0,1])
+%           4  --  Hyperbolic Tangent ([-1,1])
 %
 %  Other m-files required: none
 %  Subfunctions: none
@@ -34,6 +35,10 @@ switch(functionType)
         neuronOut = (1.0 ./ (1+exp(-neuronSum)));
         
     % Hyerbolic Tangent (scaled to [0,1])
-    otherwise
+    case 3
         neuronOut = 0.5 * (1 + tanh(neuronSum));
+        
+    % Hyerbolic Tangent ([-1,1])
+    otherwise
+        neuronOut = tanh(neuronSum);        
 end

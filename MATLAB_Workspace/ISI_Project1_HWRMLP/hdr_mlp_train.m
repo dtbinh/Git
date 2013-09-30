@@ -200,8 +200,10 @@ for iLayer = 1:nLayer
         fprintf('\t\t Layer %d: Linear Function\n',iLayer);
     elseif(functionType(iLayer) == 2)
         fprintf('\t\t Layer %d: Logistic Function\n',iLayer);
+    elseif(functionType(iLayer) == 3)
+        fprintf('\t\t Layer %d: Hyperbolic Tangent (scaled to [0,1])\n',iLayer);    
     else
-        fprintf('\t\t Layer %d: Hyperbolic Tangent (scaled to [0,1])\n',iLayer);
+        fprintf('\t\t Layer %d: Hyperbolic Tangent ([-1,1])\n',iLayer);
     end
 end
 fprintf('\t Learning rate: %f\n', learningRate);
@@ -242,7 +244,7 @@ for iEpoch = 1:maxEpoch
         % Calculate the error of the final layer of neurons and
         % backpropagate it to the entire network
         for iLayer = nLayer:-1:1
-            if(iLayer == 2)
+            if(iLayer == nLayer)
                 neuronError{iLayer} = (output(iExample,:)' - neuronOut{iLayer+1});
             else
                 neuronError{iLayer} = weight{iLayer+1}(:,1:nNeuron(iLayer))' * (neuronError{iLayer+1} .* neuronDerivativeFunction(neuronOut{iLayer+2}, functionType(iLayer+1)));
@@ -337,7 +339,7 @@ for iEpoch = 1:maxEpoch
     end
     
     % Update the networkError and networkMissRate graphs
-    if(mod(iEpoch,100) == 0)
+    if(mod(iEpoch,300) == 0)
         figure(errorFigure)
         subplot(1,2,1); 
         hold off; plot(networkError(1:iEpoch), '-b');

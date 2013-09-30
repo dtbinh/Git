@@ -80,7 +80,7 @@ switch(nargin)
             inputFile = fopen(varargin{2});
             parameters = textscan(inputFile,'%s %s %s %s %f %d %f %d %s', 'delimiter', ',');
             fclose(inputFile);
-            [~, nTestCase] = size(parameters);
+            [nTestCase ~] = size(parameters{1});
             
             for iTestCase = 1:nTestCase
                 trainingDataSet = loadDataSet(sprintf('datasets/%s',parameters{1}{iTestCase}));

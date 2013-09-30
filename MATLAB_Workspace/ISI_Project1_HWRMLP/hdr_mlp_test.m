@@ -83,9 +83,13 @@ networkMissRate = networkMissRate / nExample;
 % error and network missrate
 
 resultCell = cell(1,3);
+% resultCell{1} = 100*nNeuron(1)+nNeuron(2);
+resultCell{1} = nNeuron(1);
 resultCell{2} = networkError;
 resultCell{3} = networkMissRate;
 
 %%%% OBS: This cell should contain the control variable. This line should
 %%%% be modified for each evaluation of the trained neural networks
-resultCell{1} = network.learningRate;
+% resultCell{1} = cell(1,2);
+% resultCell{1}{1} = nNeuron(1);
+% resultCell{1}{2} = nNeuron(2);
