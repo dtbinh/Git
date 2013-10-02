@@ -1,7 +1,7 @@
 function outputArray = neuronDerivativeFunction(inputArray, functionType)
 
 % NEURONDERIVATIVEFUNCTION
-%    neuronOut = NEURONDERIVATIVEFUNCTION(neuronSum, functionType)
+%    neuronOut = neuronDerivativeFunction(neuronSum, functionType)
 %    calculates the derivative of the neuron's activation function, 
 %    resulting from applying the derivative function to the neuronSum. The 
 %    derivative function applied is selected from a set of pre-defined 
@@ -35,7 +35,6 @@ switch(functionType)
     
     % Logistic Function
     case 2
-%         outputArray = 2.0 * (inputArray .* (1-inputArray));
         outputArray = (inputArray .* (1-inputArray));
         
     % Hyerbolic Tangent (scaled to [0,1])

@@ -1,40 +1,46 @@
 function hdr_mlp_train(dataSet, nHiddenNeuron, functionType, learningRate, onlineMode, stoppingCondition, outputFolder)
 
-% HDR_MLP_TRAIN Train a Multilayer Perceptron for solving the Handwritten Digit Recognition problem
-%  HDR_MLP_TRAIN(...) generates a Multilayer Perceptron and trains it using
-%  the backpropagation learning algorithm. The trained MLP performs a
-%  pattern recognition task for solving the handwritten digit recognition
-%  problem. 
+% HDR_MLP_TRAIN Handwritten Digit Recognition Multilayer Perceptron
+%    HDR_MLP_TRAIN(...) generates a Multilayer Perceptron and trains it 
+%    using the backpropagation learning algorithm. The trained MLP is   
+%    supposed to perform a pattern recognition task for solving the  
+%    handwritten digit recognition problem. 
 %
-%  During the training the cummulative quadratic error and the 
-%  misclassification rate along the epochs are plotted. Training stops when
-%  the quadratic error reaches a treshold or the maximum number of epochs
-%  is reached. If required, the user can manually stop the training. At the 
-%  end of the training, the trained network is saved to a mat file.
+%    During the training the cummulative quadratic error and the 
+%    misclassification rate along the epochs are plotted. Training stops 
+%    when the misclassification rate in the validation data set (if
+%    available) reaches a threshold or the maximum number of epochs is
+%    reached. If required, the user can manually stop the training. At the  
+%    end of the training, the trained network is saved to a mat file.
 %
-%  Inputs:
-%     trainingDataSet - A cell array containing both the inputs and the
-%                       desired outputs matrices
-%     nHiddenLayer - The number of desired hidden layers in the MLP
-%     nHiddenNeuron - An array with the number of neurons per hidden layer
-%     functionType - An array with the selection (from pre-defined options)
+%    INPUTS
+%    ------
+%      dataSet: A cell array containing two or four matrices. The first two
+%               matrices are the inputs and the desired outputs for the
+%               training data set. The other two (when available) are the
+%               inputs and the desired outputs for the validation data set.
+%
+%      nHiddenNeuron: An array with the number of neurons per hidden layer
+%
+%      functionType: An array with the selection (from pre-defined options)
 %                    of activation function for each layer
+%
 %         functionType = 1 -> Linear Function
 %         functionType = 2 -> Logistic Function
-%         functionType = 3 -> Hyperbolic Tangent
-%     learningRate - Scale factor for the weight updates step size
-%     onlineMode - A flag to indicate if the weights should be updated
-%     after each example or only at the end of the epoch
-%     stoppingCondition - A cell array containing the following parameters
-%        * maxEpochError
-%        * maxEpoch
+%         functionType = 3 -> Hyperbolic Tangent (scaled to [0 1])
+%         functionType = 4 -> Hyperbolic Tangent
 %
-%  Training Stop Condition:
-%    The network training is stopped when one or more of the following
-%    conditions becomes true:
-%      * When the cumulated quadratic error throughout an entire epoch is 
-%        smaller than maxEpochError;
-%      * After the number of epochs reaches maxEpoch
+%      learningRate: Scale factor for the weight updates step size
+%
+%      onlineMode: A flag to indicate if the weights should be updated
+%                  after each example or only at the end of the epoch
+%
+%      stoppingCondition: A cell array containing two parameters. The first
+%                         is threshold value for the misclassification rate
+%                         in the validation data set. The second is the
+%                         maximum number of epochs.
+%
+%      outputFolder: A string to be prepended to the output file name
 %
 %
 %  Other m-files required: neuronActivationFunction.m,
@@ -63,7 +69,7 @@ global stopTraining pauseTraining;
 %    N - Number of inputs per example
 input = dataSet{1};
 
-% input is a matrix containing all the desired outputs for the entire 
+% output is a matrix containing all the desired outputs for the entire 
 % training data set. The matrix dimensions are:
 %    M - Number of examples in the data set
 %    N - Number of outputs per example
@@ -73,6 +79,13 @@ output = dataSet{2};
 % than 2, it means that not only the training data set is present but there
 % is also a validation data set available
 [~, nDataSet] = size(dataSet);
+
+% validationDataSet is a boolean flag indicating if a validation data set
+% is available
+% validationInput is a matrix containing all the input data for the entire  
+% validation data set
+% validationOutput is a matrix containing all the desired outputs for the   
+% entire validation data set
 if(nDataSet > 2)
     validationDataSet = 1;
     validationInput = dataSet{3};
@@ -81,14 +94,16 @@ else
     validationDataSet = 0;
 end
 
+% nInput stores the number of inputs per example
+% nOutput stores the number of outputs per example
 % nExample stores the total number of examples in the training data set
 % nValidationExample stores the total number of examples in the validation
 % data set
-% nInput stores the number of inputs per example
-% nOutput stores the number of outputs per example
 [nExample nInput] = size(input);
-[nValidationExample ~] = size(validationInput);
 [~, nOutput] = size(output);
+if(validationDataSet)
+    [nValidationExample ~] = size(validationInput);
+end
 
 % nNeuron is an array containing the number of neurons per layer
 % nLayer contains the total number of layers in the neural network
@@ -96,13 +111,18 @@ nNeuron = [nHiddenNeuron nOutput];
 [~, nHiddenLayer] = size(nHiddenNeuron);
 nLayer = nHiddenLayer + 1;
 
-% maxEpochError
+% maxValidationMissRate is the threshold value for the miss rate of the
+% validation data set. Training stops if a validation data set is available 
+% and the validationMissRate becomes lower than maxValidationMissRate
 maxValidationMissRate = stoppingCondition{1};
 
-% maxEpochs
+% maxEpochs is the maximum number of epochs for which the training can run
+% if the first stopping condition is not achieved
 maxEpoch = stoppingCondition{2};
 
-% outputFileName is a formated string containing the current date and time
+% outputFileName is the name of the file to which the network will be saved
+% once the training is over. It is a formated string containing a flag
+% outputFolder and the current date and time
 outputFileName = sprintf('networks/%s/%s.mat', outputFolder, datestr(now,30));
 
 %% Initialize the data structure used to represent the neural network
@@ -135,8 +155,10 @@ end
 %    M - number of neurons in the layer 'i'
 %    N - number of neurons in the layer 'i-1' + 1 (for the bias)
 %    (for the first layer of neurons, N = number of inputs)
-% deltaWeight is a cell array the stores the weight updates for one
+% deltaWeight is a cell array that stores the weight updates for one
 % iteration of the learning algorithm. It has the same dimensions of weight
+% wscale is a scale factor for initializing the weight matrices. It is
+% calculated as 1 / 10N per default
 weight = cell(1,nLayer);
 deltaWeight = cell(1,nLayer);
 
@@ -182,6 +204,8 @@ stopTraining = 0;
 % for analyzing global variables
 pauseTraining = 0;
 
+% programPaused is a flag that becomes 1 after the program is paused. It is
+% used to update pauseButton string after the program is unpaused
 programPaused = 0;
 
 %% Print all parameters on screen before training the network
@@ -265,7 +289,7 @@ for iEpoch = 1:maxEpoch
         % Adds the current quadratic error in the epochError variable
         epochError = epochError + sum((output(iExample,:)' - neuronOut{nLayer+1}).^2);
         
-        % Verify if the network has correctly classifie this example        
+        % Verify if the network has correctly classified this example        
         [~, correctClass] = max(output(iExample,:));
         [~, networkClass] = max(neuronOut{nLayer+1});
         if(networkClass ~= correctClass)
@@ -321,6 +345,7 @@ for iEpoch = 1:maxEpoch
         validationError(iEpoch) = epochError / nValidationExample;
         validationMissRate(iEpoch) = epochMissRate / nValidationExample;
         
+        % Stopping condition
         if(validationMissRate < maxValidationMissRate)
             stopTraining = 1;
         end
@@ -333,18 +358,21 @@ for iEpoch = 1:maxEpoch
         pause(0.1);
     end
     
+    % If unpausing, update the pauseButton string changin it back to "Pause
+    % Training"
     if(programPaused)
         set(pauseButton, 'string', 'Pause Training');
         programPaused = 0;
     end
     
-    % Update the networkError and networkMissRate graphs
-    if(mod(iEpoch,300) == 0)
+    % Update the networkError and networkMissRate graphs once every 100
+    % epochs
+    if(mod(iEpoch,1000) == 0)
         figure(errorFigure)
-        subplot(1,2,1); 
+        subplot(121); 
         hold off; plot(networkError(1:iEpoch), '-b');
         hold on;  plot(validationError(1:iEpoch), '-r');
-        subplot(1,2,2); 
+        subplot(122); 
         hold off; plot(networkMissRate(1:iEpoch), '-b');
         hold on;  plot(validationMissRate(1:iEpoch), '-r');
     end

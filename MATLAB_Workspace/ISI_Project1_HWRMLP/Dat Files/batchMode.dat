@@ -1,0 +1,12 @@
+pendigits.tra , pendigits.val , [28] , [2 2] , 0.000001 , 0 , 0.005 , 5000 , batchMode
+pendigits.tra , pendigits.val , [28] , [2 2] , 0.000010 , 0 , 0.005 , 5000 , batchMode
+pendigits.tra , pendigits.val , [28] , [2 2] , 0.000100 , 0 , 0.005 , 5000 , batchMode
+pendigits.tra , pendigits.val , [28] , [2 2] , 0.001000 , 0 , 0.005 , 5000 , batchMode
+
+pendigits.tra , pendigits.val , [75] , [2 2] , 0.000001 , 0 , 0.005 , 5000 , batchMode
+pendigits.tra , pendigits.val , [75] , [2 2] , 0.000010 , 0 , 0.005 , 5000 , batchMode
+pendigits.tra , pendigits.val , [75] , [2 2] , 0.000100 , 0 , 0.005 , 5000 , batchMode
+pendigits.tra , pendigits.val , [75] , [2 2] , 0.001000 , 0 , 0.005 , 5000 , batchMode
+pendigits.tra , pendigits.val , [75] , [2 2] , 0.001500 , 0 , 0.005 , 5000 , batchMode
+pendigits.tra , pendigits.val , [75] , [2 2] , 0.002000 , 0 , 0.005 , 5000 , batchMode
+pendigits.tra , pendigits.val , [75] , [2 2] , 0.006300 , 0 , 0.005 , 5000 , batchMode

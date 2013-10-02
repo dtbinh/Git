@@ -1,7 +1,7 @@
 function neuronOut = neuronActivationFunction(neuronSum, functionType)
 
 % NEURONACTIVATIONFUNCTION
-%    neuronOut = NEURONACTIVATIONFUNCTION(neuronSum, functionType)
+%    neuronOut = neuronActivationFunction(neuronSum, functionType)
 %    calculates the output of a given neuron, resulting from the neuron's
 %    activation function applied to the neuronSum. The activation function
 %    applied is selected from a set of pre-defined functions. The argument
@@ -18,7 +18,7 @@ function neuronOut = neuronActivationFunction(neuronSum, functionType)
 %  Subfunctions: none
 %  MAT-files required: none
 %
-% See also: HDR_MLP_TRAIN 
+% See also: HDR_MLP_TRAIN, NEURONDERIVATIVEFUNCTION
 
 % Author: André Augusto Geraldes
 % Email: andregeraldes@lara.unb.br

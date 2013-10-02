@@ -1,26 +1,32 @@
 function dataSet = loadDataSet(dataSetFileName)
 
-% LOADDATASET
-%    dataset = LOADDATASET(dataSetFileName) reads the external file and
+% LOADDATASET Load data set from file into cell array
+%    dataset = loadDataSet(dataSetFileName) reads an external file and
 %    parses it's data into a cell array containing two matrices: the
 %    'inputMatrix' and the 'ouputMatrix'. Each row of the outputMatrix
-%    contains the desired output of the neural network, in respect to the
-%    set of inputs in the corresponding row of the 'inputMatrix'.
+%    contains the desired output of the neural network, when the
+%    corresponding row of the 'inputMatrix' is presented as input.
+%
+%    Hard-coded parameters:
+%        class: 1-D array containing all the available classes for the
+%        output values of the data set. The values can be numerical or
+%        characters and can be presented in any order. Every time a 
+%        different type of data set is being loaded, this parameter must
+%        be updated. 
 %
 %  Other m-files required: none
 %  Subfunctions: none
 %  MAT-files required: none
 %
-% See also: HDR_MLP, HDR_MLP_TRAIN 
+% See also: HDR_MLP, SAVEDATASET, RESAMPLEDATASET, RESAMPLEDATASETANDSAVE
 
 % Author: André Augusto Geraldes
 % Email: andregeraldes@lara.unb.br
-% September 2013; Last revision: 22-September-2013
+% September 2013; Last revision: 29-September-2013
 
 
-% Parameter - the set of available classes for the output values of the
-% dataset. It has been hard-coded for convenience as this parameter doesn't
-% change often.
+% [hard-coded parameter] The set of available classes for the output values
+% of the dataset.
 class = [0 1 2 3 4 5 6 7 8 9];
 
 % Read the entire data set from file
