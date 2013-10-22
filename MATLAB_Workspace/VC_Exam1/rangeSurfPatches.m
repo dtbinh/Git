@@ -22,8 +22,9 @@ gaussianSigma = 1;
 gaussianWindow = 5;
 
 % [hard-coded parameter] Thresholds to round small values of K and H
-Kthreshold = 10^(-5);
-Hthreshold = 10^(-5);
+threshold = 10^(-3);
+Kthreshold = threshold;
+Hthreshold = threshold;
 
 % Apply Gaussian smoothing
 filteredImage = gaussianFilter(rangeImage, gaussianSigma, gaussianWindow);
@@ -57,8 +58,8 @@ for i = 1:nRow
 end
 
 % Round the small values of K and H to 0
-% K(abs(K) < Kthreshold) = 0;
-% H(abs(H) < Hthreshold) = 0;
+K(abs(K) < Kthreshold) = 0;
+H(abs(H) < Hthreshold) = 0;
 
 %% Classifiy each pixel of the range image according to the values of H and K
 

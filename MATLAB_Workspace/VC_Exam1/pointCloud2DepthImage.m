@@ -22,8 +22,8 @@ function zi = pointCloud2DepthImage(pointCloud, resolution)
 %% Extract the vectors X, Y and Z from the point cloud
 
 x = pointCloud(:,1);
-y = pointCloud(:,2);
-z = pointCloud(:,3);
+y = pointCloud(:,3);
+z = pointCloud(:,2);
 
 %% Generate range vectors tx and ty based on X, Y and the selected resolution
 
@@ -38,4 +38,5 @@ ty = yMin:resolution:yMax;
 %% Generate the depth image using the functions meshgrid and griddatta
 
 [xi yi] = meshgrid(tx, ty);
-zi = griddata(x, y, z, xi, yi);
+% zi = griddata(x, y, z, xi, yi);
+zi = griddata(x, y, z, xi, yi, 'cubic');
