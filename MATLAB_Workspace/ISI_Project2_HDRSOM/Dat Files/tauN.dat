@@ -1,0 +1,5 @@
+pendigits.tra , pendigits.val ,  25, 0.1, 1.0, 100000, 1000,  5000, tauN
+pendigits.tra , pendigits.val ,  25, 0.1, 1.0, 100000,  500,  5000, tauN
+pendigits.tra , pendigits.val ,  25, 0.1, 1.0, 100000,  250,  5000, tauN
+pendigits.tra , pendigits.val ,  25, 0.1, 1.0, 100000,  125,  5000, tauN
+pendigits.tra , pendigits.val ,  25, 0.1, 1.0, 100000,   62,  5000, tauN
