@@ -72,6 +72,7 @@ switch(nargin)
             
             % Run hdr_som_train
             hdr_som_train(completeDataSet, mapSize, learningParameters, maxEpoch, outputFolder);
+%             hdr_som_train(completeDataSet, mapSize, learningParameters, maxEpoch, outputFolder);
         end
         
     % nargin > 1: Invalid option- display error message for user

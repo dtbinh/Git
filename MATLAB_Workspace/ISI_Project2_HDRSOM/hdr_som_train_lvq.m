@@ -1,4 +1,4 @@
-function hdr_som_train(dataSet, mapSize, learningParameters, maxEpoch, outputFolder)
+function hdr_som_train_lvq(mapFile, dataSet, learningParameters, maxEpoch)
 
 %
 % FUNCTION DESCRIPTION
@@ -14,7 +14,13 @@ global stopTraining pauseTraining;
 
 % [hard-coded parameter] updateRate
 % The performance graphs are updated every updateRate epochs
-updateRate = 100;
+updateRate = 1;
+
+% Load the self-organized map from mapFile. 
+mapStruct = load(mapFile);
+map = mapStruct.map;
+mapLabel = mapStruct.mapLabel;
+mapSize = mapStruct.mapSize;
 
 % input is a matrix containing all the input data for the entire training
 % data set. The matrix dimensions are:
@@ -51,43 +57,24 @@ end
 % nExample stores the total number of examples in the training data set
 [nExample nInput] = size(input);
 
-% L0 is the initial value of the learning rate L (ranging from 0 to 1)
-L0 = learningParameters{1};
-
-% N0 i the initial value of the size of the neighborhood N around the
-% wining neuron, within which all neurons should be updated. It is given as
-% a fraction of mapSize.
-N0 = round(((mapSize-1)/2)*learningParameters{2});
+% L0 is the initial value of the learning rate L (ranging from 0 to 1). It
+% is initialized as a ratio Lratio of the last used value of L during the
+% training of the self-organizing map
+Lratio = learningParameters{1};
+L0 = Lratio * mapStruct.L0*exp(-double((mapStruct.iEpoch-1))/mapStruct.tauL);
 
 % tauL is the time constant associated to the decrease of L. It is
-% calculated so that L becomes L0/100 at iEpoch = learningParameter{3}
-tauL = learningParameters{3} / log(100);
-
-% tauL is the time constant associated to the decrease of N. It is
-% calculated so that N becomes 0 at iEpoch = learningParameter{4}
-tauN = learningParameters{4} / log(double(2*N0));            
+% calculated so that L becomes L0/100 at iEpoch = learningParameter{2}
+tauLratio = learningParameters{2};
+tauL = tauLratio * mapStruct.tauL;
             
 % outputFileName is the name of the file to which the map will be saved
 % once the training is over. It is a formated string containing a flag
 % outputFolder and the current date and time
-outputFileName = sprintf('maps/%s/%s.mat', outputFolder, datestr(now,30));
+outputFileName = sprintf('LVQ-%s', mapFile);
 
 
 %% Initialize the data structure used to represent the self-organizing map
-
-% wScale is a scale factor for initializing all the weights of the
-% self-organizing map. It is calculated as 1 per default
-wScale = 1;
-
-% map is a 3D matriz reprsenting all the weights of the self-organizing
-% map. It can be seen as a MxM matriz where each element is a 1xN array of
-% weights (M = mapSize and N = nInput). It is initialized with random
-% values rangin from -wScale to wScale.
-map = rand(mapSize, mapSize, nInput) * 2*wScale - wScale;
-
-% mapLabel is a matrix containing the label of each neuron in map. It is a
-% mapSize x mapSize matrix and it is generated using the labelMap function.
-mapLabel = zeros(mapSize, mapSize);
 
 % inputVector is 1x1xnInput vector for parsing each example of the data set
 inputVector = zeros(1, 1, nInput);
@@ -112,12 +99,6 @@ validationMissRate = zeros(1,maxEpoch);
 % networkError stores the progression of epochError 
 learningRate = zeros(1,maxEpoch);
 
-% networkMissRate stores the progression of epochMissRate
-neighborhoodSize = zeros(1,maxEpoch);
-
-% networkMissRate stores the progression of epochMissRate
-networkMapUpdate = zeros(1,maxEpoch);
-
 % Loop flag - It becomes 1 when the stopping condition is reached or the
 % user manually requests the program to stop
 stopTraining = 0;
@@ -132,11 +113,10 @@ programPaused = 0;
 
 %% Print all parameters on screen before training the network
 
-fprintf('\nFunction HDR_SOM_train\n\n');
-fprintf('Starting to train the Self-Organizing Map with the parameters:\n');
-fprintf('\t Map Size: %d\n', mapSize);
+fprintf('\nFunction HDR_SOM_LVQ\n\n');
+fprintf('Optimizing the trained Self-Organizing Map with the parameters:\n');
+fprintf('\t Map Size: %d\n', mapStruct.mapSize);
 fprintf('\t Learning Rate: L = %f * exp(-t / %f)\n', L0, tauL);
-fprintf('\t Neighboorhood Size: N = %f * exp(-t / %f)\n', N0, tauN);
 fprintf('\n Once the map is trained it will be saved to the file %s\n', outputFileName);
 
 %% Prepare a figure for displaying the progression of the network performance
@@ -151,18 +131,13 @@ stopButton = uicontrol('style','push', 'Position', [360 5 100 25], 'string','Sto
 timeStart = tic;
 
 % For each epoch:
-for iEpoch = 1:maxEpoch
+for iEpoch = 1:maxEpoch  
     
-    % Update the values of L and N
-    t = double((iEpoch-1));
-    L = L0*exp(-t/tauL);
-    N = round(N0*exp(-t/tauN));
+    % Update the value of L
+    L = L0*exp(-double((iEpoch-1))/tauL);
     
-    % Store the values of L and N for plotting
+    % Store the values of L for plotting
     learningRate(iEpoch) = L;
-    neighborhoodSize(iEpoch) = N;
-    
-    epochUpdate = 0;
     
     % For each example of the training data set:
     for iExample = 1:nExample
@@ -170,43 +145,26 @@ for iEpoch = 1:maxEpoch
         % Retrieve the current example and parse it into inputVector
         inputVector(1,1,:) = input(iExample,:);
         
-        expandedInput = repmat(inputVector,mapSize);
-        
         % Compute the euclidian distance between the each neuron an the input
-        distance = sqrt(sum((map-expandedInput).^2, 3));
+        distance = sqrt(sum((map-repmat(inputVector,mapSize)).^2, 3));
         
         % Find the closest neuron to the input
         [r c] = find(distance == min(min(distance)));
         
-        % Find the neighborhood of of width 2*N+1 centered in the wining 
-        % neuron (r(1), c(1))
-        rmin = max(1      , r(1)-N);
-        rmax = min(mapSize, r(1)+N);
-        cmin = max(1      , c(1)-N);
-        cmax = min(mapSize, c(1)+N);
-        
-        % Generate the maskMatrix containing L inside the neighborhood and
-        % zeros elsewhere
-        LMatrix = L*ones(size(map));
-        maskMatrix = zeros(size(map));
-        maskMatrix(rmin:rmax, cmin:cmax,:) = LMatrix(rmin:rmax, cmin:cmax,:);
-        
-        % Update the weights inside the neighborhood
-        mapUpdate = maskMatrix.*(expandedInput-map);
-        epochUpdate = epochUpdate + sum(sum(sum(mapUpdate)));
-        map = map + mapUpdate;
+        % Compare the classes of the example and the wining neuron
+        if(mapLabel(r(1), c(1)) == output(iExample))
+            % Move the wining neuron closer to the example
+            map(r(1), c(1), :) = map(r(1), c(1), :) + L*(inputVector(1,1,:)- map(r(1), c(1), :));
+        else
+            % Move the wining neuron appart from the example
+            map(r(1), c(1), :) = map(r(1), c(1), :) - L*(inputVector(1,1,:)- map(r(1), c(1), :));
+        end
     end
-    
-    networkMapUpdate(iEpoch) = epochUpdate;
-    
-    % At the end of the epoch, label the current map
-    mapLabel = labelMap(map, input, output);
     
     % Measure the current map's performance in the training data set
     [error missRate] = testMap(map, mapLabel, input, output);
     networkError(iEpoch) = error;
     networkMissRate(iEpoch) = missRate;
-    
     
     % Measure the current map's performance in the validation data set
     if(validationDataSet)
@@ -218,18 +176,14 @@ for iEpoch = 1:maxEpoch
     % Update the networkError and networkMissRate graphs
     if(mod(iEpoch, updateRate) == 0)
         figure(errorFigure)
-        subplot(3,3,[1 4 7]); 
+        subplot(1,3,1); 
         hold off; plot(networkError(1:iEpoch), '-b');
         hold on;  plot(validationError(1:iEpoch), '-r');
-        subplot(3,3,[2 5 8]); 
+        subplot(1,3,2); 
         hold off; plot(networkMissRate(1:iEpoch), '-b');
         hold on;  plot(validationMissRate(1:iEpoch), '-r');
-        subplot(3,3,3); 
+        subplot(1,3,3); 
         plot(learningRate(1:iEpoch));
-        subplot(3,3,6); 
-        plot(neighborhoodSize(1:iEpoch));
-        subplot(3,3,9); 
-        plot(networkMapUpdate(1:iEpoch));
     end    
     
     % Pause program execution, if a pauseTraining has been requested
@@ -252,11 +206,20 @@ for iEpoch = 1:maxEpoch
     end    
     
 end
-
 elapsedTime = toc(timeStart);
+fprintf('End of LVQ optimization! Total time = %f\n', elapsedTime);
+
+newMapLabel = labelMap(map, input, output);
 
 %% Store the generated map and its parameters in an external file
 
-fprintf('End of training! Total time = %f\n', elapsedTime);
+totalTrainingTime = elapsedTime + mapStruct.elapsedTime;
+totalTrainingEpoch = iEpoch + mapStruct.iEpoch;
 
-save(outputFileName, 'map', 'mapLabel', 'elapsedTime', 'iEpoch', 'networkError', 'networkMissRate', 'validationError', 'validationMissRate', 'mapSize', 'L0', 'tauL', 'N0', 'tauN');
+totalNetworkError = [mapStruct.networkError networkError];
+totalNetworkMissRate = [mapStruct.networkMissRate networkMissRate];
+
+totalValidationError = [mapStruct.validationError validationError];
+totalValidationMissRate = [mapStruct.validationMissRate validationMissRate];
+
+save(outputFileName, 'map', 'mapLabel', 'newMapLabel', 'totalTrainingTime', 'totalTrainingEpoch', 'totalNetworkError', 'totalNetworkMissRate', 'totalValidationError', 'totalValidationMissRate', 'mapSize', 'Lratio', 'L0', 'tauLratio', 'tauL');

@@ -22,8 +22,11 @@ end
 %% For each mat file, test the trained network using the same data set
 
 results = cell(1, nMatFile);
-for iFile = 1:nMatFile    
+for iFile = 1:nMatFile  
     results{iFile} = hdr_som_test(matFiles{iFile}, dataSetFile, selectedControlVariable);
+    if(strcmp(selectedControlVariable, 'index'))
+        results{iFile}{1} = iFile;
+    end
 end
 
 %% Split the obtained results into arrays for the control variable and the errors

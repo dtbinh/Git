@@ -21,17 +21,26 @@ dataSet = parseDataSet(dataSetFile);
 % Initialize the result cell array
 resultCell = cell(1,3);
 
-% Select the control variable based on the provided parameter
-if(strcmp(controlVariable, 'tauN'))
-    resultCell{1} = mapStruct.tauN;
-elseif(strcmp(controlVariable, 'tauL'))
-    resultCell{1} = mapStruct.tauL;
-elseif(strcmp(controlVariable, 'L0'))
-    resultCell{1} = mapStruct.L0;
-elseif(strcmp(controlVariable, 'mapSize'))
-    resultCell{1} = mapStruct.mapSize;
-end
-
 % Copy the error and the miss rate into the result cell array
 resultCell{2} = error;
 resultCell{3} = missRate;
+
+% Select the control variable based on the provided parameter
+if(strcmp(controlVariable, 'tauN'))
+    resultCell{1} = mapStruct.tauN;
+elseif(strcmp(controlVariable, 'L0'))
+    resultCell{1} = mapStruct.L0;
+elseif(strcmp(controlVariable, 'L0Log'))
+    resultCell{1} = log10(mapStruct.L0);
+elseif(strcmp(controlVariable, 'tauL'))
+    resultCell{1} = mapStruct.tauL*log(100);
+elseif(strcmp(controlVariable, 'tauL2'))
+    resultCell{1} = mapStruct.L0 + mapStruct.tauL*log(100);    
+elseif(strcmp(controlVariable, 'mapSize'))
+    resultCell{1} = mapStruct.mapSize;
+elseif(strcmp(controlVariable, 'mapSizeTime'))
+    resultCell{1} = mapStruct.mapSize;
+    resultCell{2} = error * mapStruct.elapsedTime;
+    resultCell{3} = missRate * mapStruct.elapsedTime;
+end
+
