@@ -1,4 +1,4 @@
-function hdr_som_train(dataSet, mapSize, learningParameters, maxEpoch, outputFolder)
+function hdr_som_train(dataSet, mapSize, circularMap, learningParameters, maxEpoch, outputFolder)
 
 %
 % FUNCTION DESCRIPTION
@@ -14,7 +14,7 @@ global stopTraining pauseTraining;
 
 % [hard-coded parameter] updateRate
 % The performance graphs are updated every updateRate epochs
-updateRate = 100;
+updateRate = 10;
 
 % input is a matrix containing all the input data for the entire training
 % data set. The matrix dimensions are:
@@ -54,18 +54,23 @@ end
 % L0 is the initial value of the learning rate L (ranging from 0 to 1)
 L0 = learningParameters{1};
 
-% N0 i the initial value of the size of the neighborhood N around the
-% wining neuron, within which all neurons should be updated. It is given as
-% a fraction of mapSize.
-N0 = round(((mapSize-1)/2)*learningParameters{2});
+% Lf is the final value of the learning rate (L(maxEpoch) = Lf)
+Lf = learningParameters{2};
 
-% tauL is the time constant associated to the decrease of L. It is
-% calculated so that L becomes L0/100 at iEpoch = learningParameter{3}
-tauL = learningParameters{3} / log(100);
+% tauL is the time constant associated to the decrease of L. 
+tauL = maxEpoch/log(L0/Lf);
 
-% tauL is the time constant associated to the decrease of N. It is
-% calculated so that N becomes 0 at iEpoch = learningParameter{4}
-tauN = learningParameters{4} / log(double(2*N0));            
+% sigma0 is the initial value of the variance of the 2D gaussian kernel
+% used to describe a neighbourhood around the winning neuron. It is given
+% as a fraction of mapSize/2
+sigma0 = mapSize * learningParameters{3} / 2.0;
+
+% sigmaf is the final value of the variance of the 2D gaussian kernel
+% (sigma(maxEpoch) = sigmaf)
+sigmaf = mapSize * learningParameters{4} / 2.0;
+
+% tauSigma is the time constant associated to the decrease of sigma. 
+tauSigma = maxEpoch/log(sigma0/sigmaf);          
             
 % outputFileName is the name of the file to which the map will be saved
 % once the training is over. It is a formated string containing a flag
@@ -89,34 +94,33 @@ map = rand(mapSize, mapSize, nInput) * 2*wScale - wScale;
 % mapSize x mapSize matrix and it is generated using the labelMap function.
 mapLabel = zeros(mapSize, mapSize);
 
-% inputVector is 1x1xnInput vector for parsing each example of the data set
-inputVector = zeros(1, 1, nInput);
-
-
 %% Initialize the performance measurement variables
 
-% networkError stores the progression of epochError 
-networkError = zeros(1,maxEpoch);
+% trainingError stores the progression of the average euclidian distance
+% between the map and the inputs. It is measured using the function testMap
+% with the training data set, at the end of each epoch.
+trainingError = zeros(1,maxEpoch);
 
-% networkMissRate stores the progression of epochMissRate
-networkMissRate = zeros(1,maxEpoch);
+% trainingMissRate stores the progression of the map misclassification
+% rate, measured using the function testMap with the training data set, at
+% the end of each epoch.
+trainingMissRate = zeros(1,maxEpoch);
 
-% validationError stores the progression of epochError when measured in the
-% validation data set
+% validationError stores the progression of the average euclidian distance
+% between the map and the inputs. It is measured using the function testMap
+% with the validation data set, at the end of each epoch.
 validationError = zeros(1,maxEpoch);
 
-% validationmissRate stores the progression of epochError when measured in 
-% the validation data set
+% validationmissRate stores the progression of the map misclassification
+% rate, measured using the function testMap with the validation data set, at
+% the end of each epoch.
 validationMissRate = zeros(1,maxEpoch);
 
-% networkError stores the progression of epochError 
+% learningRate stores the progression of L 
 learningRate = zeros(1,maxEpoch);
 
-% networkMissRate stores the progression of epochMissRate
-neighborhoodSize = zeros(1,maxEpoch);
-
-% networkMissRate stores the progression of epochMissRate
-networkMapUpdate = zeros(1,maxEpoch);
+% gaussianSigma stores the progression of sigma
+gaussianSigma = zeros(1,maxEpoch);
 
 % Loop flag - It becomes 1 when the stopping condition is reached or the
 % user manually requests the program to stop
@@ -135,8 +139,9 @@ programPaused = 0;
 fprintf('\nFunction HDR_SOM_train\n\n');
 fprintf('Starting to train the Self-Organizing Map with the parameters:\n');
 fprintf('\t Map Size: %d\n', mapSize);
-fprintf('\t Learning Rate: L = %f * exp(-t / %f)\n', L0, tauL);
-fprintf('\t Neighboorhood Size: N = %f * exp(-t / %f)\n', N0, tauN);
+fprintf('\t Training Length: %d epochs\n', maxEpoch);
+fprintf('\t Learning Rate: L = %f * exp(-t / %f) [L(%d) = %f]\n', L0, tauL, maxEpoch, Lf);
+fprintf('\t Gaussian Variance: Sigma = %f * exp(-t / %f) [Sigma(%d) = %f]\n', sigma0, tauSigma, maxEpoch, sigmaf);
 fprintf('\n Once the map is trained it will be saved to the file %s\n', outputFileName);
 
 %% Prepare a figure for displaying the progression of the network performance
@@ -153,60 +158,65 @@ timeStart = tic;
 % For each epoch:
 for iEpoch = 1:maxEpoch
     
-    % Update the values of L and N
-    t = double((iEpoch-1));
-    L = L0*exp(-t/tauL);
-    N = round(N0*exp(-t/tauN));
+    % Update the values of L and sigma
+    t = double(iEpoch-1);
+    L = L0 * exp(-t/tauL);
+    sigma = sigma0 * exp(-t/tauSigma);
     
-    % Store the values of L and N for plotting
+    % Update the gaussian kernel. The gaussian kernel should always be an
+    % odd sized matriz, otherwise the peak of the Gaussian will always be
+    % split between four slots.
+    if(mod(mapSize,2) == 0)
+        gaussianMatrix = fspecial('gaussian', mapSize+1, sigma);
+    else
+        gaussianMatrix = fspecial('gaussian', mapSize, sigma);
+    end
+    
+    % Store the values of L and sigma for plotting
     learningRate(iEpoch) = L;
-    neighborhoodSize(iEpoch) = N;
-    
-    epochUpdate = 0;
+    gaussianSigma(iEpoch) = sigma;
     
     % For each example of the training data set:
     for iExample = 1:nExample
         
-        % Retrieve the current example and parse it into inputVector
-        inputVector(1,1,:) = input(iExample,:);
-        
-        expandedInput = repmat(inputVector,mapSize);
+        % Compute the difference vectors between the input and each neuron
+        % in the map
+        differenceVector = repmat(reshape(input(iExample,:), [1 1 nInput]), mapSize) - map;
         
         % Compute the euclidian distance between the each neuron an the input
-        distance = sqrt(sum((map-expandedInput).^2, 3));
+        distance = sqrt(sum((differenceVector).^2, 3));
         
         % Find the closest neuron to the input
         [r c] = find(distance == min(min(distance)));
         
-        % Find the neighborhood of of width 2*N+1 centered in the wining 
-        % neuron (r(1), c(1))
-        rmin = max(1      , r(1)-N);
-        rmax = min(mapSize, r(1)+N);
-        cmin = max(1      , c(1)-N);
-        cmax = min(mapSize, c(1)+N);
+        % Translate the the gaussian matrix to the coordinate of the wining
+        % neuron
+        diracMatrix = zeros(mapSize);
+        diracMatrix(r(1),c(1)) = 1;
         
-        % Generate the maskMatrix containing L inside the neighborhood and
-        % zeros elsewhere
-        LMatrix = L*ones(size(map));
-        maskMatrix = zeros(size(map));
-        maskMatrix(rmin:rmax, cmin:cmax,:) = LMatrix(rmin:rmax, cmin:cmax,:);
+        if(circularMap)
+            
+            % If the map topology is toroidal, use circular convolution
+            translatedGaussianMatrix = conv2(diracMatrix, repmat(gaussianMatrix,3), 'same');
+        else
+            
+            % If the map topology is planar, use normal convolution and
+            % normalize the obtained Gaussian
+            translatedGaussianMatrix = conv2(diracMatrix, gaussianMatrix, 'same');
+            translatedGaussianMatrix = translatedGaussianMatrix / sum(sum(translatedGaussianMatrix));
+        end
         
-        % Update the weights inside the neighborhood
-        mapUpdate = maskMatrix.*(expandedInput-map);
-        epochUpdate = epochUpdate + sum(sum(sum(mapUpdate)));
-        map = map + mapUpdate;
+        % Update the map
+        map = map + L * repmat(translatedGaussianMatrix, [1 1 nInput]) .* differenceVector;
     end
-    
-    networkMapUpdate(iEpoch) = epochUpdate;
     
     % At the end of the epoch, label the current map
     mapLabel = labelMap(map, input, output);
     
     % Measure the current map's performance in the training data set
     [error missRate] = testMap(map, mapLabel, input, output);
-    networkError(iEpoch) = error;
-    networkMissRate(iEpoch) = missRate;
-    
+    trainingError(iEpoch) = error;
+    trainingMissRate(iEpoch) = missRate;
     
     % Measure the current map's performance in the validation data set
     if(validationDataSet)
@@ -215,21 +225,19 @@ for iEpoch = 1:maxEpoch
         validationMissRate(iEpoch) = missRate;
     end
     
-    % Update the networkError and networkMissRate graphs
+    % Update the trainingError and trainingMissRate graphs
     if(mod(iEpoch, updateRate) == 0)
         figure(errorFigure)
-        subplot(3,3,[1 4 7]); 
-        hold off; plot(networkError(1:iEpoch), '-b');
+        subplot(2,3,[1 4]); 
+        hold off; plot(trainingError(1:iEpoch), '-b');
         hold on;  plot(validationError(1:iEpoch), '-r');
-        subplot(3,3,[2 5 8]); 
-        hold off; plot(networkMissRate(1:iEpoch), '-b');
+        subplot(2,3,[2 5]); 
+        hold off; plot(trainingMissRate(1:iEpoch), '-b');
         hold on;  plot(validationMissRate(1:iEpoch), '-r');
-        subplot(3,3,3); 
+        subplot(2,3,3); 
         plot(learningRate(1:iEpoch));
-        subplot(3,3,6); 
-        plot(neighborhoodSize(1:iEpoch));
-        subplot(3,3,9); 
-        plot(networkMapUpdate(1:iEpoch));
+        subplot(2,3,6); 
+        plot(gaussianSigma(1:iEpoch));
     end    
     
     % Pause program execution, if a pauseTraining has been requested
@@ -254,9 +262,8 @@ for iEpoch = 1:maxEpoch
 end
 
 elapsedTime = toc(timeStart);
+fprintf('End of training! Total time = %f\n', elapsedTime);
 
 %% Store the generated map and its parameters in an external file
 
-fprintf('End of training! Total time = %f\n', elapsedTime);
-
-save(outputFileName, 'map', 'mapLabel', 'elapsedTime', 'iEpoch', 'networkError', 'networkMissRate', 'validationError', 'validationMissRate', 'mapSize', 'L0', 'tauL', 'N0', 'tauN');
+save(outputFileName);

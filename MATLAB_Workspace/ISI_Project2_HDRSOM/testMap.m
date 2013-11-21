@@ -8,9 +8,6 @@ function [error missRate] = testMap(map, mapLabel, input, output)
 mapSize = size(map,1);
 [nExample nInput] = size(input);
 
-% inputVector is 1x1xnInput vector for parsing each example of the data set
-inputVector = zeros(1, 1, nInput);
-
 % Initialize the error and missRate counters with 0
 error = 0;
 missRate = 0;
@@ -18,11 +15,8 @@ missRate = 0;
 % For each example in the data set:
 for iExample = 1:nExample
     
-    % Retrieve the current example and parse it into the inputVector
-    inputVector(1,1,:) = input(iExample,:);
-    
     % Compute the euclidian distance between the each neuron an the example
-    distance = sqrt(sum((map-repmat(inputVector,mapSize)).^2, 3));
+    distance = sqrt(sum((repmat(reshape(input(iExample,:), [1 1 nInput]), mapSize) - map).^2, 3));
     
     % Find the closest neuron to the current example
     [r c] = find(distance == min(min(distance)));

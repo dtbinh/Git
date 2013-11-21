@@ -9,12 +9,13 @@ function hdr_som(varargin)
 % See help hdr_mlp_train for more information
 d_trainingFile = 'pendigits.tra';
 d_validationFile = 'pendigits.val';
-d_mapSize = 30;
+d_mapSize = 11;
+d_circularMap = 0;
 d_L0 = 0.1;
-d_N0 = 1;
-d_tauL = 2.0 / log(2);
-d_tauN = 2.0 / log(2);
-d_maxEpoch = 5000;
+d_Lf = 0.001;
+d_S0 = 1.0;
+d_Sf = 0.01;
+d_maxEpoch = 1000;
 d_outputFolder = 'test';
 
 %% Decodes VARARGIN
@@ -30,12 +31,12 @@ switch(nargin)
         % Generate the agregated learningParameters cell array
         learningParameters = cell(1,4);
         learningParameters{1} = d_L0;        
-        learningParameters{2} = d_N0;
-        learningParameters{3} = d_tauL;
-        learningParameters{4} = d_tauN;
+        learningParameters{2} = d_Lf;
+        learningParameters{3} = d_S0;
+        learningParameters{4} = d_Sf;
         
         % Run hdr_som_train
-        hdr_som_train(completeDataSet, d_mapSize, learningParameters, d_maxEpoch, d_outputFolder);
+        hdr_som_train(completeDataSet, d_mapSize, d_circularMap, learningParameters, d_maxEpoch, d_outputFolder);
         
     % nargin == 1: run hdr_mlp_train loading the parameters from an external file    
     case 1
@@ -44,7 +45,7 @@ switch(nargin)
         inputFile = fopen(varargin{1});
         
         % Load the parameters in a bidimensional cell array
-        parameters = textscan(inputFile,'%s %s %d %f %f %f %f %d %s', 'delimiter', ',');
+        parameters = textscan(inputFile,'%s %s %d %d %d %f %f %f %f %s', 'delimiter', ',');
         
         % Close the external file
         fclose(inputFile);
@@ -58,21 +59,20 @@ switch(nargin)
             completeDataSet = [parseDataSet(parameters{1}{iTestCase}) parseDataSet(parameters{2}{iTestCase})];
             
             mapSize = parameters{3}(iTestCase);
+            maxEpoch = parameters{4}(iTestCase);
+            circularMap = parameters{5}(iTestCase);
             
             % Generate the agregated learningParameters cell array
             learningParameters = cell(1,4);
-            learningParameters{1} = parameters{4}(iTestCase);
-            learningParameters{2} = parameters{5}(iTestCase);
-            learningParameters{3} = parameters{6}(iTestCase);
-            learningParameters{4} = parameters{7}(iTestCase);
+            learningParameters{1} = parameters{6}(iTestCase);
+            learningParameters{2} = parameters{7}(iTestCase);
+            learningParameters{3} = parameters{8}(iTestCase);
+            learningParameters{4} = parameters{9}(iTestCase);
             
-            maxEpoch = parameters{8}(iTestCase);
-            
-            outputFolder = parameters{9}{iTestCase};
+            outputFolder = parameters{10}{iTestCase};
             
             % Run hdr_som_train
-            hdr_som_train(completeDataSet, mapSize, learningParameters, maxEpoch, outputFolder);
-%             hdr_som_train(completeDataSet, mapSize, learningParameters, maxEpoch, outputFolder);
+            hdr_som_train(completeDataSet, double(mapSize), circularMap, learningParameters, double(maxEpoch), outputFolder);
         end
         
     % nargin > 1: Invalid option- display error message for user

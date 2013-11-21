@@ -17,7 +17,7 @@ outputMatrix = dataSetMatrix(:, nData);
 % Normalize the input matrix to the range [-1 1]
 inputMatrix = inputMatrix - min(min(inputMatrix));
 inputMatrix = inputMatrix ./ (max(max(inputMatrix)) / 2);
-inputMatrix = inputMatrix - 0.1;
+inputMatrix = inputMatrix - 1;
 
 % Group the input and output matrices in a cell array
 dataSet = cell(1,2);
