@@ -1,0 +1,3 @@
+http://www.mathworks.com/matlabcentral/answers/99130
+http://blogs.mathworks.com/steve/2006/07/07/spatial-transformations-translation-confusion/
+http://stackoverflow.com/questions/8841766/matlab-image-interpolation-interp2

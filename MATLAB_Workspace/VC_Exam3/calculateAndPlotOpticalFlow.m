@@ -1,12 +1,27 @@
 function [imageSequence opticalFlow] = calculateAndPlotOpticalFlow(sourceDir, varargin)
 
+% CALCULATEANDPLOTOPTICALFLOW 
+%    [I F] = CALCULATEANDPLOTOPTICALFLOW(sourceDir) finds all image files
+%    in the directory 'sourceDir' and calculate the optical flow between
+%    each pair of images using the constantFlow function. After that, each
+%    of the calculated flows is plotted using the function plotOpticalFlow.
+%    At the end of the program, I is a 3D array containing all read images
+%    and F is a 3D array of structs, where v = F(i,j,N) is the velocity of
+%    the pixel (i,j) between the frames N and N+1, given in x and y
+%    components.
 %
-% FUNCTION DESCRIPTION
+%    [I F] = CALCULATEANDPLOTOPTICALFLOW(sourceDir, param1, value1, param2, value2, ...)
+%    allows setting some plotting options. For more details see help plotOpticalFlow.
 %
+%    Other m-files required: constantFlow.m, plotOpticalFlow.m
+%    Subfunctions: none
+%    MAT-files required: none
+%
+%    See also: CONSTANTFLOW, PLOTOPTICALFLOW
 
 % Author: André Augusto Geraldes
 % Email: andregeraldes@lara.unb.br
-% December 2013; Last revision: 08-December-2013
+% December 2013; Last revision: 09-December-2013
 
 %% Build the image sequence matrix
 
@@ -21,7 +36,7 @@ for iFile = 1:nFile
     length = size(fileName,2);
     if(length > 4)
         
-        % For each jpg image found save its name and complete name
+        % Save the name of each jpg image
         if(strcmp(fileName(length-3:length), '.jpg'))
             imageFileName{iImage} = sprintf('%s/%s',sourceDir, fileName);
             iImage = iImage + 1;
@@ -41,8 +56,7 @@ for iImage = 1:nImage
 end
 
 %% Calculate the optical flow
-opticalFlow = constantFlow(imageSequence, 1.5, 5, 3);
+opticalFlow = constantFlow(imageSequence);
 
 %% Plot the images and the optical flows
-% plotOpticalFlow(imageSequence(:,:,2:nImage), opticalFlow, varargin);
-plotOpticalFlow(imageSequence(:,:,1:nImage-1), opticalFlow, varargin);
+plotOpticalFlow(imageSequence(:,:,1:nImage-1), opticalFlow, varargin{:});

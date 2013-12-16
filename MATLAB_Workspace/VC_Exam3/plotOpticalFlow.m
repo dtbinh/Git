@@ -1,19 +1,47 @@
-function [currentFlowX currentFlowY] = plotOpticalFlow(image, opticalFlow, varargin)
+function plotOpticalFlow(image, opticalFlow, varargin)
 
+% PLOTOPTICALFLOW Display the optical flow over an image
+%    PLOTOPTICALFLOW(I, F) display the calculated optical flows F over the
+%    images I, using the function quiver. In order to imporve visibility of
+%    the displayed image, a few processing stages are applied to F before
+%    calling the function quiver.
 %
-% FUNCTION DESCRIPTION
+%    Supression of non maximum values:
+%    In order to avoid plotting too many arrows, each local maximum of F
+%    supress other values in a neighborhood of width 'minPixelDist'.
 %
+%    Saturation:
+%    In order to optimize the scale of the plotted arrows, all velocity
+%    values are saturated to the range [-vSat, vSat].
+%
+%    Small values supression:
+%    In order to avoid multiple blue dots in the displayed image, valus
+%    within the range [-vZero, vZero] are also supressed.
+%
+%    PLOTOPTICALFLOW(I, param1, value1, param2, value2, ...) allows
+%    changing the default plotting parameters. The available parameters are:
+%
+%        satVelocity - set the value of vSat
+%        zeroThresh  - set the value of vZero
+%        pixelDist   - the width of the non maximum supression neighborhood
+%        arrowSize   - the arrow scale factor
+%
+%    Other m-files required: none
+%    Subfunctions: supressNonMaximumValues, saturateMatrix,
+%    findBestSaturationValue, eraseZeroAndNanSlots
+%    MAT-files required: none
+%
+%    See also: CONSTANTFLOW, QUIVER
 
 % Author: André Augusto Geraldes
 % Email: andregeraldes@lara.unb.br
-% December 2013; Last revision: 08-December-2013
-
+% December 2013; Last revision: 09-December-2013
 
 % Default parameters
-minPixelDistance = 5;
-arrowSize = 20;
+minPixelDistance = 4;
+arrowSize = 15;
 vZero = 0.1;
-vSatMax = 5;
+vSatMax = 10;
 
 % Check varargin for updating the plot parameters
 if(nargin > 2 && mod(nargin,2) == 0)
@@ -22,9 +50,9 @@ if(nargin > 2 && mod(nargin,2) == 0)
             minPixelDistance = varargin{2*iArgin};
         elseif(strcmp(varargin{2*iArgin-1}, 'arrowSize'))
             arrowSize = varargin{2*iArgin};      
-        elseif(strcmp(varargin{2*iArgin-1}, 'zeroThresh'))
+        elseif(strcmp(varargin{2*iArgin-1}, 'vZero'))
             vZero = varargin{2*iArgin};       
-        elseif(strcmp(varargin{2*iArgin-1}, 'satVelocity'))
+        elseif(strcmp(varargin{2*iArgin-1}, 'vSat'))
             vSatMax = varargin{2*iArgin};       
         end
     end
@@ -59,6 +87,7 @@ for iFlow = 1:nFlow
     
     figure;
     idisp(image(:,:,iFlow), 'plain');
+    set(gca,'position',[0 0 1 1],'units','normalized')
     hold on;
     quiver(xCoord, yCoord, currentFlowX, currentFlowY, 'AutoScaleFactor', arrowSize);
     

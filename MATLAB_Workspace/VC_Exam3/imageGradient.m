@@ -1,8 +1,18 @@
 function [G1 G2] = imageGradient(I, varargin)
 
+% IMAGEGRADIENT Image gradient
+%    [Gx Gy] = IMAGEGRADIENT(I, 'rectangular') calculates the gradient 
+%    matrix of the image I, using a 3x3 Sobel mask. 
 %
-% FUNCTION DESCRIPTION
+%    [Gmag Gangle] = IMAGEGRADIENT(I, 'polar') calculates the gradient
+%    matrix of the image I and return it in polar coordinates, where Gmag
+%    is the magnitude and Gangle is the phase of the gradient.
 %
+%    Other m-files none
+%    Subfunctions: none
+%    MAT-files required: none
+%
+%    See also: 
 
 % Author: André Augusto Geraldes
 % Email: andregeraldes@lara.unb.br

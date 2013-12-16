@@ -1,12 +1,48 @@
-function opticalFlow = constantFlow(imageSequence, gaussianSigma, patchSize, filterSize)
+function opticalFlow = constantFlow(imageSequence, varargin)
 
+% CONSTANTFLOW Estimate the optical flow (E. Trucco, page 197) 
+%    F = CONSTANTFLOW(I) calculates the optical flow between each pair of
+%    images in the 3D array I. For each pair of pixels I(i,j,N) and
+%    I(i,j,N+1), the velocity v = F(i,j,N) is calculated. v is a struct
+%    containing x and y components.
 %
-% FUNCTION DESCRIPTION
+%    F = CONSTANTFLOW(I, param1, value1, param2, value2, ...) allows
+%    changing the default parameters of the constantFlow algorithm. The 
+%    available parameters are:
 %
+%        sigma      - the variance of the gaussians used to filter the
+%                     image sequence spatially and temporally
+%        filterSize - the size of the temporal and spatial filters
+%        patchSize  - the width of the square region, whithin which the
+%                     optical flow is assumed to be constant
+%
+%    Other m-files required: imageGradient.m
+%    Subfunctions: none
+%    MAT-files required: none
+%
+%    See also: PLOTOPTICALFLOW, IMAGEGRADIENT, FEATUREPOINTMATCH
 
 % Author: André Augusto Geraldes
 % Email: andregeraldes@lara.unb.br
-% December 2013; Last revision: 08-December-2013
+% December 2013; Last revision: 09-December-2013
+
+%% Parameter setting
+
+gaussianSigma = 1.5;
+patchSize = 5;
+filterSize = 3;
+
+if(nargin > 1 && mod(nargin-1,2) == 0)
+    for iArgin = 1:(nargin-1)/2
+        if(strcmp(varargin{2*iArgin-1}, 'sigma'))
+            gaussianSigma = varargin{2*iArgin};
+        elseif(strcmp(varargin{2*iArgin-1}, 'patchSize'))
+            patchSize = varargin{2*iArgin};
+        elseif(strcmp(varargin{2*iArgin-1}, 'filterSize'))
+            filterSize = varargin{2*iArgin};
+        end
+    end
+end
 
 %% Filter the images
 
@@ -48,10 +84,10 @@ N = floor(patchSize / 2.0);
 % For each image in the sequence (except the first one):
 for iImage = 1:nImage-1
     
-    fprintf('Calculating the optical flow for the image: %d\n', iImage+1);
+    fprintf('Calculating the optical flow for the image: %d\n', iImage);
     
     % Calculate the spatial gradients Gx and Gy
-    [Gx Gy] = imageGradient(imageSequence(:,:,iImage+1), 'xy');
+    [Gx Gy] = imageGradient(imageSequence(:,:,iImage), 'xy');
     
     % Calculate the partial temporal derivative of the image
     Gt = imageSequence(:,:,iImage+1) - imageSequence(:,:,iImage);
@@ -74,8 +110,6 @@ for iImage = 1:nImage-1
                 v.x = 0;
                 v.y = 0;
             else
-%                 tensorInv = inv(structureTensor);
-%                 AB = (A'*b);
                 velocity = structureTensor \ (A'*b);
                 v.x = velocity(1);
                 v.y = velocity(2);
