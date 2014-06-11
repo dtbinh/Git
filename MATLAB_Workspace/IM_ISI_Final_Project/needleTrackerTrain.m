@@ -1,4 +1,4 @@
-function needleTracker_train(datasetFile, trainRatio, trainingFunction, hiddenLayers, functionType, learningRate, maxEpoch, outputFolder)
+function needleTrackerTrain(trainingFile, validationFile, trainingFunction, hiddenLayers, functionType, learningRate, maxEpoch, outputFolder)
 
 %
 % FUNCTION DESCRIPTION
@@ -11,9 +11,8 @@ function needleTracker_train(datasetFile, trainRatio, trainingFunction, hiddenLa
 net = feedforwardnet(hiddenLayers, trainingFunction);
 
 % Divide the training dataset into training and validation
-net.divideParam.trainRatio = trainRatio;
-net.divideParam.valRatio = 1 - trainRatio;
-net.divideParam.testRatio = 0;
+% net.divideParam.trainRatio = trainRatio;
+% net.divideParam.valRatio = 1 - trainRatio;
 
 % Set the activation function for each layer
 nLayer = size(hiddenLayers, 2) + 1;
@@ -50,7 +49,7 @@ fprintf('\t Selected activation functions:\n');
 for iLayer = 1:nLayer
     fprintf('\t\t Layer %d: %s\n',iLayer, net.layers{iLayer}.transferFcn);
 end
-fprintf('\t Training dataset split into: %d%% training - %d%% validation', 100*trainRatio, 100*(1-trainRatio));
+% fprintf('\t Training dataset split into: %d%% training - %d%% validation', 100*trainRatio, 100*(1-trainRatio));
 fprintf('\t Learning rate: %f\n', learningRate);
 fprintf('\t Maximum number of epochs: %f\n', maxEpoch);
 fprintf('\n Once the network is trained it will be saved to the file %s\n', outputFileName);
@@ -59,9 +58,33 @@ fprintf('\n Once the network is trained it will be saved to the file %s\n', outp
 %% Train the network using the training dataset
 
 % Read the training dataset
-dataset = load(datasetFile);
-input = dataset.trainingInput;
-output = dataset.trainingOutput;
+trainingDataSet = load(trainingFile);
+trainingInput = trainingDataSet.inputMatrix;
+trainingOutput = trainingDataSet.outputMatrix;
+
+% Shuffle the training dataset
+nInput = size(trainingInput, 1);
+nOutput = size(trainingOutput, 1);
+trainingDataSetMatrix = [trainingInput ; trainingOutput];
+trainingDataSetMatrix = unsortMatrix(trainingDataSetMatrix, 'c');
+trainingInput = trainingDataSetMatrix(1:nInput,:);
+trainingOutput = trainingDataSetMatrix(nInput+1:nInput+nOutput,:);
+
+% Read the validation dataset
+validationDataSet = load(validationFile);
+validationInput = validationDataSet.inputMatrix;
+validationOutput = validationDataSet.outputMatrix;
+
+% Combine the training and validation datasets
+input = [trainingInput validationInput];
+output = [trainingOutput validationOutput];
+
+% Set the trainRation apriopriately
+trainRatio = size(trainingInput,2) / (size(trainingInput,2) + size(validationInput,2));
+net.divideFcn = 'divideblock';
+net.divideParam.trainRatio = trainRatio;
+net.divideParam.valRatio = 1 - trainRatio;
+net.divideParam.testRatio = 0;
 
 % Train the network
 [net,tr] = train(net, input, output);

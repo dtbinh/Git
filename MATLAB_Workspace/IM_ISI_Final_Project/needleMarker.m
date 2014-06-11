@@ -22,7 +22,7 @@ function varargout = needleMarker(varargin)
 
 % Edit the above text to modify the response to help needleMarker
 
-% Last Modified by GUIDE v2.5 04-Dec-2013 03:04:20
+% Last Modified by GUIDE v2.5 26-Feb-2014 22:43:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,30 +62,55 @@ guidata(hObject, handles);
 %
 %
 % Declare global variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
+global brushSize brushSigma
 
 % Decode varargin
-if(nargin < 5)
-    fprintf('ERROR: needleMarker requires at least 2 inputs');
+if(nargin < 8)
+    fprintf('ERROR: needleTipFinder_manual requires at least 5 inputs');
     delete(hObject);
 else
-    sourceDirectory = varargin{1};
-    targetDirectory = varargin{2};
+    videoFile = varargin{1};
+    selectedFrame = varargin{2};
+    croppPositionRow = varargin{3};
+    croppPositionColumn = varargin{4};
+    W = varargin{5};
 end
-    
-% Create the targetDirectory (in case it doesn't exist)
-mkdir(targetDirectory);
+
+brushSize = 51;
+brushSigma = brushSize/5.0;
 
 % Assign GUI handlers to global variables
 guiObject = hObject;
 guiHandles = handles;
 
-% Initialize the imageList
-initImageList(sourceDirectory, targetDirectory);
+% Read the provided video and measure size of frames
+video = read(mmreader(videoFile));
+nRow = size(video, 1);
+nColumn = size(video, 2);
+nFrame = size(video, 4);
+
+% Initialize the frameSequence
+frameSequence = zeros(nRow, nColumn, nFrame);
+for iFrame = 1:nFrame
+    frameSequence(:,:,iFrame) = im2double(rgb2gray(video(:,:,:,iFrame)));
+end
+
+% Initialize the maskSequence
+maskSequence = zeros(2*W+1, 2*W+1, nFrame);
+BLABLA = zeros(4, nFrame);
+firstClick = 0;
+
+% Initialize the array for keeping track of the marked frames
+markedFrame = zeros(1, nFrame);
 
 % Display the first image in the GUI
-currentImage = 1;
-displayMainImage();
+currentFrame = nFrame;
+pushbuttonNext_Callback();
+
+% UIWAIT makes videoCropper wait for user response (see UIRESUME)
+uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -95,8 +120,46 @@ function varargout = needleMarker_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+% Global variables
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
+global brushSize brushSigma
+
+% Save the cropped images and close the GUI
+varargout{1} = maskSequence;
+varargout{2} = selectedFrame;
+varargout{3} = brushSize;
+varargout{4} = brushSigma;
+
+% --- Executes on button press in pushbuttonSave.
+function pushbuttonClear_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonSave (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Global variables
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
+
+markedFrame(currentFrame) = 0;
+maskSequence(:,:,currentFrame) = zeros(2*W+1, 2*W+1);
+displayImages
+
+
+% --- Executes on button press in pushbuttonDiscard.
+function pushbuttonDiscard_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonDiscard (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Global variables
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
+
+if(sum(selectedFrame) > 1)
+    selectedFrame(currentFrame) = 0;
+    pushbuttonNext_Callback();
+end
 
 
 % --- Executes on button press in pushbuttonNext.
@@ -105,59 +168,48 @@ function pushbuttonNext_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
+% Global variables
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
 
-% Switch to the next image in imageList
-if(currentImage == nImage)
-    nextImage = 1;
-else
-    nextImage = currentImage + 1; 
+% Find the next selected frame
+if(currentFrame == nFrame) nextFrame = 1;
+else                       nextFrame = currentFrame + 1; 
+end
+while(~(selectedFrame(nextFrame)))
+    if(nextFrame == nFrame) nextFrame = 1;
+    else                    nextFrame = nextFrame + 1; 
+    end
 end
 
 % Update the GUI
-currentImage = nextImage;
-displayMainImage();
-if(imageList(currentImage).marked)
-    displayImageMask();
-end
+currentFrame = nextFrame;
+displayImages();
 
 
-% --- Executes on button press in pushbuttonPrev.
-function pushbuttonPrev_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbuttonPrev (see GCBO)
+% --- Executes on button press in pushbuttonPrevious.
+function pushbuttonPrevious_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbuttonPrevious (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
+% Global variables
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
 
-% Switch to the previous image in imageList
-if(currentImage == 1)
-    nextImage = nImage;
-else
-    nextImage = currentImage - 1;
+% Find the next selected frame
+if(currentFrame == 1) nextFrame = nFrame;
+else                  nextFrame = currentFrame - 1; 
+end
+while(~(selectedFrame(nextFrame)))
+    if(nextFrame == 1) nextFrame = nFrame;
+    else               nextFrame = nextFrame - 1; 
+    end
 end
 
 % Update the GUI
-currentImage = nextImage;
-displayMainImage();
-if(imageList(currentImage).marked)
-    displayImageMask();
-end
-
-% --- Executes on button press in pushbuttonClear.
-function pushbuttonClear_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbuttonClear (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
-
-imageList(currentImage).marked = 0;
-imageList(currentImage).M = zeros(25);
-displayMainImage();
+currentFrame = nextFrame;
+displayImages();
 
 % --- Executes on button press in pushbuttonFinish.
 function pushbuttonFinish_Callback(hObject, eventdata, handles)
@@ -165,153 +217,112 @@ function pushbuttonFinish_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
+% Global variables
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
 
 % Check if all images have been saved and decide if the program should
 % really close
 finishProgram = 0;
-unmarkedImages = verifySavedImages();
-if(unmarkedImages > 0)
-    message = sprintf('There are %d unsaved images. Do you really want to finish the program?', unmarkedImages);
+unsavedImages = selectedFrame .* 1-markedFrame;
+
+if(sum(unsavedImages) > 0)
+    message = sprintf('There are %d unsaved images. Do you really want to finish the program?', sum(unsavedImages));
     choice = questdlg(message, 'Warning: unsaved images found', 'Yes','No','No');
     if(strcmp(choice, 'Yes'))
         finishProgram = 1;
+        selectedFrame(find(unsavedImages == 1)) = 0;
     end
 else
     finishProgram = 1;
 end
 
+% Save the cropped images and close the GUI
 if(finishProgram)
-    for iImage = 1:nImage
-        if(imageList(iImage).marked)
-            imwrite(imageList(iImage).M, imageList(iImage).name);
-        end
-    end
     delete(guiObject);
 end
 
-
-function ImageClickCallback ( objectHandle , eventData )
+function displayImages()
 
 % Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
+
+% Update the frame label
+set(guiHandles.frameLabel, 'String', sprintf('Frame %d/%d', currentFrame, nFrame));
+
+% Display the image in the imageAxes
+axes(guiHandles.frameAxes); hold off;
+imshow(frameSequence(:,:,currentFrame));
+
+% Plot the green square over the image
+hold on;
+cy = croppPositionRow(currentFrame);
+cx = croppPositionColumn(currentFrame);
+rectangle('Position', [cx-W, cy-W, 2*W+1, 2*W+1], 'EdgeColor', 'g');
+
+% Display the selected window in the windowAxes
+axes(guiHandles.zoomAxes);
+zoomHandle = imshow(frameSequence(cy-W:cy+W, cx-W:cx+W, currentFrame));
+set(zoomHandle,'ButtonDownFcn',@ZoomClickCallback);
+
+
+if(markedFrame(currentFrame))
+    % Plot needle center line
+    hold on;
+    plot( BLABLA(1:2, currentFrame), BLABLA(3:4, currentFrame), 'r*-');
+else
+    % Plot a blue mark in the middle of the image
+    hold on;
+    plot(W+1, W+1, 'b*');
+end
+
+% Clear any clicks made in other images
+firstClick = 1;
+firstClickCoordinates = [W+1 W+1];
+
+
+% Display the needle mask in the maskAxes
+axes(guiHandles.maskAxes);
+imshow(maskSequence(:, :, currentFrame));
+
+function ZoomClickCallback ( objectHandle , eventData )
+
+% Global Variables
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
 
 axesHandle  = get(objectHandle,'Parent');
 coordinates = get(axesHandle,'CurrentPoint');
 coordinates = round(coordinates(1,1:2));
 
-if(~(imageList(currentImage).marked))
-    
+if(~(markedFrame(currentFrame)))
     if(~firstClick)
         firstClick = 1;
         firstClickCoordinates = coordinates;
-        axes(guiHandles.imageAxes);
+        axes(guiHandles.zoomAxes);
         hold on;
         plot(coordinates(1), coordinates(2), 'r*');
     else
-        imageList(currentImage).marked = 1;
-        imageList(currentImage).x = [firstClickCoordinates(1) coordinates(1)];
-        imageList(currentImage).y = [firstClickCoordinates(2) coordinates(2)];
+        markedFrame(currentFrame) = 1;
+        BLABLA(1:2, currentFrame) = [firstClickCoordinates(1) ; coordinates(1)];
+        BLABLA(3:4, currentFrame) = [firstClickCoordinates(2) ; coordinates(2)];
         generateImageMask();
-        displayImageMask();
+        displayImages();
     end
 end
 
-
-function initImageList(sourceDirectory, targetDirectory)
-
-% Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
-
-% Find all files in the source directory
-allFiles = dir(sourceDirectory);
-nFile = size(allFiles, 1);
-
-% Find all jpg images in the source directory
-iImage = 1;
-for iFile = 1:nFile
-    fileName = allFiles(iFile).name;
-    length = size(fileName,2);
-    if(length > 4)
-        
-        % For each jpg image found save its name and complete name
-        if(strcmp(fileName(length-3:length), '.jpg'))
-            imageFileName{iImage} = fileName;
-            completeImageFileName{iImage} = sprintf('%s/%s',sourceDirectory, fileName);
-            iImage = iImage + 1;
-        end
-        
-    end
-end
-
-% Save the total amount of found images
-nImage = iImage - 1;
-
-% Initialize the imageList struct array
-imageList = repmat(struct('I', zeros(25), 'M', zeros(25), 'name', '00-00-00 000.jpg', 'x', [0 0], 'y', [0 0], 'marked', 0), nImage, 1);
-for iImage = 1:nImage
-    image = imread(completeImageFileName{iImage});
-    if(size(image,3) > 1)
-        imageList(iImage).I = im2double(rgb2gray(image));
-    else
-        imageList(iImage).I = im2double(image);        
-    end
-    imageList(iImage).name = sprintf('%s/output_%s', targetDirectory, imageFileName{iImage});
-end
-
-function displayMainImage()
-
-% Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
-
-% Display the image in the imageAxes
-axes(guiHandles.imageAxes);
-hold off;
-imageHandle = imshow(imageList(currentImage).I);
-set(imageHandle,'ButtonDownFcn',@ImageClickCallback);
-
-% Display the selected window in the maskAxes
-axes(guiHandles.maskAxes);
-imshow(zeros(25));
-
-% Clear any clicks made in other images
-firstClick = 0;
-firstClickCoordinates = [0 0];
-
-function displayImageMask()
-
-% Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
- 
-% % Display the image in the imageAxes
-axes(guiHandles.imageAxes);
-hold on;
-plot(imageList(currentImage).x, imageList(currentImage).y, 'r*-');
-
-% Display the selected window in the maskAxes
-axes(guiHandles.maskAxes);
-imshow(imageList(currentImage).M);
 
 function generateImageMask()
 
 % Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
 
-x = imageList(currentImage).x;
-y = imageList(currentImage).y;
-
-% if(x(1) > x(2))
-%     x1 = x(2);
-%     x2 = x(1);
-%     y1 = y(2);
-%     y2 = y(1);
-% else
-x1 = x(1);
-x2 = x(2);
-y1 = y(1);
-y2 = y(2);
-% end
+x1 = BLABLA(1, currentFrame);
+x2 = BLABLA(2, currentFrame);
+y1 = BLABLA(3, currentFrame);
+y2 = BLABLA(4, currentFrame);
 
 deltaX = abs(x2-x1);
 deltaY = abs(y2-y1);
@@ -345,30 +356,15 @@ end
 function paintMask(x,y)
 
 % Global Variables
-global guiObject guiHandles imageList currentImage nImage firstClick firstClickCoordinates
+global guiObject guiHandles W nRow nColumn nFrame currentFrame firstClick firstClickCoordinates
+global frameSequence maskSequence selectedFrame markedFrame croppPositionRow croppPositionColumn BLABLA
+global brushSize brushSigma
 
-brush = [0.25 0.50 0.75 0.50 0.25; 
-         0.50 0.75 1.00 0.75 0.50;
-         0.75 1.00 1.00 1.00 0.75;
-         0.50 0.75 1.00 0.75 0.50;
-         0.25 0.50 0.75 0.50 0.25];
+center = (brushSize+1)/2;
+brush = fspecial('gaussian', brushSize, brushSigma);
+brush = brush / brush(center, center);
      
-dirac = zeros(25);
+dirac = zeros(2*W+1);
 dirac(x, y) = 1;
 paint = conv2(dirac, brush, 'same');
-
-% size(imageList(currentImage).M)
-% size(paint)
-imageList(currentImage).M = max(imageList(currentImage).M, paint);
-
-function unmarkedImages = verifySavedImages()
-
-% Global Variables
-global guiObject guiHandles imageList currentImage nImage
-
-unmarkedImages = 0;
-for iImage = 1:nImage
-    if(imageList(iImage).marked == 0)
-        unmarkedImages = unmarkedImages + 1;
-    end
-end
+maskSequence(:,:,currentFrame) = max(maskSequence(:,:,currentFrame), paint);

@@ -1,4 +1,4 @@
-function needleTracker(datFile)
+function needleTrackerTrainAll(datFile)
 
 %
 % FUNCTION DESCRIPTION
@@ -8,7 +8,7 @@ function needleTracker(datFile)
 inputFile = fopen(datFile);
 
 % Load the parameters in a bidimensional cell array
-parameters = textscan(inputFile,'%s %f %s %s %s %f %d %s', 'delimiter', ',');
+parameters = textscan(inputFile,'%s %s %s %s %s %f %d %s', 'delimiter', ',');
 
 % Close the external file
 fclose(inputFile);
@@ -18,8 +18,8 @@ fclose(inputFile);
 [nTestCase ~] = size(parameters{1});
 for iTestCase = 1:nTestCase
     
-    datasetFile = parameters{1}{iTestCase};
-    trainRatio = parameters{2}(iTestCase);
+    trainingFile = parameters{1}{iTestCase};
+    validationFile = parameters{2}{iTestCase};
     trainingFunction = parameters{3}{iTestCase};
     
     hiddenLayers = str2num(parameters{4}{iTestCase});
@@ -40,6 +40,6 @@ for iTestCase = 1:nTestCase
 
     outputFolder = parameters{8}{iTestCase};
     
-    needleTracker_train(datasetFile, trainRatio, trainingFunction, hiddenLayers, functionType, learningRate, maxEpoch, outputFolder);
+    needleTrackerTrain(trainingFile, validationFile, trainingFunction, hiddenLayers, functionType, learningRate, maxEpoch, outputFolder);
 end
 

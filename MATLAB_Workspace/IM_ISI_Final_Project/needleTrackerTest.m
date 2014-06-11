@@ -1,4 +1,4 @@
-function result = needleTracker_test(networkFile, controlVariable, varargin)
+function result = needleTrackerTest(networkFile, testFile, controlVariable, varargin)
 
 %
 % FUNCTION DESCRIPTION
@@ -12,16 +12,11 @@ displayAllImages = 0;
 % Import data from the input files
 netStruct = load(networkFile);
 net = netStruct.net;
-testInput = netStruct.dataset.testInput;
-testOutput = netStruct.dataset.testOutput;
 
-if(nargin > 2)
-    for iArg = 1: nargin-2
-        if(strcmp(varargin{iArg}, 'displayAll'))
-            displayAllImages = 1;
-        end
-    end
-end
+% Read the training dataset
+testDataSet = load(testFile);
+testInput = testDataSet.inputMatrix;
+testOutput = testDataSet.outputMatrix;
 
 % Test the network
 netOutput = net(testInput);
@@ -30,6 +25,17 @@ netOutput = net(testInput);
 nExample = size(netOutput, 2);
 imageSize = sqrt(size(netOutput, 1));
 
+nDisplayImage = 0;
+if(nargin > 3)
+    nDisplayImage = varargin{1};
+    updateRate = round(nExample / nDisplayImage);
+%     for iArg = 1:nargin-3
+%         if(strcmp(varargin{iArg}, 'displayAll'))
+%             displayAllImages = 1;
+%         end
+%     end
+end
+
 thresholdList = zeros(1, nExample);
 for iExample = 1:nExample
     thresholdList(iExample) = findImageThreshold(reshape(netOutput(:,iExample), imageSize, imageSize), thresholdPercentage);
@@ -37,9 +43,14 @@ end
 threshold = mean(thresholdList);
 
 
+
+threshold = 0.3;
+
+
+
+
 % Compare the netOutput with the testOutput
 pixelError = 0;
-updateRate = round(nExample / 50);
 for iExample = 1:nExample
     [r ~] = find(testOutput(:,iExample) == 1);
     nPixel = length(r);
@@ -57,13 +68,18 @@ for iExample = 1:nExample
         end
     end
     
-    if(displayAllImages)
+    if(nDisplayImage > 0)
         if(mod(iExample, updateRate) == 0)
             figure;
-            subplot(121);
-            imshow(reshape(netOutput(:,iExample), 23, 23));
-            subplot(122);
+            subplot(221);
+            imshow(reshape(testInput(1:529,iExample), 23, 23));
+            subplot(222);
             imshow(reshape(testOutput(:,iExample), 23, 23));
+            subplot(223);
+            imshow(reshape(netOutput(:,iExample), 23, 23));
+            subplot(224);
+            imshow(reshape(im2bw(netOutput(:,iExample), threshold), 23, 23));
+            
             pause(0.1);
         end
     end
@@ -76,6 +92,8 @@ result{3} = pixelError / numel(netOutput);
 
 if(strcmp(controlVariable, 'learningRate'))
     result{1} = netStruct.learningRate;
+elseif(strcmp(controlVariable, 'nNeuron'))
+    result{1} = netStruct.hiddenLayers(1) + 1000*(netStruct.nLayer/2 - 1);
 elseif(strcmp(controlVariable, 'nNeuron1Layer'))
     result{1} = netStruct.hiddenLayers(1);
 elseif(strcmp(controlVariable, 'activationFunction'))

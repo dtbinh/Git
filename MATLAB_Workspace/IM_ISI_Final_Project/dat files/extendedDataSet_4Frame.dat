@@ -1,0 +1,6 @@
+extendedDataSet_4Frame_training.mat, extendedDataSet_4Frame_validation.mat, traingd, [350 350 350], tansig-tansig-tansig-satlins,  13.000, 3000, extendedDataSet_4Frame
+extendedDataSet_4Frame_training.mat, extendedDataSet_4Frame_validation.mat, traingd, [650 650 650], tansig-tansig-tansig-satlins,  13.000, 3000, extendedDataSet_4Frame
+extendedDataSet_4Frame_training.mat, extendedDataSet_4Frame_validation.mat, traingd, [350 350 350], tansig-tansig-tansig-satlins,  17.000, 3000, extendedDataSet_4Frame
+extendedDataSet_4Frame_training.mat, extendedDataSet_4Frame_validation.mat, traingd, [650 650 650], tansig-tansig-tansig-satlins,  17.000, 3000, extendedDataSet_4Frame
+extendedDataSet_4Frame_training.mat, extendedDataSet_4Frame_validation.mat, traingd, [350 350 350], tansig-tansig-tansig-satlins,   5.000, 3000, extendedDataSet_4Frame
+extendedDataSet_4Frame_training.mat, extendedDataSet_4Frame_validation.mat, traingd, [650 650 650], tansig-tansig-tansig-satlins,   5.000, 3000, extendedDataSet_4Frame

@@ -1,0 +1,9 @@
+dataSet_1Frame_training.mat, dataSet_1Frame_validation.mat, traingd, [450 450 450], tansig-tansig-tansig-satlins,  11.000, 3000, nFrame
+dataSet_2Frame_training.mat, dataSet_2Frame_validation.mat, traingd, [450 450 450], tansig-tansig-tansig-satlins,  11.000, 3000, nFrame
+dataSet_4Frame_training.mat, dataSet_4Frame_validation.mat, traingd, [450 450 450], tansig-tansig-tansig-satlins,  11.000, 3000, nFrame
+dataSet_1Frame_training.mat, dataSet_1Frame_validation.mat, traingd, [750 750 750], tansig-tansig-tansig-satlins,  11.000, 3000, nFrame
+dataSet_2Frame_training.mat, dataSet_2Frame_validation.mat, traingd, [750 750 750], tansig-tansig-tansig-satlins,  11.000, 3000, nFrame
+dataSet_4Frame_training.mat, dataSet_4Frame_validation.mat, traingd, [750 750 750], tansig-tansig-tansig-satlins,  11.000, 3000, nFrame
+dataSet_1Frame_training.mat, dataSet_1Frame_validation.mat, traingd, [250 250 250], tansig-tansig-tansig-satlins,  11.000, 3000, nFrame
+dataSet_2Frame_training.mat, dataSet_2Frame_validation.mat, traingd, [250 250 250], tansig-tansig-tansig-satlins,  11.000, 3000, nFrame
+dataSet_4Frame_training.mat, dataSet_4Frame_validation.mat, traingd, [250 250 250], tansig-tansig-tansig-satlins,  11.000, 3000, nFrame

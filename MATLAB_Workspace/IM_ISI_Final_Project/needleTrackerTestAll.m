@@ -1,11 +1,11 @@
-function result = needleTracker_testAll(controlVariabeString)
+function result = needleTrackerTestAll(dataSetFile, controlVariabeString)
 
 allFiles = dir;
 nFile = size(allFiles, 1) - 2;
 
 results = cell(1, nFile);
 for iFile = 1:nFile
-    results{iFile} = needleTracker_test(allFiles(iFile+2).name, controlVariabeString);
+    results{iFile} = needleTrackerTest(allFiles(iFile+2).name, dataSetFile, controlVariabeString);
     if(strcmp(controlVariabeString, 'index'))
         results{iFile}{1} = iFile;
     end

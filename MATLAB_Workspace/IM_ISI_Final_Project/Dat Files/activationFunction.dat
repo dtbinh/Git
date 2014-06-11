@@ -1,8 +1,0 @@
-needleDataset23.mat, 0.8, traingd, [525], logsig-purelin, 2.000, 1000, activationFunction2
-needleDataset23.mat, 0.8, traingd, [525], tansig-purelin, 2.000, 1000, activationFunction2
-needleDataset23.mat, 0.8, traingd, [525], logsig-hardlim, 2.000, 1000, activationFunction2
-needleDataset23.mat, 0.8, traingd, [525], tansig-hardlim, 2.000, 1000, activationFunction2
-needleDataset23.mat, 0.8, traingd, [525], logsig-poslin, 2.000, 1000, activationFunction2
-needleDataset23.mat, 0.8, traingd, [525], tansig-poslin, 2.000, 1000, activationFunction2
-needleDataset23.mat, 0.8, traingd, [525], logsig-satlins, 2.000, 1000, activationFunction2
-needleDataset23.mat, 0.8, traingd, [525], tansig-satlins, 2.000, 1000, activationFunction2
