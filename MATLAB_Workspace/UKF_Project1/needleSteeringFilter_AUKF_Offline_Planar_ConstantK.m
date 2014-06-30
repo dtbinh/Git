@@ -130,6 +130,10 @@ plot(measurementError(startStep:iStep), 'b-');
 plot(filterError(startStep:iStep), 'r-');
 legend('Estimation', 'Measurements', 'Filtered');
 
+error1 = round(1000 * estimationError(nStep));
+error2 = round(1000 * mean(measurementError(nStep-20:nStep)));
+error3 = round(1000 * filterError(nStep));
+fprintf('Final Errors (mm): \tEst = %d, \tMes = %d, \tFil = %d\n', error1, error2, error3);
 
 function processSigmaPoint = processFunction(sigmaPoint, parameter)
 
