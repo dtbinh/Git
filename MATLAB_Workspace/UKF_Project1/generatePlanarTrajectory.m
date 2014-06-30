@@ -24,22 +24,26 @@ stageFile = load('datasets/stageK.mat');
 stageK = stageFile.stageK;
 
 % Generate the simulated trajectories
-[constantX constantY] = simulatePlanarTrajectory(U1, U2, constantK);
-[gaussianX gaussianY] = simulatePlanarTrajectory(U1, U2, gaussianK);
-[stageX stageY] = simulatePlanarTrajectory(U1, U2, stageK);
+[constantX constantY constantTheta] = simulatePlanarTrajectory(U1, U2, constantK);
+[gaussianX gaussianY gaussianTheta] = simulatePlanarTrajectory(U1, U2, gaussianK);
+[stageX stageY stageTheta] = simulatePlanarTrajectory(U1, U2, stageK);
 
 % Save the generated trajectories to file
 pX = constantX;
 pY = constantY;
+theta = constantTheta;
 k = constantK;
-save('datasets/datasetConstantK.mat', 'U1', 'U2', 'k', 'pX', 'pY');
+avgK = mean(constantK);
+save('datasetConstantK.mat', 'U1', 'U2', 'avgK', 'k', 'pX', 'pY', 'theta');
 
 pX = gaussianX;
 pY = gaussianY;
+theta = gaussianTheta;
 k = gaussianK;
-save('datasets/datasetGaussianK.mat', 'U1', 'U2', 'k', 'pX', 'pY');
+save('datasetGaussianK.mat', 'U1', 'U2', 'avgK', 'k', 'pX', 'pY', 'theta');
 
 pX = stageX;
 pY = stageY;
+theta = stageTheta;
 k = stageK;
-save('datasets/datasetStageK.mat', 'U1', 'U2', 'k', 'pX', 'pY');
+save('datasetStageK.mat', 'U1', 'U2', 'avgK', 'k', 'pX', 'pY', 'theta');

@@ -23,9 +23,6 @@ classdef AUKF
         hParam;     % parameters of the observation function
         R;          % covariance of the observation noise
         dimR;       % dimension of the measurement noise
-        
-        c;          % UT method selection (common UT: c=3)
-        ka;         % Augmented UT parameter (ka = c-dimX-dimQ-dimR)
     end
     
     % Abstract Methods - must be implemented in each subclass of AUKF
@@ -36,11 +33,43 @@ classdef AUKF
         [sigmaPoint weight] = generateSigmaPoints(obj, xAug, PAug);
     end
     
+    % Static Methods - auxiliar functions that do not deppend on the object
+    methods (Static)
+        
+        % Agument the state vector incorporating the proccess noise (Q) and
+        % the measurement noise (R)
+        function [xAug PAug] = augmentStateVector(x, P, Q, R)
+            sX = length(P); sQ = length(Q); sR = length(R);
+            xAug = [x'            zeros(1, sQ)  zeros(1,sR)]';
+            PAug = [P             zeros(sX, sQ) zeros(sX, sR);
+                    zeros(sQ, sX) Q             zeros(sQ, sR);
+                    zeros(sR, sX) zeros(sR, sQ) R            ];
+        end
+        
+        % Transform one set of sigma points according to a given function
+        % and calculate the weighted mean and covariance of the transformed
+        % sigma points
+        function [newSigmaPoint avg var] = transformSigmaPoints(sigmaPoint, weight, transFunction, parameters)
+            
+            % Transform the sigma points
+            newSigmaPoint = feval(transFunction, sigmaPoint, parameters);
+            [dimSigma nSigmaPoint] = size(newSigmaPoint);
+            
+            % Calculate the weighted mean and covariance
+            avg = sum(newSigmaPoint .* repmat(weight, dimSigma, 1), 2);
+            var = zeros(dimSigma, dimSigma);
+            for iPoint = 1:nSigmaPoint
+                var = var + weight(iPoint)*((newSigmaPoint(:,iPoint)-avg)*(newSigmaPoint(:,iPoint)-avg)');
+            end            
+            
+        end
+    end
+    
     % Concrete Methods - behave excatly the same for all subclasses of AUKF
     methods
         
         % Class constructor
-        function obj = AUKF(f, fParam, h, hParam, Q, R, dimX, dimZ, c)
+        function obj = AUKF(f, fParam, h, hParam, Q, R, dimX, dimZ)
             
             obj.dimX = dimX;
             obj.dimZ = dimZ;
@@ -49,8 +78,6 @@ classdef AUKF
             
             obj.x = zeros(dimX, 1);
             obj.P = zeros(dimX, dimX);
-            obj.c = c;
-            obj.ka = c-dimX-obj.dimQ-obj.dimR;
             
             obj.f = f;
             obj.fParam = fParam;
@@ -60,53 +87,47 @@ classdef AUKF
             obj.R = R;
         end
         
+        % Apply the filter's proccess function F to the set of sigma points
+        % calculate the expected state mean and covariance
+        function [processSigmaPoint xEst PEst] = applyProcessFunction(obj, sigmaPoint, weight, u)
+            [processSigmaPoint xEst PEst] = AUKF.transformSigmaPoints(sigmaPoint, weight, obj.f, [obj.fParam u]);
+            xEst = xEst(1:obj.dimX, :);
+            PEst = PEst(1:obj.dimX, 1:obj.dimX);
+        end
+        
+        % Apply the filter's observation function H to the set of sigma points
+        % calculate the expected measurement and innovation matrix
+        function [measurementSigmaPoint zEst S] = applyMeasurementFunction(obj, processSigmaPoint, weight)
+            [measurementSigmaPoint zEst S] = AUKF.transformSigmaPoints(processSigmaPoint, weight, obj.h, obj.hParam);
+        end
         
         % Update the state vector by performing one iteration of the AUKF
         function obj = update(obj, u, z)
             
             % Augment the state vector
-            xAug = [obj.x'                zeros(1, obj.dimQ)        zeros(1,obj.dimR)]';
-            PAug = [obj.P                     zeros(obj.dimX, obj.dimQ) zeros(obj.dimX, obj.dimR);
-                    zeros(obj.dimQ, obj.dimX) obj.Q                     zeros(obj.dimQ, obj.dimR);
-                    zeros(obj.dimR, obj.dimX) zeros(obj.dimR, obj.dimQ) obj.R                    ];
+            [xAug PAug] = AUKF.augmentStateVector(obj.x, obj.P, obj.Q, obj.R);
             
             % Calculate the sigma points and corresponding weights
-            [sigmaPoint weight] = obj.generateSigmaPoints(obj, xAug, PAug);
+            [sigmaPoint weight] = obj.generateSigmaPoints(xAug, PAug);
             nSigmaPoint = size(sigmaPoint, 2);
             
-            % [PREDICTION STEP]
-            % Transform the sigma points using the process function
-            transformedSigmaPoint = feval(obj.f, sigmaPoint, u, obj.fParam);
-            stateSigmaPoint = transformedSigmaPoint(1:obj.dimX,:);
+            % Prediction Step
+            [processSigmaPoint xEst PEst] = obj.applyProcessFunction(sigmaPoint, weight, u);
             
-            % Calculate the expected state mean and covariance
-            xEst = sum(stateSigmaPoint .* repmat(weight, obj.dimX, 1), 2);
-            PEst = zeros(obj.dimX, obj.dimX);
-            varianceStateSigmaPoint = stateSigmaPoint - repmat(xEst, 1, nSigmaPoint);
-            for iPoint = 1:nSigmaPoint
-                PEst = PEst + weight(iPoint)*(varianceStateSigmaPoint(:,iPoint) * varianceStateSigmaPoint(:,iPoint)');
-            end
+            % Measurement Step
+            [measurementSigmaPoint zEst S] = obj.applyMeasurementFunction(processSigmaPoint, weight);
             
-            % [MEASUREMENT STEP]
-            % Evaluate the sigma points using the observation function
-            measurementSigmaPoint = feval(obj.h, transformedSigmaPoint, obj.hParam);
-            
-            % Calculate the expected measurement and innovation matrix
-            zEst = sum(measurementSigmaPoint .* repmat(weight, obj.dimZ, 1), 2);
-            S = zeros(obj.dimZ, obj.dimZ);
-            varianceMeasurementSigmaPoint = measurementSigmaPoint - repmat(zEst, 1, nSigmaPoint);
-            for iPoint = 1:nSigmaPoint
-                S = S + weight(iPoint)*(varianceMeasurementSigmaPoint(:,iPoint) * varianceMeasurementSigmaPoint(:,iPoint)');
-            end
-            
-            % [CORRECTION STEP]
+            % Correction Step
             crossVariance = zeros(obj.dimX, obj.dimZ);
+            stateVariance = processSigmaPoint(1:obj.dimX,:) - repmat(xEst, 1, nSigmaPoint);
+            measurementVariance = measurementSigmaPoint - repmat(zEst, 1, nSigmaPoint);
             for iPoint = 1:nSigmaPoint
-                crossVariance = crossVariance + weight(iPoint)*(varianceStateSigmaPoint(:,iPoint) * varianceMeasurementSigmaPoint(:,iPoint)');
+                crossVariance = crossVariance + weight(iPoint)*(stateVariance(:,iPoint) * measurementVariance(:,iPoint)');
             end
             G = crossVariance / S;
             obj.x = xEst + G*(z-zEst);
             obj.P = PEst - G*S*G';
+            
         end
         
     end

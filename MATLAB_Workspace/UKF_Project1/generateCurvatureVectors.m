@@ -11,12 +11,12 @@ clear all;
 clc;
 
 % Tissue parameters
-radius = 0.06;               % Average curvature radius of 6cm
-sf = 2;                      % Gaussian curvature standard deviation factor
-maxR = 10;                   % Maximum insertion speed factor
-minR = 0.2;                  % Minimum insertion speed factor
-w      = [0.20 0.30 0.50];   % Stage width fractions
-speedF = [1.00 1.50 2.00];   % Stage speed factors
+radius = 0.20;               % Average curvature radius of 40cm
+sf = 3;                      % Gaussian curvature standard deviation factor
+maxR = 10;                   % Maximum curvature factor
+minR = 0.1;                  % Minimum curvature factor
+w      = [0.20 0.35 0.45];   % Stage width fractions
+speedF = [0.75 1.00 2.50];   % Stage speed factors
 
 avgK = 1/radius;
 
@@ -72,3 +72,5 @@ set(errorFigure, 'Position', [1065 540 560 420]);
 histFigure = figure;
 hist(gaussianK, 50);
 set(histFigure, 'Position', [25 80 560 420]);
+
+EM = 100*max(gaussianError)
