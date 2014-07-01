@@ -1,4 +1,4 @@
-function needleSteeringFilter_AUKF_Offline_Planar_ConstantK(datasetFile, initialState, initialUncertainty, noise)
+function needleSteeringFilter_AUKF_Offline_Planar_EstimatedK(datasetFile, initialState, initialUncertainty, noise)
 
 %% Load the simulation dataset
 
@@ -12,9 +12,11 @@ startStep = 1;
 posXInitial = initialState(1);
 posYInitial = initialState(2);
 thetaInitial = initialState(3);
+kInitial = avgK;
 posXUncertainty = initialUncertainty(1);
 posYUncertainty = initialUncertainty(2);
 thetaUncertainty = initialUncertainty(3);
+kUncertainty = initialUncertainty(4);
 
 kNoise = noise(1);
 uNoise = noise(2);
@@ -29,11 +31,11 @@ thetaEstimate = zeros(1,nStep);
 
 for iStep = 1:nStep
     if(iStep > 1)
-        state = [posXEstimate(iStep-1) ; posYEstimate(iStep-1); thetaEstimate(iStep-1); zeros(4,1)];
+        state = [posXEstimate(iStep-1) ; posYEstimate(iStep-1); thetaEstimate(iStep-1); avgK; zeros(4,1)];
     else
-        state = zeros(7,1);
+        state = [zeros(3,1); avgK; zeros(4,1)];
     end
-    nextState = processFunction(state, [avgK U1(iStep)]);
+    nextState = processFunction(state, U1(iStep));
     
     posXEstimate(iStep) = nextState(1);
     posYEstimate(iStep) = nextState(2);
@@ -52,30 +54,34 @@ measurementError = ((posXMeasure - pX).^2 + (posYMeasure - pY).^2).^(0.5);
 posXFiltered = zeros(1,nStep);
 posYFiltered = zeros(1,nStep);
 thetaFiltered = zeros(1,nStep);
+kFiltered = zeros(1,nStep);
 
 posXCovariance = zeros(1,nStep);
 posYCovariance = zeros(1,nStep);
 thetaCovariance = zeros(1,nStep);
+kCovariance = zeros(1,nStep);
 
 % Fill the initial values of all variables
 posXFiltered(startStep) = posXInitial;
 posYFiltered(startStep) = posYInitial;
 thetaFiltered(startStep) = thetaInitial;
+kFiltered(startStep) = kInitial;
 
 posXCovariance(startStep) = posXUncertainty;
 posYCovariance(startStep) = posYUncertainty;
 thetaCovariance(startStep) = thetaUncertainty;
+kCovariance(startStep) = kUncertainty;
 
 
 %% Initialize UKF
 
 Q = [kNoise 0; 0 uNoise];
 R = [pXNoise 0; 0 pYNoise];
-dimX = 3;
+dimX = 4;
 dimZ = 2;
-ukf = HomMinSymAUKF(@processFunction, avgK, @measurementFunction, [], Q, R, dimX, dimZ);
-ukf.x = [posXFiltered(startStep) ; posYFiltered(startStep) ; thetaFiltered(startStep)];
-ukf.P = diag([posXCovariance(startStep) posYCovariance(startStep) thetaCovariance(startStep)]);       
+ukf = HomMinSymAUKF(@processFunction, [], @measurementFunction, [], Q, R, dimX, dimZ);
+ukf.x = [posXFiltered(startStep) ; posYFiltered(startStep) ; thetaFiltered(startStep); kFiltered(startStep)];
+ukf.P = diag([posXCovariance(startStep) posYCovariance(startStep) thetaCovariance(startStep) kCovariance(startStep)]);       
 
 %% Initialize all windows
 
@@ -83,9 +89,12 @@ pathFigure = figure;
 set(pathFigure, 'Position', [-1590 185 898 658]);
 hold on;
 
-% Debug Figure
 debugFigure = figure;
 set(debugFigure, 'Position', [-560  45 550 350]);
+hold on;
+
+kFigure = figure;
+set(kFigure, 'Position', [-560  520 550 350]);
 hold on;
 
 %% Main Loop
@@ -106,10 +115,12 @@ for iStep = 1:nStep
     posXFiltered(iStep) = ukf.x(1);
     posYFiltered(iStep) = ukf.x(2);
     thetaFiltered(iStep) = ukf.x(3);
+    kFiltered(iStep) = ukf.x(4);
     
     posXCovariance(iStep) = ukf.P(1,1);
     posYCovariance(iStep) = ukf.P(2,2);
     thetaCovariance(iStep) = ukf.P(3,3);    
+    kCovariance(iStep) = ukf.P(4,4);    
 end
 filterError = ((posXFiltered - pX).^2 + (posYFiltered - pY).^2).^(0.5);
 
@@ -128,6 +139,10 @@ plot(measurementError(startStep:iStep), 'b-');
 plot(filterError(startStep:iStep), 'r-');
 legend('Estimation', 'Measurements', 'Filtered');
 
+figure(kFigure);
+plot(k, 'r');
+plot(kFiltered, 'b');
+
 error1 = round(1000 * estimationError(nStep));
 error2 = round(1000 * mean(measurementError(nStep-20:nStep)));
 error3 = round(1000 * filterError(nStep));
@@ -138,19 +153,23 @@ function processSigmaPoint = processFunction(sigmaPoint, parameter)
 px    = sigmaPoint(1,:);
 py    = sigmaPoint(2,:);
 theta = sigmaPoint(3,:);
-k     = parameter(1) + sigmaPoint(4,:);
-u     = parameter(2) + sigmaPoint(5,:);
+kState = sigmaPoint(4,:);
+
+k     = kState + sigmaPoint(5,:);
+u     = parameter(1) + sigmaPoint(6,:);
 
 processSigmaPoint(1,:) = px + (2 * (1 - cos(k .* u)) ./ (k.^2)).^(0.5) .* cos(theta + 0.5 .* u .* k);
 processSigmaPoint(2,:) = py + (2 * (1 - cos(k .* u)) ./ (k.^2)).^(0.5) .* sin(theta + 0.5 .* u .* k);
 processSigmaPoint(3,:) = theta + k .* u;
-processSigmaPoint(4:5,:) = sigmaPoint(6:7,:);
+processSigmaPoint(4,:) = k;
+processSigmaPoint(5:6,:) = sigmaPoint(7:8,:);
 
 function measurementSigmaPoint = measurementFunction(sigmaPoint, ~)
 
 px    = sigmaPoint(1,:);
 py    = sigmaPoint(2,:);
 theta = sigmaPoint(3,:);
+kState = sigmaPoint(4,:);
 
-measurementSigmaPoint(1,:) = px + sigmaPoint(4,:);
-measurementSigmaPoint(2,:) = py + sigmaPoint(5,:);
+measurementSigmaPoint(1,:) = px + sigmaPoint(5,:);
+measurementSigmaPoint(2,:) = py + sigmaPoint(6,:);
