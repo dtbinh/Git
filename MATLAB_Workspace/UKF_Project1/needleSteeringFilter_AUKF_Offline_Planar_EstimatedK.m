@@ -1,4 +1,4 @@
-function needleSteeringFilter_AUKF_Offline_Planar_EstimatedK(datasetFile, initialState, initialUncertainty, noise)
+function [estimationError measurementError filterError] = needleSteeringFilter_AUKF_Offline_Planar_EstimatedK(datasetFile, initialState, initialUncertainty, noise)
 
 %% Load the simulation dataset
 
@@ -12,7 +12,8 @@ startStep = 1;
 posXInitial = initialState(1);
 posYInitial = initialState(2);
 thetaInitial = initialState(3);
-kInitial = avgK;
+kInitial = initialState(4);
+
 posXUncertainty = initialUncertainty(1);
 posYUncertainty = initialUncertainty(2);
 thetaUncertainty = initialUncertainty(3);
@@ -86,7 +87,7 @@ ukf.P = diag([posXCovariance(startStep) posYCovariance(startStep) thetaCovarianc
 %% Initialize all windows
 
 pathFigure = figure;
-set(pathFigure, 'Position', [-1590 185 898 658]);
+set(pathFigure, 'Position', [-1590 -60 898 658]);
 hold on;
 
 debugFigure = figure;
@@ -146,7 +147,11 @@ plot(kFiltered, 'b');
 error1 = round(1000 * estimationError(nStep));
 error2 = round(1000 * mean(measurementError(nStep-20:nStep)));
 error3 = round(1000 * filterError(nStep));
+error4 = round(1000 * max(filterError));
+error5 = round(1000 * mean(filterError));
+error6 = round(1000 * mean(filterError(nStep-199:nStep)));
 fprintf('Final Errors (mm): \tEst = %d, \tMes = %d, \tFil = %d\n', error1, error2, error3);
+fprintf('Estimation Error (mm): \tEnd = %d, \tMax = %d, \tAvg = %d, \tAvg200 = %d\n', error3, error4, error5, error6);
 
 function processSigmaPoint = processFunction(sigmaPoint, parameter)
 

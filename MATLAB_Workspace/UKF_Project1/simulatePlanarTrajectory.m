@@ -13,14 +13,9 @@ tipY = zeros(1, nStep);
 tipAngle = zeros(1, nStep);
 dq{1} = DQ(1);
 
-% tipX2 = zeros(1, nStep);
-% tipY2 = zeros(1, nStep);
-% tipAngle2 = zeros(1, nStep);
-
 % Open the plot figure
 if(plotSimulation)
     plotFigure = figure;
-%     plotFigure2 = figure;
 end
 
 % Simulation loop
@@ -56,31 +51,5 @@ for iStep = 1:nStep
             axis equal;
         end
     end
-    
-%     %% DEBUG
-%     if(iStep > 1)
-%         px    = tipX2(iStep-1);
-%         py    = tipY2(iStep-1);
-%         theta = tipAngle2(iStep-1);
-%     else
-%         px = 0;
-%         py = 0;
-%         theta = 0;
-%     end
-%     tipCurv = k(iStep);
-%     u     = U1(iStep);
-%     
-%     tipX2(iStep) = px + (2 * (1 - cos(tipCurv .* u)) ./ (tipCurv.^2)).^(0.5) .* cos(theta + 0.5 .* u .* tipCurv);
-%     tipY2(iStep) = py + (2 * (1 - cos(tipCurv .* u)) ./ (tipCurv.^2)).^(0.5) .* sin(theta + 0.5 .* u .* tipCurv);
-%     tipAngle2(iStep) = theta + tipCurv .* u;
-% 
-%     if(plotSimulation)
-%         if(mod(iStep,20) == 0)
-%             figure(plotFigure2); hold on;
-%             plot(tipX2(1:iStep), tipY2(1:iStep), 'b');
-%             pause(0.0001)
-%             axis equal;
-%         end
-%     end    
     
 end

@@ -11,7 +11,7 @@ clear all;
 clc;
 
 % Tissue parameters
-radius = 0.20;               % Average curvature radius of 40cm
+radius = 0.20;               % Average curvature radius of 20cm
 sf = 3;                      % Gaussian curvature standard deviation factor
 maxR = 10;                   % Maximum curvature factor
 minR = 0.1;                  % Minimum curvature factor
@@ -27,23 +27,29 @@ U2 = uFile.U2;
 nStep = length(U1);
 
 % Generate curvature vectors
-constantK = avgK * ones(1, nStep);
-
-gaussianRadius = normrnd(radius, radius/sf, 1, nStep);
-gaussianRadius = sat(gaussianRadius, minR*radius, maxR*radius);
-gaussianK = 1 ./ gaussianRadius;
-
+% constantK = avgK * ones(1, nStep);
+% 
+% gaussianRadius = normrnd(radius, radius/sf, 1, nStep);
+% gaussianRadius = sat(gaussianRadius, minR*radius, maxR*radius);
+% gaussianK = 1 ./ gaussianRadius;
+% 
 n = floor(nStep*w/sum(w));
 n(3) = nStep - sum(n(1:2));
-stageK1 = speedF(1) * avgK * ones(1, n(1));
-stageK2 = speedF(2) * avgK * ones(1, n(2));
-stageK3 = speedF(3) * avgK * ones(1, n(3));
-stageK = [stageK1 stageK2 stageK3];
-
-% Save the generated curvature vectors to file
-save('constantK.mat', 'constantK');
-save('gaussianK.mat', 'gaussianK');
-save('stageK.mat', 'stageK');
+% stageK1 = speedF(1) * avgK * ones(1, n(1));
+% stageK2 = speedF(2) * avgK * ones(1, n(2));
+% stageK3 = speedF(3) * avgK * ones(1, n(3));
+% stageK = [stageK1 stageK2 stageK3];
+% 
+% % Save the generated curvature vectors to file
+% save('constantK.mat', 'constantK');
+% save('gaussianK.mat', 'gaussianK');
+% save('stageK.mat', 'stageK');
+constantFile = load('datasets/constantK.mat');
+constantK = constantFile.constantK;
+gaussianFile = load('datasets/gaussianK.mat');
+gaussianK = gaussianFile.gaussianK;
+stageFile = load('datasets/stageK.mat');
+stageK = stageFile.stageK;
 
 % Test the generated curvatures by simulating the planar trajectory
 [constantX constantY] = simulatePlanarTrajectory(U1, U2, constantK);

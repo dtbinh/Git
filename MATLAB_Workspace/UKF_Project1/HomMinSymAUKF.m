@@ -17,7 +17,7 @@ classdef HomMinSymAUKF < AUKF
             
             n = length(xAug);
             w0 = 1 - n/3;
-            w0 = 1 - 4/3;
+%             w0 = 1 - 4/3;
             
             weight = (1-w0)/(2*n) * ones(1, 2*n+1);
             weight(1) = w0;
