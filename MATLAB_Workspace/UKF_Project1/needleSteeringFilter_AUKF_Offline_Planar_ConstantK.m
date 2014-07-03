@@ -29,11 +29,11 @@ thetaEstimate = zeros(1,nStep);
 
 for iStep = 1:nStep
     if(iStep > 1)
-        state = [posXEstimate(iStep-1) ; posYEstimate(iStep-1); thetaEstimate(iStep-1); zeros(4,1)];
+        augmentedState = [posXEstimate(iStep-1) ; posYEstimate(iStep-1); thetaEstimate(iStep-1); zeros(4,1)];
     else
-        state = zeros(7,1);
+        augmentedState = zeros(7,1);
     end
-    nextState = processFunction(state, [avgK U1(iStep)]);
+    nextState = processFunction(augmentedState, [avgK U1(iStep)]);
     
     posXEstimate(iStep) = nextState(1);
     posYEstimate(iStep) = nextState(2);

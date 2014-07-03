@@ -2,12 +2,12 @@ close all;
 clear all;
 clc;
 
-datasetFile = 'datasets/datasetGaussianK-20-50.mat';
+datasetFile = 'datasets/datasetStageK-20-50.mat';
 
 posXInitial = 0;
 posYInitial = 0;
 thetaInitial = 0;
-kInitial = 1;
+kInitial = 100;
 
 posXUncertainty = 0;
 posYUncertainty = 0;

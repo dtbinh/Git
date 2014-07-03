@@ -90,7 +90,7 @@ classdef AUKF
         % Apply the filter's proccess function F to the set of sigma points
         % calculate the expected state mean and covariance
         function [processSigmaPoint xEst PEst] = applyProcessFunction(obj, sigmaPoint, weight, u)
-            [processSigmaPoint xEst PEst] = AUKF.transformSigmaPoints(sigmaPoint, weight, obj.f, [obj.fParam u]);
+            [processSigmaPoint xEst PEst] = AUKF.transformSigmaPoints(sigmaPoint, weight, obj.f, [obj.fParam u']);
             xEst = xEst(1:obj.dimX, :);
             PEst = PEst(1:obj.dimX, 1:obj.dimX);
         end
