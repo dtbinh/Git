@@ -25,36 +25,6 @@ mNoise = [-7 -6 -5 -4 -4 -5 -6 -7 -8 -4 -4 -7 -6 -5 -4];
 noise = 10.^[kNoise(iParam) uNoise(iParam) mNoise(iParam) mNoise(iParam)];
 [e m f] = needleSteeringFilter_AUKF_Offline_Planar_EstimatedK(datasetFile, state, uncertainty, noise);
 
-% uNoise = -18;
-% kNoise = -6;
-% mNoise = -7;
-% noise = 10.^[kNoise uNoise mNoise mNoise];
-% [e m f] = needleSteeringFilter_AUKF_Offline_Planar_EstimatedK(datasetFile, state, uncertainty, noise);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% for iParam = 1:15
-%     noise = 10.^[kNoise(iParam) uNoise(iParam) mNoise(iParam) mNoise(iParam)];
-%     [e m f] = needleSteeringFilter_AUKF_Offline_Planar_EstimatedK(datasetFile, state, uncertainty, noise);
-%     
-%     fprintf('Test %d: Perf = %d\n', iParam, round(1000*mean(f(1801:2000))));
-% end
-
 % uNoise = -12:-3;
 % kNoise = -9:0;
 % mNoise = -9:0;
@@ -85,51 +55,3 @@ noise = 10.^[kNoise(iParam) uNoise(iParam) mNoise(iParam) mNoise(iParam)];
 % end
 % 
 % save('UKFTest.mat');
-
-
-
-
-
-
-% 
-% noise = 10.^[kNoise uNoise mNoise mNoise];
-% [e m f] = needleSteeringFilter_AUKF_Offline_Planar_EstimatedK(datasetFile, state, uncertainty, noise);
-
-
-
-% uNoiseVector = -12:1:-3;
-% kNoiseVector = -12:1:-3;
-% mNoiseVector = -12:1:-3;
-% 
-% nU = length(uNoiseVector);
-% nK = length(kNoiseVector);
-% nM = length(mNoiseVector);
-% 
-% 
-% lowestError = 100;
-% bestU = 10;
-% bestK = 10;
-% bestM = 10;
-% for iU = 1:nU
-%     for iK = 1:nK
-%         for iM = 1:nM
-%             
-%             noise = 10.^[kNoiseVector(iK) uNoiseVector(iU) mNoiseVector(iM) mNoiseVector(iM)];
-%             [e m f] = needleSteeringFilter_AUKF_Offline_Planar_EstimatedK(datasetFile, state, uncertainty, noise);
-%             
-%             if(mean(f(1801:2000)) < lowestError)
-%                 lowestError = mean(f(1801:2000));
-%                 bestU = uNoiseVector(iU);
-%                 bestK = kNoiseVector(iK);
-%                 bestM = mNoiseVector(iM);
-%             end
-%             
-%             
-%             
-%         end
-%     end
-% end
-
-
-
-

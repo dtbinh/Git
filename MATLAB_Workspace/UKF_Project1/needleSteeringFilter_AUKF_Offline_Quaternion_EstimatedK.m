@@ -1,4 +1,4 @@
-function [estimationError measurementError filterError] = needleSteeringFilter_AUKF_Offline_Quaternion_ConstantK(datasetFile, initialState, initialUncertainty, noise)
+function [estimationError measurementError filterError] = needleSteeringFilter_AUKF_Offline_Quaternion_EstimatedK(datasetFile, initialState, initialUncertainty, noise)
 
 %% Load the simulation dataset
 
@@ -16,6 +16,7 @@ posZInitial = initialState(3);
 angleR1Initial = initialState(4);
 angleR2Initial = initialState(5);
 angleR3Initial = initialState(6);
+kInitial = initialState(7);
 
 posXUncertainty = initialUncertainty(1);
 posYUncertainty = initialUncertainty(2);
@@ -23,6 +24,7 @@ posZUncertainty = initialUncertainty(3);
 angleR1Uncertainty = initialUncertainty(4);
 angleR2Uncertainty = initialUncertainty(5);
 angleR3Uncertainty = initialUncertainty(6);
+kUncertainty = initialUncertainty(7);
 
 kNoise = noise(1);
 u1Noise = noise(2);
@@ -47,11 +49,12 @@ for iStep = 1:stopStep
                           angleR1Estimate(iStep-1);
                           angleR2Estimate(iStep-1);
                           angleR3Estimate(iStep-1);
+                          avgK;
                           zeros(5,1)];
     else
-        augmentedState = zeros(11,1);
+        augmentedState = [zeros(6,1); avgK; zeros(5,1)];
     end
-    nextState = processFunction(augmentedState, [avgK U1(iStep) U2(iStep)]);
+    nextState = processFunction(augmentedState, [U1(iStep) U2(iStep)]);
     
     posXEstimate(iStep) = nextState(1);
     posYEstimate(iStep) = nextState(2);
@@ -77,6 +80,7 @@ posZFiltered = zeros(1,nStep);
 angleR1Filtered = zeros(1,nStep);
 angleR2Filtered = zeros(1,nStep);
 angleR3Filtered = zeros(1,nStep);
+kFiltered = zeros(1,nStep);
 
 posXCovariance = zeros(1,nStep);
 posYCovariance = zeros(1,nStep);
@@ -84,6 +88,7 @@ posZCovariance = zeros(1,nStep);
 angleR1Covariance = zeros(1,nStep);
 angleR2Covariance = zeros(1,nStep);
 angleR3Covariance = zeros(1,nStep);
+kCovariance = zeros(1,nStep);
 
 % Fill the initial values of all variables
 posXFiltered(startStep) = posXInitial;
@@ -92,6 +97,7 @@ posZFiltered(startStep) = posZInitial;
 angleR1Filtered(startStep) = angleR1Initial;
 angleR2Filtered(startStep) = angleR2Initial;
 angleR3Filtered(startStep) = angleR3Initial;
+kFiltered(startStep) = kInitial;
 
 posXCovariance(startStep) = posXUncertainty;
 posYCovariance(startStep) = posYUncertainty;
@@ -99,28 +105,30 @@ posZCovariance(startStep) = posZUncertainty;
 angleR1Covariance(startStep) = angleR1Uncertainty;
 angleR2Covariance(startStep) = angleR2Uncertainty;
 angleR3Covariance(startStep) = angleR3Uncertainty;
-
+kCovariance(startStep) = kUncertainty;
 
 %% Initialize UKF
 
 Q = diag([kNoise; u1Noise; u2Noise]);
 R = diag([pXNoise; pYNoise]);
-dimX = 6;
+dimX = 7;
 dimZ = 2;
-ukf = HomMinSymAUKF(@processFunction, avgK, @measurementFunction, [], Q, R, dimX, dimZ);
+ukf = HomMinSymAUKF(@processFunction, [], @measurementFunction, [], Q, R, dimX, dimZ);
 ukf.x = [posXFiltered(startStep);
          posYFiltered(startStep);
          posZFiltered(startStep);
          angleR1Filtered(startStep);
          angleR2Filtered(startStep);
-         angleR3Filtered(startStep)];
+         angleR3Filtered(startStep);
+         kFiltered(startStep)];
 
 Pmatrix = [posXCovariance(startStep);
            posYCovariance(startStep);
            posZCovariance(startStep);
            angleR1Covariance(startStep);
            angleR2Covariance(startStep);
-           angleR3Covariance(startStep)];
+           angleR3Covariance(startStep);
+           kCovariance(startStep)];
 ukf.P = diag(Pmatrix);       
 
 %% Main Loop
@@ -144,6 +152,7 @@ for iStep = 1:stopStep
     angleR1Filtered(iStep) = ukf.x(4);
     angleR2Filtered(iStep) = ukf.x(5);
     angleR3Filtered(iStep) = ukf.x(6);
+    kFiltered(iStep) = ukf.x(7);
     
     posXCovariance(iStep) = ukf.P(1,1);
     posYCovariance(iStep) = ukf.P(2,2);
@@ -151,6 +160,7 @@ for iStep = 1:stopStep
     angleR1Covariance(iStep) = ukf.P(4,4);
     angleR2Covariance(iStep) = ukf.P(5,5);
     angleR3Covariance(iStep) = ukf.P(6,6);
+    kCovariance(iStep) = ukf.P(7,7);    
 
 end
 filterError = ((posXFiltered - pX).^2 + (posYFiltered - pY).^2).^(0.5);
@@ -161,9 +171,12 @@ pathFigure = figure;
 set(pathFigure, 'Position', [-1590 185 898 658]);
 hold on;
 
-% Debug Figure
 debugFigure = figure;
 set(debugFigure, 'Position', [-560  45 550 350]);
+hold on;
+
+kFigure = figure;
+set(kFigure, 'Position', [-560  520 550 350]);
 hold on;
 
 %% Display debug information
@@ -180,6 +193,10 @@ plot(estimationError(startStep:iStep), 'g-');
 plot(measurementError(startStep:iStep), 'b-');
 plot(filterError(startStep:iStep), 'r-');
 legend('Estimation', 'Measurements', 'Filtered');
+
+figure(kFigure);
+plot(k, 'r');
+plot(kFiltered, 'b');
 
 error1 = round(1000 * estimationError(stopStep));
 error2 = round(1000 * mean(measurementError(stopStep-20:stopStep)));
@@ -202,9 +219,11 @@ pz = sigmaPoint(3,:);
 r1 = sigmaPoint(4,:);
 r2 = sigmaPoint(5,:);
 r3 = sigmaPoint(6,:);
-k = parameter(1) + sigmaPoint(7,:);
-u1 = parameter(2) + sigmaPoint(8,:);
-u2 = parameter(3) + sigmaPoint(9,:);
+kState = sigmaPoint(7,:);
+
+k = kState + sigmaPoint(8,:);
+u1 = parameter(1) + sigmaPoint(9,:);
+u2 = parameter(2) + sigmaPoint(10,:);
 
 % Find out which sigma points correspond to a null movement (for these
 % sigma points, the quaternions should not be calculated)
@@ -242,6 +261,7 @@ processSigmaPoint(3,:) = positions(:,4)';
 processSigmaPoint(4,:) = R1';
 processSigmaPoint(5,:) = R2';
 processSigmaPoint(6,:) = R3';
+processSigmaPoint(7,:) = k;
 
 % Adjust the sigma points that correspond to null movement
 processSigmaPoint(1,nullMovementPoints) = px(nullMovementPoints);
@@ -250,16 +270,17 @@ processSigmaPoint(3,nullMovementPoints) = pz(nullMovementPoints);
 processSigmaPoint(4,nullMovementPoints) = r1(nullMovementPoints);
 processSigmaPoint(5,nullMovementPoints) = r2(nullMovementPoints);
 processSigmaPoint(6,nullMovementPoints) = r3(nullMovementPoints);
+processSigmaPoint(7,nullMovementPoints) = kState(nullMovementPoints);
 
 % Copy the measurement noise components to be carried on
-processSigmaPoint(7:8,:) = sigmaPoint(10:11,:);
+processSigmaPoint(8:9,:) = sigmaPoint(11:12,:);
 
 
 
 
 function measurementSigmaPoint = measurementFunction(sigmaPoint, ~)
 
-measurementSigmaPoint(1,:) = sigmaPoint(1,:) + sigmaPoint(7,:);
-measurementSigmaPoint(2,:) = sigmaPoint(2,:) + sigmaPoint(8,:);
+measurementSigmaPoint(1,:) = sigmaPoint(1,:) + sigmaPoint(8,:);
+measurementSigmaPoint(2,:) = sigmaPoint(2,:) + sigmaPoint(9,:);
 
 
