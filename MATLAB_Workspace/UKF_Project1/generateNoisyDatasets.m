@@ -18,27 +18,29 @@ clc;
 datasetGaussianK = load('datasets/datasetGaussianK.mat');
 datasetStageK = load('datasets/datasetStageK.mat');
 
-% Corrupt the constantK dataset
-
 % Corrupt the gaussianK dataset
-corruptDatasetAndSave(datasetGaussianK, 0.00, 0.00, 'datasetGaussianK-0-0.mat');
-corruptDatasetAndSave(datasetGaussianK, 0.00, 0.10, 'datasetGaussianK-0-10.mat');
-corruptDatasetAndSave(datasetGaussianK, 0.10, 0.20, 'datasetGaussianK-10-20.mat');
-corruptDatasetAndSave(datasetGaussianK, 0.10, 0.50, 'datasetGaussianK-10-50.mat');
-corruptDatasetAndSave(datasetGaussianK, 0.20, 0.20, 'datasetGaussianK-20-20.mat');
-corruptDatasetAndSave(datasetGaussianK, 0.20, 0.50, 'datasetGaussianK-20-50.mat');
-% 
-% % Corrupt the stageK dataset
-corruptDatasetAndSave(datasetStageK, 0.00, 0.00, 'datasetStageK-0-0.mat');
-corruptDatasetAndSave(datasetStageK, 0.00, 0.10, 'datasetStageK-0-10.mat');
-corruptDatasetAndSave(datasetStageK, 0.10, 0.20, 'datasetStageK-10-20.mat');
-corruptDatasetAndSave(datasetStageK, 0.10, 0.50, 'datasetStageK-10-50.mat');
-corruptDatasetAndSave(datasetStageK, 0.20, 0.20, 'datasetStageK-20-20.mat');
-corruptDatasetAndSave(datasetStageK, 0.20, 0.50, 'datasetStageK-20-50.mat');
+corruptDatasetAndSave(datasetGaussianK, 0.00, 0.00, 0.00, 'datasetGaussianK-0-0-0.mat');
+corruptDatasetAndSave(datasetGaussianK, 0.00, 0.00, 0.10, 'datasetGaussianK-0-0-10.mat');
+corruptDatasetAndSave(datasetGaussianK, 0.00, 0.00, 0.20, 'datasetGaussianK-0-0-20.mat');
+corruptDatasetAndSave(datasetGaussianK, 0.00, 0.00, 0.50, 'datasetGaussianK-0-0-50.mat');
+corruptDatasetAndSave(datasetGaussianK, 0.10, 0.10, 0.20, 'datasetGaussianK-10-10-20.mat');
+corruptDatasetAndSave(datasetGaussianK, 0.10, 0.10, 0.50, 'datasetGaussianK-10-10-50.mat');
+corruptDatasetAndSave(datasetGaussianK, 0.20, 0.20, 0.20, 'datasetGaussianK-20-20-20.mat');
+corruptDatasetAndSave(datasetGaussianK, 0.20, 0.20, 0.50, 'datasetGaussianK-20-20-50.mat');
 
-function corruptDatasetAndSave(dataset, uNoise, mNoise, outputFileName)
+% Corrupt the stageK dataset
+corruptDatasetAndSave(datasetStageK, 0.00, 0.00, 0.00, 'datasetStageK-0-0-0.mat');
+corruptDatasetAndSave(datasetStageK, 0.00, 0.00, 0.10, 'datasetStageK-0-0-10.mat');
+corruptDatasetAndSave(datasetStageK, 0.00, 0.00, 0.20, 'datasetStageK-0-0-20.mat');
+corruptDatasetAndSave(datasetStageK, 0.00, 0.00, 0.50, 'datasetStageK-0-0-50.mat');
+corruptDatasetAndSave(datasetStageK, 0.10, 0.10, 0.20, 'datasetStageK-10-10-20.mat');
+corruptDatasetAndSave(datasetStageK, 0.10, 0.10, 0.50, 'datasetStageK-10-10-50.mat');
+corruptDatasetAndSave(datasetStageK, 0.20, 0.20, 0.20, 'datasetStageK-20-20-20.mat');
+corruptDatasetAndSave(datasetStageK, 0.20, 0.20, 0.50, 'datasetStageK-20-20-50.mat');
 
-U2 = dataset.U2;
+
+function corruptDatasetAndSave(dataset, u1Noise, u2Noise, mNoise, outputFileName)
+
 k = dataset.k;
 avgK = dataset.avgK;
 pX = dataset.pX;
@@ -46,10 +48,17 @@ pY = dataset.pY;
 theta = dataset.theta;
 
 U1 = dataset.U1;
-if(uNoise > 0)    
+if(u1Noise > 0)    
     U1var = U1 - mean(U1);
-    noiseU1 = awgn(U1var, 1.0/uNoise, 'measured', 'linear') - U1var;
+    noiseU1 = awgn(U1var, 1.0/u1Noise, 'measured', 'linear') - U1var;
     U1 = U1 + noiseU1;
+end
+
+U2 = dataset.U2;
+if(u2Noise > 0)    
+    U2var = U2 - mean(U2);
+    noiseU2 = awgn(U2var, 1.0/u2Noise, 'measured', 'linear') - U2var;
+    U2 = U2 + noiseU2;
 end
 
 mX = dataset.pX;

@@ -19,14 +19,29 @@ sf = 2;                     % Insertion speed standard deviation factor
 maxVm = 3;                  % Maximum insertion speed factor
 minVm = 0;                  % Minimum insertion speed factor
 
+rotations = [0.3];          % Trajectory points where 180° rotations should happen
+rotationStep = 200;         % The amount of steps a single rotation takes
+
 simVm = vm * simT;
 nStep = Ltotal / simVm;
 
-% Generate the input vectors
+% Generate the insertion speed vector
 U1 = normrnd(simVm, simVm/sf, 1, nStep);
 U1 = sat(U1, minVm*simVm, maxVm*simVm);
 U1 = U1 * (Ltotal/sum(U1));
-U2 = zeros(1, nStep);
+
+% Insert zeros inside the insertion speed vector
+nRotation = length(rotations);
+breakSteps = floor(rotations * nStep);
+U2mask = zeros(1, nStep);
+for iRotation = 1:nRotation
+    step = breakSteps(iRotation);
+    U1 = [U1(1:step-1) zeros(1,rotationStep) U1(step:nStep)];
+    U2mask = [U2mask(1:step-1) ones(1,rotationStep) U2mask(step:nStep)];
+end
+
+% Generate the rotation speed vector
+U2 = (pi / rotationStep) * U2mask;
 
 % Display the generate vectors characteristics
 vectorFigure = figure;

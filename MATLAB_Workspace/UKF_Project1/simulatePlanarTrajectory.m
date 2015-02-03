@@ -22,7 +22,9 @@ end
 for iStep = 1:nStep
     
     % Apply Input
-    if(U1(iStep) > 0)
+    if(abs(U1(iStep)) + abs(U2(iStep)) == 0)
+        dq{iStep} = dq{end};
+    else
         A = sqrt(U2(iStep)^2+k(iStep)^2*U1(iStep)^2);
         phi = A;
         B = sin(phi/2)/A;
@@ -30,8 +32,6 @@ for iStep = 1:nStep
         p = DQ([0;U1(iStep);0;0]);
         dqi = r + DQ.E*0.5*p*r;
         dq{iStep} = dq{end}*dqi;
-    else
-        dq{iStep} = dq{end};
     end
     
     p = translation(dq{iStep});

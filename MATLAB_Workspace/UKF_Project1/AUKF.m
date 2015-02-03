@@ -40,7 +40,7 @@ classdef AUKF
         % the measurement noise (R)
         function [xAug PAug] = augmentStateVector(x, P, Q, R)
             sX = length(P); sQ = length(Q); sR = length(R);
-            xAug = [x'            zeros(1, sQ)  zeros(1,sR)]';
+            xAug = [x'             zeros(1, sQ)  zeros(1, sR)]';
             PAug = [P             zeros(sX, sQ) zeros(sX, sR);
                     zeros(sQ, sX) Q             zeros(sQ, sR);
                     zeros(sR, sX) zeros(sR, sQ) R            ];
@@ -60,7 +60,7 @@ classdef AUKF
             var = zeros(dimSigma, dimSigma);
             for iPoint = 1:nSigmaPoint
                 var = var + weight(iPoint)*((newSigmaPoint(:,iPoint)-avg)*(newSigmaPoint(:,iPoint)-avg)');
-            end            
+            end        
             
         end
     end
@@ -112,7 +112,7 @@ classdef AUKF
             nSigmaPoint = size(sigmaPoint, 2);
             
             % Prediction Step
-            [processSigmaPoint xEst PEst] = obj.applyProcessFunction(sigmaPoint, weight, u);
+            [processSigmaPoint xEst PEst] = obj.applyProcessFunction(sigmaPoint, weight, u);            
             
             % Measurement Step
             [measurementSigmaPoint zEst S] = obj.applyMeasurementFunction(processSigmaPoint, weight);
@@ -127,7 +127,6 @@ classdef AUKF
             G = crossVariance / S;
             obj.x = xEst + G*(z-zEst);
             obj.P = PEst - G*S*G';
-            
         end
         
     end
