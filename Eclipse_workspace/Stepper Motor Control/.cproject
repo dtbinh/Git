@@ -61,8 +61,8 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.cross.exe.debug.65184223.1084823249" name="main2.cpp" rcbsApplicability="disable" resourcePath="main2.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1153801075">
-						<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1153801075" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090"/>
+					<fileInfo id="cdt.managedbuild.config.gnu.cross.exe.debug.65184223.638803572" name="main2.cpp" rcbsApplicability="disable" resourcePath="main2.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1307472221">
+						<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1307472221" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090"/>
 					</fileInfo>
 					<folderInfo id="cdt.managedbuild.config.gnu.cross.exe.debug.65184223.1616034063" name="/" resourcePath="Debug">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.cross.exe.debug.1226707146" name="Cross GCC" superClass="cdt.managedbuild.toolchain.gnu.cross.exe.debug" unusedChildren="">
@@ -84,7 +84,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="main2.cpp|main.cpp|.settings" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="main3.cpp|main.cpp|.settings" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

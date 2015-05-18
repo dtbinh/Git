@@ -22,6 +22,7 @@
 StepperMotor::StepperMotor(unsigned port_step, unsigned steps_per_revolution, double max_acceleration)
 {
 	gpioSetMode(port_step, PI_OUTPUT);
+	gpioWrite(port_step, 0);
 
 	has_wave_ramp_up_ = false;
 	has_wave_ramp_down_ = false;
@@ -105,11 +106,11 @@ int StepperMotor::createWaveRampUpDown(double lower_frequency, double higher_fre
       }
 
 			// Generate one step with the calculated period
-			pulses_up[2*i_step].gpioOff = (1<<port_step_);
-			pulses_up[2*i_step].gpioOn = 0;
+			pulses_up[2*i_step].gpioOn = (1<<port_step_);
+			pulses_up[2*i_step].gpioOff = 0;
 			pulses_up[2*i_step].usDelay = current_half_period;
-			pulses_up[2*i_step+1].gpioOff = 0;
-			pulses_up[2*i_step+1].gpioOn = (1<<port_step_);
+			pulses_up[2*i_step+1].gpioOn = 0;
+			pulses_up[2*i_step+1].gpioOff = (1<<port_step_);
 			pulses_up[2*i_step+1].usDelay = current_half_period;
 
 			// Update the elapsed time counter
@@ -129,12 +130,12 @@ int StepperMotor::createWaveRampUpDown(double lower_frequency, double higher_fre
 			{
 				current_half_period = pulses_up[2*i_step].usDelay;
 
-				pulses_down[2*(num_steps-1-i_step)].gpioOff = (1<<port_step_);
-				pulses_down[2*(num_steps-1-i_step)].gpioOn = 0;
+				pulses_down[2*(num_steps-1-i_step)].gpioOn = (1<<port_step_);
+				pulses_down[2*(num_steps-1-i_step)].gpioOff = 0;
 				pulses_down[2*(num_steps-1-i_step)].usDelay = current_half_period;
 
-				pulses_down[2*(num_steps-1-i_step)+1].gpioOff = 0;
-				pulses_down[2*(num_steps-1-i_step)+1].gpioOn = (1<<port_step_);
+				pulses_down[2*(num_steps-1-i_step)+1].gpioOn = 0;
+				pulses_down[2*(num_steps-1-i_step)+1].gpioOff = (1<<port_step_);
 				pulses_down[2*(num_steps-1-i_step)+1].usDelay = current_half_period;
 			}
 
@@ -210,11 +211,11 @@ int StepperMotor::createWaveConstant(double frequency, unsigned num_steps)
   if (pulses)
   {
     // Generate one pair of pulses for creating the wave
-    pulses[0].gpioOff = (1<<port_step_);
-    pulses[0].gpioOn = 0;
+    pulses[0].gpioOn = (1<<port_step_);
+    pulses[0].gpioOff = 0;
     pulses[0].usDelay = usHalfPeriod;
-    pulses[1].gpioOff = 0;
-    pulses[1].gpioOn = (1<<port_step_);
+    pulses[1].gpioOn = 0;
+    pulses[1].gpioOff = (1<<port_step_);
     pulses[1].usDelay = usHalfPeriod;
 
     // Create the wave with constant frequency
@@ -275,6 +276,7 @@ void StepperMotor::startMotion()
       gpioWaveTxSend(wave_constant_, PI_WAVE_MODE_REPEAT);
       gpioSleep(PI_TIME_RELATIVE, seconds_constant_, micros_constant_);
       gpioWaveTxStop();
+      gpioWrite(port_step_, 0);
 
     default:
         break;
