@@ -21,6 +21,16 @@ StepperMotor::StepperMotor()
   configured_ = false;
 }
 
+unsigned StepperMotor::port_enable()
+{
+  return port_enable_;
+}
+
+unsigned StepperMotor::port_direction()
+{
+  return port_direction_;
+}
+
 unsigned StepperMotor::port_step()
 {
   return port_step_;

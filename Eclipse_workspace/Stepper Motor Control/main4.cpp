@@ -9,6 +9,7 @@
 #include "debug.h"
 #include <pigpio.h>
 #include <math.h>
+#include <unistd.h>
 
 
 
@@ -21,11 +22,12 @@ int main(int argc, char *argv[])
   // Move motors to the home position
   //device.calibrate
 
-  device.setInsertionWithDutyCycle(10.0, 1.0, 4.0, 0.5);
-  device.startInsertionWithDutyCycle();
+  if(device.setInsertionWithDutyCycle(10.0, 2.0, 5.0, 1.0) == 0)
+    device.startInsertion();
 
 
 
+  sleep(1);
   device.terminateGPIO();
   return 0;
 }

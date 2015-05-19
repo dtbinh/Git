@@ -25,5 +25,6 @@
 #define ERR_DEVICE_NOT_INITIALIZED  -12
 #define ERR_GPIO_INIT_FAIL          -101
 #define ERR_GPIO_WAVE_CREATE_FAIL   -102
+#define ERR_WAVES_NOT_PRESENT       -103
 
 #endif /* DEBUG_H_ */

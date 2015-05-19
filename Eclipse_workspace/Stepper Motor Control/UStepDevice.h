@@ -30,20 +30,36 @@ class UStepDevice
   bool configured_;
   bool initialized_;
 
-  // Duty cycle wave parameters
-  unsigned micros_rotation_;
-  unsigned micros_pure_insertion_;
-  unsigned micros_duty_cycle_period_;
-  unsigned micros_remaining_;
-  unsigned insertion_step_half_period_;
-  unsigned rotation_step_half_period_;
-  unsigned number_of_duty_cycle_periods_;
-
   // Waves
   int wave_insertion_with_rotation_;
   int wave_pure_insertion_;
 
-  //
+  // Wave flags
+  bool has_wave_pure_insertion_;
+  bool has_wave_insertion_with_rotation_;
+  bool has_wave_remaining_;
+
+  // Duty cycle wave parameters
+  unsigned seconds_rotation_;
+  unsigned seconds_pure_insertion_;
+  unsigned micros_rotation_;
+  unsigned micros_pure_insertion_;
+  unsigned micros_remaining_;
+  unsigned insertion_step_half_period_;
+  unsigned rotation_step_half_period_;
+  unsigned num_dc_periods_;
+
+  // Duty cycle thresholds
+  double dc_max_threshold_;
+  double dc_min_threshold_;
+
+
+
+
+
+  // Auxiliary functions
+  void clearWaves();
+  int checkExistingWaves();
   void calculateDutyCycleMotionParameters(double insertion_depth_rev,  double insertion_speed, double rotation_speed, double duty_cycle);
   int generateWaveInsertionWithRotation();
   int generateWavePureInsertion();
@@ -60,16 +76,16 @@ class UStepDevice
   void terminateGPIO();
 
   // Motion functions
-  void openFrontGripper();
+  int setInsertionWithDutyCycle(double insertion_depth_rev,  double insertion_speed, double rotation_speed, double duty_cycle);
+  int startInsertion();
+
+  /*void openFrontGripper();
   void closeFrontGripper();
   void openBackGripper();
   void closeBackGripper();
   void insert();
   void retreat();
-  void spin();
-
-  int setInsertionWithDutyCycle(double insertion_depth_rev,  double insertion_speed, double rotation_speed, double duty_cycle);
-  int startInsertionWithDutyCycle();
+  void spin();*/
 
 };
 
