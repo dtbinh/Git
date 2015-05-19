@@ -61,9 +61,10 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.cross.exe.debug.65184223.638803572" name="main2.cpp" rcbsApplicability="disable" resourcePath="main2.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1307472221">
-						<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1307472221" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090"/>
+					<fileInfo id="cdt.managedbuild.config.gnu.cross.exe.debug.65184223.1766076539" name="device_parameters.cpp" rcbsApplicability="disable" resourcePath="device_parameters.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1811948175">
+						<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1811948175" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090"/>
 					</fileInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.cross.exe.debug.65184223.732919437" name="OldstepperMotor.h" rcbsApplicability="disable" resourcePath="OldstepperMotor.h" toolsToInvoke=""/>
 					<folderInfo id="cdt.managedbuild.config.gnu.cross.exe.debug.65184223.1616034063" name="/" resourcePath="Debug">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.cross.exe.debug.1226707146" name="Cross GCC" superClass="cdt.managedbuild.toolchain.gnu.cross.exe.debug" unusedChildren="">
 							<option id="cdt.managedbuild.option.gnu.cross.prefix.929729915.1764627130" name="Prefix" superClass="cdt.managedbuild.option.gnu.cross.prefix.929729915"/>
@@ -84,7 +85,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="main3.cpp|main.cpp|.settings" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="device_parameters.cpp|OldstepperMotor.h|OldstepperMotor.cpp|main2.cpp|main3.cpp|main.cpp|.settings" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
