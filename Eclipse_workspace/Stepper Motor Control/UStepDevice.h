@@ -39,15 +39,19 @@ class UStepDevice
   bool has_wave_insertion_with_rotation_;
   bool has_wave_remaining_;
 
+
   // Duty cycle wave parameters
-  unsigned seconds_rotation_;
-  unsigned seconds_pure_insertion_;
+  unsigned num_dc_periods_;
+  unsigned insertion_step_half_period_;
+  unsigned rotation_step_half_period_;
   unsigned micros_rotation_;
   unsigned micros_pure_insertion_;
   unsigned micros_remaining_;
-  unsigned insertion_step_half_period_;
-  unsigned rotation_step_half_period_;
-  unsigned num_dc_periods_;
+  unsigned seconds_rotation_;
+  unsigned seconds_pure_insertion_;
+
+
+
 
   // Duty cycle thresholds
   double dc_max_threshold_;
@@ -60,10 +64,13 @@ class UStepDevice
   // Auxiliary functions
   void clearWaves();
   int checkExistingWaves();
-  void calculateDutyCycleMotionParameters(double insertion_depth_rev,  double insertion_speed, double rotation_speed, double duty_cycle);
+  int calculateDutyCycleMotionParameters(double insert_depth,  double insert_speed, double rot_speed, double duty_cycle);
+  int calculateRotationSpeed(unsigned rot_insert_time_us);
   int generateWaveInsertionWithRotation();
   int generateWavePureInsertion();
   gpioPulse_t* generatePulsesConstantSpeed(unsigned port_number, unsigned half_period, unsigned num_steps);
+  gpioPulse_t* generatePulsesRampUpDown(unsigned port_number, double frequency_initial, double frequency_final, double step_acceleration, unsigned num_steps, unsigned total_time);
+  unsigned generatePulsesRampUp(unsigned port_number, double frequency_initial, double frequency_final, double step_acceleration, gpioPulse_t* pulses, unsigned max_steps);
 
  public:
 

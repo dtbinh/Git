@@ -23,6 +23,8 @@
 #define ERR_MALLOC                  -1
 #define ERR_MOTOR_NOT_CONFIGURED    -11
 #define ERR_DEVICE_NOT_INITIALIZED  -12
+#define ERR_TIME_CALC_INVALID       -13
+#define ERR_INVALID_ROTATION_RAMP   -14
 #define ERR_GPIO_INIT_FAIL          -101
 #define ERR_GPIO_WAVE_CREATE_FAIL   -102
 #define ERR_WAVES_NOT_PRESENT       -103

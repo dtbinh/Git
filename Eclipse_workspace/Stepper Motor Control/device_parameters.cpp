@@ -29,8 +29,8 @@
 #define PORT_FS     5
 #define PORT_BS     6
 
-#define STEP_SIZE_ROTATION   400
-#define STEP_SIZE_INSERTION  400
+#define STEP_SIZE_ROTATION   5000
+#define STEP_SIZE_INSERTION  5000
 
 #define MAX_DC  0.95
 #define MIN_DC  0.10
