@@ -16,8 +16,8 @@
 #define S_TO_US   1000000
 #define US_TO_S   0.000001
 
-#define MAX_SPEED 4.0
-#define ACC 250.0
+#define MAX_SPEED 5.0
+#define ACC 300.0
 
 #define WAVES_PRESENT_DC_ALWAYS               1
 #define WAVES_PRESENT_DC_AND_REMAINING        2
@@ -322,6 +322,8 @@ int UStepDevice::calculateDutyCycleMotionParameters(double insert_depth,  double
 
     // Calculate the total time of the insertion
     micros_pure_insertion_ = 2*insertion_step_half_period_ * total_insert_distance_step;
+
+    return 0;
   }
 
   else
@@ -438,13 +440,16 @@ int UStepDevice::calculateRotationSpeed(unsigned rot_insert_time_us)
     }
 
     double final_speed = (-B -pow(D, 0.5))/2;
-    unsigned us_delay = floor(((S_TO_US / final_speed) / rot_steps_per_rev) / 2);
+    unsigned us_delay_final = floor(((S_TO_US / final_speed) / rot_steps_per_rev) / 2);
+    final_speed = ((double)(S_TO_US)) / (rot_steps_per_rev * 2 * us_delay_final);
+
+    unsigned us_delay_initial = floor(((S_TO_US / rot_base_speed) / rot_steps_per_rev) / 2);
 
     Debug("B=%f, C=%f, D=%f\n", B, C, D);
-    Debug("That is too fast. I will start at %f and ramp up until %f \n", rot_base_speed, final_speed);
-    Debug("Since one rev has %u steps, each step will take %u micros \n\n", rot_steps_per_rev, 2*us_delay);
+    Debug("That is too fast. I will start at %f RPS and ramp up until %f RPS\n", rot_base_speed, final_speed);
+    Debug("The half step will vary from %u micros to %u micros\n", us_delay_initial, us_delay_final);
 
-    return us_delay;
+    return us_delay_final;
   }
 }
 
@@ -537,8 +542,6 @@ int UStepDevice::generateWaveInsertionWithRotation()
   gpioPulse_t *rotation_pulses;
 
   insertion_pulses = generatePulsesConstantSpeed(insertion_.port_step(), insertion_step_half_period_, num_insertion_steps);
-  unsigned total_time = num_insertion_steps*2*insertion_step_half_period_;
-
 
   Debug("\nPreparing to generate the roation wave\n");
 
@@ -550,12 +553,13 @@ int UStepDevice::generateWaveInsertionWithRotation()
   {
     Debug("Generating rotation as a constant wave with us_delay = %u\n\n", rotation_step_half_period_);
     rotation_pulses = generatePulsesConstantSpeed(rotation_.port_step(), rotation_step_half_period_, num_rotation_steps);
-    rotation_pulses[2*num_rotation_steps-1].usDelay += (total_time - num_rotation_steps*2*rotation_step_half_period_);
+    rotation_pulses[2*num_rotation_steps-1].usDelay += (micros_rotation_ - num_rotation_steps*2*rotation_step_half_period_);
   }
   else
   {
-    Debug("Generating a ramp profile from %u to %u\n\n", rotation_step_half_period_initial, rotation_step_half_period_);
-    rotation_pulses = generatePulsesRampUpDown(rotation_.port_step(), rot_frequency_initial, rot_frequency_final, step_acceleration, num_rotation_steps, total_time);
+    Debug("Generating a ramp profile from %u to %u\n", rotation_step_half_period_initial, rotation_step_half_period_);
+    Debug("This profile should contain %u steps and take %u micros\n\n", num_rotation_steps, micros_rotation_);
+    rotation_pulses = generatePulsesRampUpDown(rotation_.port_step(), rot_frequency_initial, rot_frequency_final, step_acceleration, num_rotation_steps, micros_rotation_);
   }
 
   if(insertion_pulses >= 0 && rotation_pulses >= 0)
@@ -701,12 +705,21 @@ gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double 
 
         cummulated_time += 4*current_delay;
       }
-      free(pulses_ramp);
 
+      double ramp_percentage = ((double)num_steps_ramp)/num_steps;
+
+      Debug("RAMP UP: Initial ht = %u, final ht = %u \n", pulses[0].usDelay,  pulses[2*num_steps_ramp-1].usDelay);
+      Debug("Each ramp has %u steps, so both ramps have %u steps and take %u micros\n", num_steps_ramp, 2*num_steps_ramp, cummulated_time);
+      Debug("There are %u steps and %u micros left for the constant speed\n", num_steps-2*num_steps_ramp, total_time-cummulated_time);
+      Debug("\nWARNING: Both ramps will take %f%% of one rotation\n\n", 100*ramp_percentage);
+
+      //Debug("If I generate %u steps at %u micros each, this will take %u micros\n", num_steps_constant, 2*current_delay, 2*current_delay*num_steps_constant);
+
+      free(pulses_ramp);
 
       if(num_steps_constant > 0)
       {
-        unsigned current_delay = floor(S_TO_US/frequency_final);
+        current_delay = floor((((double)(S_TO_US))/frequency_final)/2);
         for(unsigned i_step = num_steps_ramp; i_step < num_steps_ramp+num_steps_constant; i_step++)
         {
           pulses[2*i_step].gpioOn = (1<<port_number);
@@ -727,6 +740,8 @@ gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double 
       }
 
       unsigned remaining_time = total_time - cummulated_time;
+      Debug("Finished adding the constant speed steps. Total wave time is %u micros\n", cummulated_time);
+      Debug("I should add more %u micros to reach the specified total of %u micros\n\n", remaining_time, total_time);
 
       if(remaining_time > 0)
       {
