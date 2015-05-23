@@ -9,6 +9,7 @@
 #include "debug.h"
 #include <pigpio.h>
 
+// Empty constructor: simply initialize all member variables with null values
 StepperMotor::StepperMotor()
 {
   port_enable_ = 0;
@@ -20,6 +21,10 @@ StepperMotor::StepperMotor()
   initialized_ = false;
   configured_ = false;
 }
+
+/*
+ * ACCESSORS
+ */
 
 unsigned StepperMotor::port_enable()
 {
@@ -41,6 +46,7 @@ unsigned StepperMotor::steps_per_revolution()
   return steps_per_revolution_;
 }
 
+// Copy the provided parameters into the corresponding member variables
 void StepperMotor::configureParameters(MotorParameters parameters)
 {
   port_enable_ = parameters.port_enable;
@@ -52,6 +58,8 @@ void StepperMotor::configureParameters(MotorParameters parameters)
   configured_ = true;
 }
 
+// Initialize the GPIO ports of the Raspberry Pi connecting to this motor
+// Simply set the ports as outputs and write their initial value to 0
 int StepperMotor::initGPIO()
 {
   // Check if the motor parameters have already been configured
@@ -73,7 +81,7 @@ int StepperMotor::initGPIO()
   // If the motor parameters have not been set, return an error code
   else
   {
-    Debug("ERROR StepperMotor::initGPIO - Motor parameters not configured. You must call configureParameters() before \n");
+    Error("ERROR StepperMotor::initGPIO - Motor parameters not configured. You must call configureParameters() before \n");
     return ERR_MOTOR_NOT_CONFIGURED;
   }
 }

@@ -5,20 +5,21 @@
  *      Author: andre
  */
 
+// Includes
 #include "UStepDevice.h"
 #include "debug.h"
 #include <stdlib.h>
 #include <pigpio.h>
 #include <math.h>
 
+// File containing all the parameters for configuring the UStepDevice.
 #include "device_parameters.cpp"
 
+// Time unit conversions
 #define S_TO_US   1000000
 #define US_TO_S   0.000001
 
-#define MAX_SPEED 5.0
-#define ACC 300.0
-
+// Possible return values for the function 'checkExistingWaves()'
 #define WAVES_PRESENT_DC_ALWAYS               1
 #define WAVES_PRESENT_DC_AND_REMAINING        2
 #define WAVES_PRESENT_ROTATION_ALWAYS         3
@@ -31,6 +32,14 @@ UStepDevice::UStepDevice()
   emergency_button_ = 0;
   front_switch_ = 0;
   back_switch_ = 0;
+
+  min_base_speed_ = 1.0;
+  max_base_speed_ = 1.0;
+  max_final_speed_ = 1.0;
+  max_acceleration_ = 1.0;
+
+  insertion_revolutions_per_mm_ = 1.0;
+  motor_per_needle_revolutions_ = 1.0;
 
   dc_max_threshold_ = 1.0;
   dc_min_threshold_ = 0.0;
@@ -49,7 +58,7 @@ void UStepDevice::configureMotorParameters()
   declareDeviceParameters();
 
   // Set the parameters for each one of the motors
-  insertion_.configureParameters(translation_parameters);
+  insertion_.configureParameters(insertion_parameters);
   rotation_.configureParameters(rotation_parameters);
   front_gripper_.configureParameters(front_gripper_parameters);
   back_gripper_.configureParameters(back_gripper_parameters);
@@ -58,6 +67,15 @@ void UStepDevice::configureMotorParameters()
   emergency_button_ = PORT_EM;
   front_switch_ = PORT_FS;
   back_switch_ = PORT_BS;
+
+  // Physical parameters of the motors
+  min_base_speed_ = MIN_SPEED;
+  max_base_speed_ = MAX_SPEED;
+  max_final_speed_ = MAX_FINAL_SPEED;
+  max_acceleration_ = ACC;
+
+  insertion_revolutions_per_mm_ = INS_REVS_PER_MM;
+  motor_per_needle_revolutions_ = NEEDLE_TO_MOTOR_GEAR_RATIO;
 
   // Duty cycle parameters
   dc_max_threshold_ = MAX_DC;
@@ -74,7 +92,7 @@ int UStepDevice::initGPIO()
     // Attempt to initialize the Raspberry Pi GPIO
     if(gpioInitialise() < 0)
     {
-      Debug("ERROR UStepDevice::initGPIO - Unable to call gpioInitialise() \n");
+      Error("ERROR UStepDevice::initGPIO - Unable to call gpioInitialise() \n");
       return ERR_GPIO_INIT_FAIL;
     }
 
@@ -101,7 +119,7 @@ int UStepDevice::initGPIO()
   // If the motor parameters have not been set, return an error code
   else
   {
-    Debug("ERROR UStepDevice::initGPIO - Motor parameters not configured. You must call configureMotorParameters() before \n");
+    Error("ERROR UStepDevice::initGPIO - Motor parameters not configured. You must call configureMotorParameters() before \n");
     return ERR_MOTOR_NOT_CONFIGURED;
   }
 }
@@ -112,48 +130,69 @@ void UStepDevice::terminateGPIO()
   initialized_ = false;
 }
 
-int UStepDevice::setInsertionWithDutyCycle(double insertion_depth_rev,  double insertion_speed, double rotation_speed, double duty_cycle)
+int UStepDevice::setInsertionWithDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
 {
+  // Input units
+  //   - insert_depth : The requested insertion distance in millimeters
+  //   - insert_speed : The requested insertion speed in millimeters/second
+  //   - rot_speed    : The requested rotation speed in revolutions/second
+  //   - duty_cycle   : The requested duty cycle
+
   if(initialized_)
   {
-    // VERIFY IF THE REQUESTED VALUES ARE WITHIN THE SECURITY LIMITS
-    // Values to be verified: insertion_speed and rotation_speed (min and max limits)
-    // insertion_depth is not important, because of the limit switches
-    // DC is not important, because I already check for boundary conditions latter on
+    // Convert the insertion quantities from millimeters to revolutions
+    double insertion_motor_distance = needle_insertion_depth * insertion_revolutions_per_mm_;
+    double insertion_motor_speed = needle_insertion_speed * insertion_revolutions_per_mm_;
+    double rotation_motor_speed = needle_rotation_speed * motor_per_needle_revolutions_;
 
-    int result;
-
-    clearWaves();
-
-    if((result = calculateDutyCycleMotionParameters(insertion_depth_rev, insertion_speed, rotation_speed, duty_cycle)))
+    // Verify if the requested speeds are inside the allowed range
+    if(verifyMotorSpeedLimits(insertion_motor_speed, rotation_motor_speed) == 0)
     {
-      Debug("ERROR UStepDevice::setInsertionWithDutyCycle - Bad parameters \n");
-      return result;
-    }
 
+      // Before generating new waves, clear all wave variables
+      clearWaves();
 
-    if(rotation_step_half_period_ > 0)
-    {
-      if((result = generateWaveInsertionWithRotation()))
+      // Calculate all necessary parameters for generating the duty cycle motion
+      int result;
+      if((result = calculateDutyCycleMotionParameters(insertion_motor_distance, insertion_motor_speed, rotation_motor_speed, duty_cycle)))
       {
-        Debug("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave insertion with rotation \n");
+        Error("ERROR UStepDevice::setInsertionWithDutyCycle - Bad parameters \n");
         return result;
       }
-    }
 
-    if(micros_pure_insertion_ > 0 || micros_remaining_ > 0)
-    {
-      if((result = generateWavePureInsertion()))
+      // If the duty cycle is greater than 0 generate a wave containing insertion and rotation
+      if(micros_rotation_ > 0)
       {
-        Debug("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave pure insertion \n");
-        return result;
+        if((result = generateWaveInsertionWithRotation()))
+        {
+          Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave insertion with rotation \n");
+          return result;
+        }
       }
+
+      // If the duty cycle is smaller than 1 or there are remaining steps to be
+      // performed after all duty cycle periods, generate a wave with insertion only
+      if(micros_pure_insertion_ > 0 || micros_remaining_ > 0)
+      {
+        if((result = generateWavePureInsertion()))
+        {
+          Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave pure insertion \n");
+          return result;
+        }
+      }
+
+      calculateFeedbackInformation();
+    }
+    else
+    {
+      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested motor speeds are invalid \n");
+      return ERR_INVALID_MOTOR_SPEED;
     }
   }
 
   else
   {
-    Debug("ERROR UStepDevice::setInsertionWithDutyCycle - Device not initialized. You must call initGPIO() before \n");
+    Error("ERROR UStepDevice::setInsertionWithDutyCycle - Device not initialized. You must call initGPIO() before \n");
     return ERR_DEVICE_NOT_INITIALIZED;
   }
 
@@ -172,7 +211,6 @@ int UStepDevice::startInsertion()
     {
       // Duty-cycle = 0: No rotation
       case WAVES_PRESENT_INSERTION_ONLY:
-        Debug("DEBUG 1\n");
         gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
         gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
         gpioWaveTxStop();
@@ -180,7 +218,6 @@ int UStepDevice::startInsertion()
 
       // Duty-cycle = 1: Insert always with rotation
       case WAVES_PRESENT_ROTATION_ALWAYS:
-        Debug("DEBUG 2\n");
         for(unsigned i_dc_period = 0; i_dc_period < num_dc_periods_; i_dc_period++)
         {
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_REPEAT);
@@ -191,7 +228,6 @@ int UStepDevice::startInsertion()
 
       // Duty-cycle = 1: Insert with rotation and perform remaining insertion in the end
       case WAVES_PRESENT_ROTATION_AND_REMAINING:
-        Debug("DEBUG 3\n");
         for(unsigned i_dc_period = 0; i_dc_period < num_dc_periods_; i_dc_period++)
         {
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_REPEAT);
@@ -204,7 +240,6 @@ int UStepDevice::startInsertion()
 
       // Duty-cycle between 0 and 1: Perform duty-cycle periods
       case WAVES_PRESENT_DC_ALWAYS:
-        Debug("DEBUG 4\n");
         for(unsigned i_dc_period = 0; i_dc_period < num_dc_periods_; i_dc_period++)
         {
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
@@ -217,7 +252,6 @@ int UStepDevice::startInsertion()
 
       // Duty-cycle between 0 and 1: Perform duty-cycle periods and perform remaining insertion in the end
       case WAVES_PRESENT_DC_AND_REMAINING:
-        Debug("DEBUG 5\n");
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
@@ -229,10 +263,9 @@ int UStepDevice::startInsertion()
         gpioWaveTxStop();
         break;
 
-
       // Error: the waves have not been set
       case WAVES_PRESENT_NONE:
-        Debug("ERROR UStepDevice::startInsertion - Waves not set \n");
+        Error("ERROR UStepDevice::startInsertion - Waves not set \n");
         return ERR_DEVICE_NOT_INITIALIZED;
 
       default:
@@ -242,7 +275,7 @@ int UStepDevice::startInsertion()
 
   else
   {
-    Debug("ERROR UStepDevice::startInsertion - Device not initialized. You must call initGPIO() before \n");
+    Error("ERROR UStepDevice::startInsertion - Device not initialized. You must call initGPIO() before \n");
     return ERR_DEVICE_NOT_INITIALIZED;
   }
 
@@ -263,14 +296,20 @@ void UStepDevice::clearWaves()
   has_wave_insertion_with_rotation_ = false;
   has_wave_remaining_ = false;
 
-  seconds_rotation_ = 0;
-  seconds_pure_insertion_ = 0;
+  num_dc_periods_ = 0;
+  insertion_step_half_period_ = 0;
+  rotation_step_half_period_ = 0;
   micros_rotation_ = 0;
   micros_pure_insertion_ = 0;
   micros_remaining_ = 0;
-  insertion_step_half_period_ = 0;
-  rotation_step_half_period_ = 0;
-  num_dc_periods_ = 0;
+  seconds_rotation_ = 0;
+  seconds_pure_insertion_ = 0;
+
+  micros_real_rotation_duration_ = 0;
+  calculated_insertion_speed_ = 0;
+  calculated_rotation_speed_ = 0;
+  calculated_duty_cycle_ = 0;
+  rotation_ramp_step_percentage_ = 0;
 }
 
 int UStepDevice::checkExistingWaves()
@@ -301,47 +340,100 @@ int UStepDevice::checkExistingWaves()
   }
 }
 
+int UStepDevice::verifyMotorSpeedLimits(double insertion_motor_speed, double rotation_motor_speed)
+{
+  // Verify if the insertion motor speed is lower than the minimum speed
+  if(insertion_motor_speed < min_base_speed_)
+  {
+    Error("ERROR UStepDevice::verifyMotorSpeedLimits - Insertion motor speed is too slow \n");
+    return ERR_INSERT_SPEED_TOO_SMALL;
+  }
 
-int UStepDevice::calculateDutyCycleMotionParameters(double insert_depth,  double insert_speed, double rot_speed, double duty_cycle)
+  // Verify if the insertion motor speed is greater than the base speed
+  else if(insertion_motor_speed > max_base_speed_)
+  {
+    Error("ERROR UStepDevice::verifyMotorSpeedLimits - Insertion motor speed is too high \n");
+    return ERR_INSERT_SPEED_TOO_HIGH;
+  }
+
+  // Verify if the rotation motor speed is lower than the minimum speed
+  if(rotation_motor_speed < min_base_speed_)
+  {
+    Error("ERROR UStepDevice::verifyMotorSpeedLimits - Rotation motor speed is too slow \n");
+    return ERR_ROT_SPEED_TOO_SMALL;
+  }
+
+  // Verify if the rotation motor speed is greater than the maximum speed
+  // The rotation motor may go beyond the base speed, because it uses acceleration
+  // and deceleration ramps.
+  else if(rotation_motor_speed > max_final_speed_)
+  {
+    Error("ERROR UStepDevice::verifyMotorSpeedLimits - Rotation motor speed is too high \n");
+    return ERR_ROT_SPEED_TOO_HIGH;
+  }
+
+  return 0;
+}
+
+int UStepDevice::calculateDutyCycleMotionParameters(double insert_motor_distance,  double insert_motor_speed, double rot_motor_speed, double duty_cycle)
 {
   // Input units
-  //   - insert_depth : The requested insertion distance in millimeters
-  //   - insert_speed : The requested insertion speed in millimeters/second
-  //   - rot_speed    : The requested rotation speed in revolutions/second
-  //   - duty_cycle   : The requested duty cycle
+  //   - insert_motor_distance : The requested displacement of the insertion motor in rev
+  //   - insert_motor_speed    : The requested speed of the insertion motor in rev/s
+  //   - rot_motor_speed       : The requested speed of the rotation motor in rev/s
+  //   - duty_cycle            : The requested duty cycle
 
+  // Duty cycle = 0 : pure insertion
   if(duty_cycle <= dc_min_threshold_)
   {
-    // Save motor parameters to local variables
-    double insert_revs_per_mm = 1;
-    double insert_steps_per_rev = insertion_.steps_per_revolution();
+    // Calculated quantities
+    unsigned total_insert_distance_step;        // The requested insertion distance in steps
+    double exp_total_insert_time_us;         // The expected time of the insertion in us
+    unsigned half_step_insert_time_us;          // The time of half of an insertion step in us
+    unsigned total_insert_time_us;              // The total time of the insertion in us
+
+    // Convert the insertion distance from revolutions to steps
+    total_insert_distance_step = round(insert_motor_distance * insertion_.steps_per_revolution());
+
+    // Estimate the total duration of the insertion based on the requested distance and speed
+    exp_total_insert_time_us = (insert_motor_distance / insert_motor_speed) * S_TO_US;
 
     // Calculate the period of a single insertion step
-    unsigned total_insert_distance_step = round(insert_depth * insert_revs_per_mm * insert_steps_per_rev);
-    insertion_step_half_period_ = round((((insert_depth / insert_speed) * S_TO_US) / total_insert_distance_step) / 2);
+    half_step_insert_time_us = round((exp_total_insert_time_us / total_insert_distance_step) / 2);
 
-    // Calculate the total time of the insertion
-    micros_pure_insertion_ = 2*insertion_step_half_period_ * total_insert_distance_step;
+    // Calculate the total duration of the insertion as a multiple of the step period
+    total_insert_time_us = total_insert_distance_step * 2*half_step_insert_time_us;
+
+    // Export the relevant calculated values to member variables
+    insertion_step_half_period_ = half_step_insert_time_us;
+    micros_pure_insertion_ = total_insert_time_us;
+
+    num_dc_periods_ = 0;
+    rotation_step_half_period_ = 0;
+    micros_rotation_ = 0;
+    micros_remaining_ = 0;
 
     return 0;
   }
 
+  // Duty cycle > 0 : insertion with rotation
   else
   {
     if(duty_cycle >= dc_max_threshold_)
       duty_cycle = 1.0;
 
     // Expected continuous time quantities
-    double exp_total_insert_time_s;             // The expected time of the insertion in s
-    double exp_single_rot_time_s;               // The expected time of a single rotation in s
+    double rot_motor_distance_rev;              // The total rotation distance of one rotation period in revolutions
+    double exp_single_rot_time_s;               // The expected time of a single rotation period in s
     double exp_single_dc_time_s;                // The expected time of a single duty cycle period in s
+    double exp_total_insert_time_s;             // The expected time of the insertion in s
 
     // Discrete time quantities
     unsigned total_insert_time_us;              // The total time of the insertion in us
     unsigned single_dc_time_us;                 // The time of a single duty cycle period in us
     unsigned rot_insert_time_us;                // The rotation part of the duty cycle period in us
-    unsigned pure_insert_time_us;                  // The pure insertion part of the duty cycle period in us
-    unsigned remaining_insert_time_us;             // The remaining insertion type, to be performed after all duty cycle periods
+    unsigned pure_insert_time_us;               // The pure insertion part of the duty cycle period in us
+    unsigned remaining_insert_time_us;          // The remaining insertion type, to be performed after all duty cycle periods
 
     // Discrete parameters
     unsigned total_insert_distance_step;        // The requested insertion distance in steps
@@ -350,18 +442,15 @@ int UStepDevice::calculateDutyCycleMotionParameters(double insert_depth,  double
     unsigned half_step_rot_time_us;             // The time of half of a rotation step in us
     unsigned num_dc;                            // The total number of duty cycle periods in the insertion
 
-    // Save motor parameters to local variables
-    double insert_revs_per_mm = 1;
-    unsigned insert_steps_per_rev = insertion_.steps_per_revolution();
-
     // Calculate in how many duty cycles, the insertion will be divided
-    exp_total_insert_time_s = insert_depth / insert_speed;
-    exp_single_rot_time_s = 1 / rot_speed;
+    rot_motor_distance_rev = 1.0 * motor_per_needle_revolutions_;
+    exp_single_rot_time_s = rot_motor_distance_rev / rot_motor_speed;
     exp_single_dc_time_s = exp_single_rot_time_s / duty_cycle;
+    exp_total_insert_time_s = insert_motor_distance / insert_motor_speed;
     num_dc = round(exp_total_insert_time_s / exp_single_dc_time_s);
 
     // Calculate the period of a single insertion step (this will be our time unit)
-    total_insert_distance_step = round(insert_depth * insert_revs_per_mm * insert_steps_per_rev);
+    total_insert_distance_step = round(insert_motor_distance * insertion_.steps_per_revolution());
     half_step_insert_time_us = round(((exp_total_insert_time_s * S_TO_US) / total_insert_distance_step) / 2);
     step_insert_time_us = 2*half_step_insert_time_us;
 
@@ -378,10 +467,9 @@ int UStepDevice::calculateDutyCycleMotionParameters(double insert_depth,  double
     int rot_us_delay = calculateRotationSpeed(rot_insert_time_us);
     if(rot_us_delay < 0)
     {
-      Debug("ERROR UStepDevice::calculateDutyCycleMotionParameters - Can't perform a full rotation ramp in the requested time \n");
+      Error("ERROR UStepDevice::calculateDutyCycleMotionParameters - Can't perform a full rotation ramp in the requested time \n");
       return ERR_INVALID_ROTATION_RAMP;
     }
-
     half_step_rot_time_us = (unsigned)rot_us_delay;
 
     // Export the relevant calculated values to member variables
@@ -392,37 +480,54 @@ int UStepDevice::calculateDutyCycleMotionParameters(double insert_depth,  double
     micros_pure_insertion_ = pure_insert_time_us;
     micros_remaining_ = remaining_insert_time_us;
 
+    // Calculate part of the feedback information
+    double total_insert_distance_rev = ((double)(total_insert_distance_step)) / insertion_.steps_per_revolution();
+    double real_insertion_speed_rev = S_TO_US * (total_insert_distance_rev / total_insert_time_us);
+    calculated_insertion_speed_ = real_insertion_speed_rev / insertion_revolutions_per_mm_;
+
     return 0;
   }
 }
 
-int UStepDevice::calculateRotationSpeed(unsigned rot_insert_time_us)
+int UStepDevice::calculateRotationSpeed(unsigned max_rotation_time)
 {
-  // Save parameters to local variables
-  unsigned rot_steps_per_rev = rotation_.steps_per_revolution();
-  double rot_base_speed = MAX_SPEED;
-  double rot_acceleration = ACC;
+  double rot_motor_distance_rev;          // The total rotation distance of one rotation period in revolutions
+  unsigned rot_motor_distance_step;       // The total rotation distance of one rotation period in steps
+  double average_speed;                   // The average rotation speed for the entire rotation period in RPS
+  double final_speed;                     // The maximum rotation speed for the entire rotation period in RPS
+  unsigned us_delay;                      // The time of half of a rotation step in us, for the maximum achieved rotation speed
 
-  double constant_speed = ((double)(S_TO_US))/rot_insert_time_us;
+  // Calculate the average rotation speed for the entire rotation period
+  rot_motor_distance_rev = 1.0 * motor_per_needle_revolutions_;
+  average_speed = (rot_motor_distance_rev / max_rotation_time) * S_TO_US;
 
-  Debug("CALCULATING ROTATION SPEED \n\n");
-  Debug("I have %u micros for one complete turn \n", rot_insert_time_us);
-  Debug("If I go at constant speed, I would need to go at %f RPS\n", constant_speed);
+  // DEBUG
+  Debug("CALCULATING ROTATION SPEED - Tmax = %u(us) \n\n", max_rotation_time);
+  Debug("I have %u micros for one complete rotation period \n", max_rotation_time);
+  Debug("If I go at constant speed, I would need to go at %f RPS\n", average_speed);
+  // END DEBUG
 
-  if(constant_speed <= rot_base_speed)
+  if(average_speed <= max_base_speed_)
   {
-    unsigned us_delay = floor((rot_insert_time_us / rot_steps_per_rev) / 2);
+    // If the average speed is below the base speed, move the motor at constant speed
+    rot_motor_distance_step = rot_motor_distance_rev * rotation_.steps_per_revolution();
+    us_delay = floor((max_rotation_time / rot_motor_distance_step) / 2);
 
-    Debug("This is ok. I'm going at %f RPS\n", constant_speed);
-    Debug("Since one rev has %u steps, each step will take %u micros \n\n", rot_steps_per_rev, 2*us_delay);
+    Debug("This is ok. I'm going at %f RPS\n", average_speed);
+    Debug("Since one rotation period has %u steps, each step will take %u micros \n\n", rotation_.steps_per_revolution(), 2*us_delay);
 
     return us_delay;
   }
 
   else
   {
-    double B = -(2*rot_base_speed + rot_acceleration*rot_insert_time_us*US_TO_S);
-    double C = rot_acceleration + pow(rot_base_speed,2);
+    // If the average speed is above the base speed, move the motor with a ramp profile
+    // Start the motor at the base speed, accelerate until a target speed and decelerate
+    // back again to the base speed.
+    // The target speed can be found as the smaller solution of the second degree equation:
+    //     Wt² - Wt*(2*W0 + a*Tmax) + (W0² + a*Nrot)
+    double B = -(2*max_base_speed_ + max_acceleration_ * (max_rotation_time * US_TO_S));
+    double C = pow(max_base_speed_, 2) + max_acceleration_ * rot_motor_distance_rev;
     double D = pow(B,2) - 4*C;
 
     if(D < 0)
@@ -435,135 +540,101 @@ int UStepDevice::calculateRotationSpeed(unsigned rot_insert_time_us)
       //      Solution 2: Increase the motor acceleration
       //      Solution 3: Change the 'calculateDutyCycleMotionParameters' function to account for acc and decc ramps
       //                  (currently this ramps are being ignored as they are assumed to take always less than 20% of a revolution
-      Debug("ERROR UStepDevice::calculateRotationSpeed - Can't perform a full rotation ramp in the requested time \n");
+      Error("ERROR UStepDevice::calculateRotationSpeed - Can't perform a full rotation ramp in the requested time \n");
       return ERR_INVALID_ROTATION_RAMP;
     }
 
-    double final_speed = (-B -pow(D, 0.5))/2;
-    unsigned us_delay_final = floor(((S_TO_US / final_speed) / rot_steps_per_rev) / 2);
-    final_speed = ((double)(S_TO_US)) / (rot_steps_per_rev * 2 * us_delay_final);
+    final_speed = (-B -pow(D, 0.5))/2;
+    us_delay = floor(((S_TO_US / final_speed) / rotation_.steps_per_revolution()) / 2);
 
-    unsigned us_delay_initial = floor(((S_TO_US / rot_base_speed) / rot_steps_per_rev) / 2);
+    // DEBUG
+    unsigned us_delay_initial = floor(((S_TO_US / max_base_speed_) / rotation_.steps_per_revolution()) / 2);
+    final_speed = ((double)(S_TO_US)) / (rotation_.steps_per_revolution() * 2 * us_delay);
+    //Debug("B=%f, C=%f, D=%f\n", B, C, D);
+    Debug("That is too fast. I will start at %f RPS and ramp up until %f RPS\n", max_base_speed_, final_speed);
+    Debug("The half step will vary from %u micros to %u micros\n", us_delay_initial, us_delay);
+    // END DEBUG
 
-    Debug("B=%f, C=%f, D=%f\n", B, C, D);
-    Debug("That is too fast. I will start at %f RPS and ramp up until %f RPS\n", rot_base_speed, final_speed);
-    Debug("The half step will vary from %u micros to %u micros\n", us_delay_initial, us_delay_final);
-
-    return us_delay_final;
+    return us_delay;
   }
 }
 
-/*
-void UStepDevice::calculateDutyCycleMotionParameters(double insertion_depth_rev,  double insertion_speed_rev, double rotation_speed, double duty_cycle)
+int UStepDevice::calculateFeedbackInformation()
 {
-  if(duty_cycle <= dc_min_threshold_)
-  {
-    unsigned insertion_steps_per_revolution = insertion_.steps_per_revolution();
-    double insertion_revolution_period = (1/insertion_speed_rev) * S_TO_US;
-    insertion_step_half_period_ = round(insertion_revolution_period/(2*insertion_steps_per_revolution));
+  // micros_real_rotation_duration_;
+     // Already measured inside functions 'generatePulsesConstantSpeed' or 'generatePulsesRampUpDown'
 
-    unsigned total_insertion_steps = round(insertion_depth_rev*insertion_steps_per_revolution);
-    micros_pure_insertion_ = total_insertion_steps*2*insertion_step_half_period_;
+  // calculated_insertion_speed_;
+     // Already calculated inside function 'calculateDutyCycleMotionParameters'
 
-    rotation_step_half_period_ = 0;
-    micros_rotation_ = 0;
-    num_dc_periods_ = 0;
-    micros_remaining_ = 0;
-  }
-  else
-  {
-    if(duty_cycle >= dc_max_threshold_)
-      duty_cycle = 1.0;
+  // rotation_ramp_step_percentage_;
+     // Already measured inside function 'generatePulsesRampUpDown'
 
-    // Save the step resolution of the insertion and rotation motors to local variables
-    unsigned insertion_steps_per_revolution = insertion_.steps_per_revolution();
-    unsigned rotation_steps_per_revolution = rotation_.steps_per_revolution();
+  /*double rot_motor_distance_rev = 1.0 * motor_per_needle_revolutions_;
+  double real_rotation_motor_speed_ = S_TO_US * (rot_motor_distance_rev / micros_real_rotation_duration_);
+  calculated_rotation_speed_ = real_rotation_motor_speed_ / motor_per_needle_revolutions_;*/
 
-    // Calculate the half period (in micros) of each step of the insertion wave
-    // This will be the time unit for calculating the other time windows of the duty cycle insertion
-    double insertion_revolution_period = (1/insertion_speed_rev) * S_TO_US;
-    insertion_step_half_period_ = round(insertion_revolution_period/(2*insertion_steps_per_revolution));
+  calculated_rotation_speed_ = ((double)(S_TO_US)) / micros_real_rotation_duration_;
 
-    // Calculate the duty cycle period as a multiple of the period of the insertion wave
-    double requested_rotation_period = (1/rotation_speed) * S_TO_US;
-    double requested_duty_cycle_period = requested_rotation_period/duty_cycle;
-    unsigned duty_cycle_period = floor(requested_duty_cycle_period/(2*insertion_step_half_period_))*2*insertion_step_half_period_;
+  unsigned total_insert_time_us = (num_dc_periods_ * (micros_rotation_ + micros_pure_insertion_)) + micros_remaining_;
+  calculated_duty_cycle_ = ((double)(micros_real_rotation_duration_ * num_dc_periods_)) / total_insert_time_us;
 
-    // Split the duty_cycle period in the rotation and insertion part
-    // Each part should also be a multiple of  the period of the insertion wave
-    unsigned expected_rotation_period = round(duty_cycle_period*duty_cycle);
-    micros_rotation_ = floor(expected_rotation_period/(2*insertion_step_half_period_))*2*insertion_step_half_period_;
-    micros_pure_insertion_ = duty_cycle_period - micros_rotation_;
+  Debug("FEEDBACK: Real insert speed = %f, Real rot speed = %f\n", calculated_insertion_speed_, calculated_rotation_speed_);
+  Debug("FEEDBACK: Real DC = %f%%, Ramp percentage = %f%%\n", 100*calculated_duty_cycle_, 100*rotation_ramp_step_percentage_);
 
-
-     * MAKE THE ROTATION WAVE FIT INSIDE MICROS_ROTATION_
-     * APPROACH1: Constant speed
-     *
-     * APPROACH2: Ramp-up - Constant Seed - Ramp-down
-     * Parameters for ramping
-     *        - us_start (more and less defined)
-     *        - us_final  (???)
-     *        - acc (more and less defined)
-     *        - N step (defined)
-     * Condition: cumsum of us <= micros_rotation
-
-    // Calculate the half period (in micros) of each step of the rotation wave
-    rotation_step_half_period_ = floor(((double)(micros_rotation_))/(2*rotation_steps_per_revolution));
-
-    // Calculate the total number of entire duty cycle periods that fit in the insertion depth
-    // and the amount of remaining steps
-    unsigned total_insertion_steps = round(insertion_depth_rev*insertion_steps_per_revolution);
-    unsigned total_insertion_time = total_insertion_steps*2*insertion_step_half_period_;
-    num_dc_periods_ = floor(((double)(total_insertion_time))/duty_cycle_period);
-    micros_remaining_ = total_insertion_time - num_dc_periods_*duty_cycle_period;
-
-    Debug("\n FINISHED CALCULATIONS\n\n");
-    Debug("V_us = %u, W_us = %u, N_dc = %u\n", insertion_step_half_period_, rotation_step_half_period_, num_dc_periods_);
-    Debug("T_dc = %u(us), T_rot = %u(us), T_ins = %u(us), T_rem = %u(us)\n\n", duty_cycle_period, micros_rotation_, micros_pure_insertion_, micros_remaining_);
-  }
+  return 0;
 }
-*/
+
+
 
 int UStepDevice::generateWaveInsertionWithRotation()
 {
-  // Save parameters to local variables
-  unsigned rot_steps_per_rev = rotation_.steps_per_revolution();
-  double rot_base_speed = MAX_SPEED;
-  double rot_acceleration = ACC;
+  unsigned num_insertion_steps;       // The number of insertion steps that will fit in 'micros_rotation_' micros
+  unsigned num_rotation_steps;        // The number of rotation steps that will fit in 'micros_rotation_' micros
 
-  unsigned num_insertion_steps = micros_rotation_/(2*insertion_step_half_period_);
-  unsigned num_rotation_steps = rot_steps_per_rev;
+  unsigned rot_single_rev_time_us;    // The time of a single revolution of the rotation motor
+  double rot_motor_speed_final;       // The maximum speed of the rotation motor
 
-  //unsigned rotation_step_half_period_initial = round((rot_base_speed) / (2*num_rotation_steps));
-  unsigned rotation_step_half_period_initial = round(((S_TO_US / rot_base_speed) / num_rotation_steps) / 2);
-  double step_acceleration = rot_acceleration * num_rotation_steps;
-
+  // Declare the pointers for storing the pulses used to create the insertion
+  // and the rotation steps
   gpioPulse_t *insertion_pulses;
   gpioPulse_t *rotation_pulses;
 
-  insertion_pulses = generatePulsesConstantSpeed(insertion_.port_step(), insertion_step_half_period_, num_insertion_steps);
+  // Calculate the amount of insertion steps that fit within 'micros_rotation_' micros
+  num_insertion_steps = micros_rotation_/(2*insertion_step_half_period_);
 
-  Debug("\nPreparing to generate the roation wave\n");
+  // Calculate the amount of rotation steps that fit within 'micros_rotation_' micros
+  // This value should always correspond to one complete rotation of the needle,
+  // because this condition was assumed inside the 'calculateDutyCycleMotionParameters' function
+  num_rotation_steps = 1.0 * motor_per_needle_revolutions_ * rotation_.steps_per_revolution();
 
-  double rot_frequency_initial = ((double)(S_TO_US))/(2*rotation_step_half_period_initial);
-  double rot_frequency_final = ((double)(S_TO_US))/(2*rotation_step_half_period_);
+  // Calculate the final speed of the rotation motor, based on the previously calculated rotation_step_half_period_
+  rot_single_rev_time_us = rotation_.steps_per_revolution() * 2 * rotation_step_half_period_;
+  rot_motor_speed_final = ((double)(S_TO_US)) / rot_single_rev_time_us;
 
-  Debug("Init freq = %f, Final freq = %f\n", rot_frequency_initial, rot_frequency_final);
-  if(rot_frequency_initial >= rot_frequency_final)
+  // Generate enough insertion pulses (constant speed) to fit in 'micros_rotation_' us
+  insertion_pulses = generatePulsesConstantSpeed(insertion_.port_step(), insertion_step_half_period_, num_insertion_steps, micros_rotation_);
+
+  // Check if the rotation motor final speed is greater than the maximum base speed
+  if(rot_motor_speed_final <= max_base_speed_)
   {
-    Debug("Generating rotation as a constant wave with us_delay = %u\n\n", rotation_step_half_period_);
-    rotation_pulses = generatePulsesConstantSpeed(rotation_.port_step(), rotation_step_half_period_, num_rotation_steps);
-    rotation_pulses[2*num_rotation_steps-1].usDelay += (micros_rotation_ - num_rotation_steps*2*rotation_step_half_period_);
+    // If not, generate the rotation pulses as constant speed
+    rotation_pulses = generatePulsesConstantSpeed(rotation_.port_step(), rotation_step_half_period_, num_rotation_steps, micros_rotation_);
   }
   else
   {
-    Debug("Generating a ramp profile from %u to %u\n", rotation_step_half_period_initial, rotation_step_half_period_);
-    Debug("This profile should contain %u steps and take %u micros\n\n", num_rotation_steps, micros_rotation_);
-    rotation_pulses = generatePulsesRampUpDown(rotation_.port_step(), rot_frequency_initial, rot_frequency_final, step_acceleration, num_rotation_steps, micros_rotation_);
+    // If yes, generate the rotation pulses as a ramp profile,starting at the maximum base speed and accelerating until the final speed
+    double frequency_initial = max_base_speed_ * rotation_.steps_per_revolution();
+    double frequency_final = rot_motor_speed_final * rotation_.steps_per_revolution();
+    double step_acceleration = max_acceleration_ * rotation_.steps_per_revolution();
+    rotation_pulses = generatePulsesRampUpDown(rotation_.port_step(), frequency_initial, frequency_final, step_acceleration, num_rotation_steps, micros_rotation_);
   }
 
+  // If both sequences of pulses have been successfully generated, create the wave
   if(insertion_pulses >= 0 && rotation_pulses >= 0)
   {
+    Debug("DEBUG 1\n");
+    Debug("Num insert = %u, Num rot = %u\n", num_insertion_steps, num_rotation_steps);
     gpioWaveAddGeneric(2*num_insertion_steps, insertion_pulses);
     gpioWaveAddGeneric(2*num_rotation_steps, rotation_pulses);
 
@@ -572,11 +643,15 @@ int UStepDevice::generateWaveInsertionWithRotation()
     Debug("Wstep_hT = %u, NW = %u, TotalW = %u\n", rotation_step_half_period_, num_rotation_steps, num_rotation_steps*2*rotation_step_half_period_);
 
     wave_insertion_with_rotation_ = gpioWaveCreate();
+
+    // Free the memory allocated for the pulse sequences
     free(insertion_pulses);
     free(rotation_pulses);
 
     if (wave_insertion_with_rotation_ >= 0)
     {
+      // If the wave has been successfully created, set the flag and parse its
+      // duration into the seconds and micros components
       has_wave_insertion_with_rotation_ = true;
       seconds_rotation_ = (unsigned)(micros_rotation_*US_TO_S);
       micros_rotation_ = micros_rotation_ - S_TO_US*seconds_rotation_;
@@ -585,14 +660,14 @@ int UStepDevice::generateWaveInsertionWithRotation()
     else
     {
       has_wave_insertion_with_rotation_ = false;
-      Debug("ERROR UStepDevice::generateWaveInsertionWithRotation - Unable to call gpioWaveCreate() \n");
+      Error("ERROR UStepDevice::generateWaveInsertionWithRotation - Unable to call gpioWaveCreate() \n");
       return ERR_GPIO_WAVE_CREATE_FAIL;
     }
   }
 
   else
   {
-    Debug("ERROR UStepDevice::generateWaveInsertionWithRotation - Malloc error \n");
+    Error("ERROR UStepDevice::generateWaveInsertionWithRotation - Malloc error \n");
     return ERR_MALLOC;
   }
 
@@ -601,24 +676,35 @@ int UStepDevice::generateWaveInsertionWithRotation()
 
 int UStepDevice::generateWavePureInsertion()
 {
-  gpioPulse_t *insertion_pulses = generatePulsesConstantSpeed(insertion_.port_step(), insertion_step_half_period_, 1);
+  // Generate one pair of insertion pulses with constant speed
+  gpioPulse_t *insertion_pulses = generatePulsesConstantSpeed(insertion_.port_step(), insertion_step_half_period_, 1, 2*insertion_step_half_period_);
 
+  // If the pulses have been successfully generated, create the wave
   if(insertion_pulses >= 0)
   {
+    Debug("DEBUG 2\n");
     gpioWaveAddGeneric(2, insertion_pulses);
     wave_pure_insertion_ = gpioWaveCreate();
+
+    // Free the memory allocated for the pulses
     free(insertion_pulses);
 
     if (wave_pure_insertion_ >= 0)
     {
+      // If the wave has been successfully created, check if it will be used as
+      // pure_insertion wave, remaining wave or both
       if(micros_pure_insertion_ > 0)
       {
+        // If there is a pure_insertion wave, set the flag and parse its
+        // duration into the seconds and micros components
         has_wave_pure_insertion_ = true;
         seconds_pure_insertion_ = (unsigned)(micros_pure_insertion_*US_TO_S);
         micros_pure_insertion_ = micros_pure_insertion_ - S_TO_US*seconds_pure_insertion_;
       }
       if(micros_remaining_ > 0)
       {
+        // If there is a remaining wave, set the flag (no need to parse its
+        // duration, as the remaining wave will never exceed 1s)
         has_wave_remaining_ = true;
       }
     }
@@ -628,26 +714,28 @@ int UStepDevice::generateWavePureInsertion()
       has_wave_pure_insertion_ = false;
       has_wave_remaining_ = false;
 
-      Debug("ERROR UStepDevice::generateWavePureInsertion - Unable to call gpioWaveCreate() \n");
+      Error("ERROR UStepDevice::generateWavePureInsertion - Unable to call gpioWaveCreate() \n");
       return ERR_GPIO_WAVE_CREATE_FAIL;
     }
   }
 
   else
   {
-    Debug("ERROR UStepDevice::generateWavePureInsertion - Malloc error \n");
+    Error("ERROR UStepDevice::generateWavePureInsertion - Malloc error \n");
     return ERR_MALLOC;
   }
 
   return 0;
 }
 
-gpioPulse_t* UStepDevice::generatePulsesConstantSpeed(unsigned port_number, unsigned half_period, unsigned num_steps)
+gpioPulse_t* UStepDevice::generatePulsesConstantSpeed(unsigned port_number, unsigned half_period, unsigned num_steps, unsigned total_time)
 {
+  // Allocate memory for creating the step sequence
   gpioPulse_t *pulses = (gpioPulse_t*) malloc(2*num_steps*sizeof(gpioPulse_t));
 
   if (pulses)
   {
+    // Generate all steps with the same half_period
     for(unsigned i_step = 0; i_step < num_steps; i_step++)
     {
       pulses[2*i_step].gpioOn = (1<<port_number);
@@ -657,34 +745,67 @@ gpioPulse_t* UStepDevice::generatePulsesConstantSpeed(unsigned port_number, unsi
       pulses[2*i_step+1].gpioOff = (1<<port_number);
       pulses[2*i_step+1].usDelay = half_period;
     }
+
+    // Calculate the accumulated time of the generated steps
+    unsigned accumulated_time = num_steps * 2 * half_period;
+
+    // If the accumulated time is greater than the total time, something went wrong
+    if(accumulated_time > total_time)
+    {
+      Error("ERROR UStepDevice::generatePulsesConstantSpeed - Invalid calculated time \n");
+      return (gpioPulse_t*)ERR_TIME_CALC_INVALID;
+    }
+
+    // Pad the last step of the sequence so that the accumulated time of the sequence
+    // matches the total time exactly
+    unsigned remaining_time = total_time - accumulated_time;
+    if(remaining_time > 0)
+    {
+      pulses[2*num_steps-1].usDelay += remaining_time;
+    }
+
+    // Save the original wave duration to the member variable (this is used for feedback purposes)
+    micros_real_rotation_duration_ = accumulated_time;
+
+    return pulses;
   }
 
   else
   {
-    Debug("ERROR UStepDevice::generatePulsesConstantSpeed - Malloc error \n");
+    Error("ERROR UStepDevice::generatePulsesConstantSpeed - Malloc error \n");
     return (gpioPulse_t*)ERR_MALLOC;
   }
-
-  return pulses;
 }
 
 gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double frequency_initial, double frequency_final, double step_acceleration, unsigned num_steps, unsigned total_time)
 {
+  // Calculate the maximum number of steps that can be spent in the ramps
   unsigned max_steps = floor(num_steps/2);
+
+  // Allocate memory for creating the ramp up
   gpioPulse_t *pulses_ramp = (gpioPulse_t*) malloc(2*max_steps*sizeof(gpioPulse_t));
 
   if(pulses_ramp)
   {
+    // Generate the ramp up sequence and measure the total number of steps it contains
     unsigned num_steps_ramp = generatePulsesRampUp(port_number, frequency_initial, frequency_final, step_acceleration, pulses_ramp, max_steps);
+
+    // Calculate the number of steps that should be created with constant speed
     unsigned num_steps_constant = num_steps - 2*num_steps_ramp;
 
+    // Save the ramp step percentage to the member variable (this is used for feedback purposes)
+    rotation_ramp_step_percentage_ = ((double)2*num_steps_ramp)/num_steps;
+
+    // Allocate memory for the entire motion profile
     gpioPulse_t *pulses = (gpioPulse_t*) malloc(2*num_steps*sizeof(gpioPulse_t));
 
     if(pulses)
     {
       unsigned current_delay;
-      unsigned cummulated_time = 0;
+      unsigned accumulated_time = 0;
 
+      // Start filling the motion profile with the ramp up and ramp down
+      // Ramp down should be exactly symmetrical to the ramp up
       for(unsigned i_step = 0; i_step < num_steps_ramp; i_step++)
       {
         current_delay = pulses_ramp[2*i_step].usDelay;
@@ -703,22 +824,22 @@ gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double 
         pulses[2*(num_steps-1-i_step)+1].gpioOff = (1<<port_number);
         pulses[2*(num_steps-1-i_step)+1].usDelay = current_delay;
 
-        cummulated_time += 4*current_delay;
+        accumulated_time += 4*current_delay;
       }
 
-      double ramp_percentage = ((double)num_steps_ramp)/num_steps;
-
-      Debug("RAMP UP: Initial ht = %u, final ht = %u \n", pulses[0].usDelay,  pulses[2*num_steps_ramp-1].usDelay);
-      Debug("Each ramp has %u steps, so both ramps have %u steps and take %u micros\n", num_steps_ramp, 2*num_steps_ramp, cummulated_time);
-      Debug("There are %u steps and %u micros left for the constant speed\n", num_steps-2*num_steps_ramp, total_time-cummulated_time);
-      Debug("\nWARNING: Both ramps will take %f%% of one rotation\n\n", 100*ramp_percentage);
-
-      //Debug("If I generate %u steps at %u micros each, this will take %u micros\n", num_steps_constant, 2*current_delay, 2*current_delay*num_steps_constant);
-
+      // Free the memory used for the ramp steps
       free(pulses_ramp);
 
+      // DEBUG
+      Debug("RAMP UP: Initial ht = %u, final ht = %u \n", pulses[0].usDelay,  pulses[2*num_steps_ramp-1].usDelay);
+      Debug("Each ramp has %u steps, so both ramps have %u steps and take %u micros\n", num_steps_ramp, 2*num_steps_ramp, accumulated_time);
+      Debug("There are %u steps and %u micros left for the constant speed\n", num_steps-2*num_steps_ramp, total_time-accumulated_time);
+      // END DEBUG
+
+      // If there are remaining steps to be generated
       if(num_steps_constant > 0)
       {
+        // Complete the motion profile by filling the remaining steps with constant speed
         current_delay = floor((((double)(S_TO_US))/frequency_final)/2);
         for(unsigned i_step = num_steps_ramp; i_step < num_steps_ramp+num_steps_constant; i_step++)
         {
@@ -729,48 +850,47 @@ gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double 
           pulses[2*i_step+1].gpioOff = (1<<port_number);
           pulses[2*i_step+1].usDelay = current_delay;
 
-          cummulated_time += 2*current_delay;
+          accumulated_time += 2*current_delay;
         }
       }
 
-      if(cummulated_time > total_time)
+      // If the accumulated time is greater than the total time, something went wrong
+      if(accumulated_time > total_time)
       {
-        Debug("ERROR UStepDevice::generatePulsesRampUpDown - Invalid calculated time \n");
+        Error("ERROR UStepDevice::generatePulsesRampUpDown - Invalid calculated time \n");
         return (gpioPulse_t*)ERR_TIME_CALC_INVALID;
       }
 
-      unsigned remaining_time = total_time - cummulated_time;
-      Debug("Finished adding the constant speed steps. Total wave time is %u micros\n", cummulated_time);
-      Debug("I should add more %u micros to reach the specified total of %u micros\n\n", remaining_time, total_time);
-
+      // Pad the last step of the sequence so that the accumulated time of the sequence
+      // matches the total time exactly
+      unsigned remaining_time = total_time - accumulated_time;
       if(remaining_time > 0)
       {
         pulses[2*num_steps-1].usDelay += remaining_time;
       }
+
+      // Save the original wave duration to the member variable (this is used for feedback purposes)
+      micros_real_rotation_duration_ = accumulated_time;
 
       return pulses;
     }
 
     else
     {
-      Debug("ERROR UStepDevice::generatePulsesRampUpDown - Malloc error \n");
+      Error("ERROR UStepDevice::generatePulsesRampUpDown - Malloc error \n");
       return (gpioPulse_t*)ERR_MALLOC;
     }
   }
 
   else
   {
-    Debug("ERROR UStepDevice::generatePulsesRampUpDown - Malloc error \n");
+    Error("ERROR UStepDevice::generatePulsesRampUpDown - Malloc error \n");
     return (gpioPulse_t*)ERR_MALLOC;
   }
 }
 
 unsigned UStepDevice::generatePulsesRampUp(unsigned port_number, double frequency_initial, double frequency_final, double step_acceleration, gpioPulse_t* pulses, unsigned max_steps)
 {
-  // Calculate the min and max frequency based on the given periods variables from RPS to steps/second
-  //double lower_step_frequency = ((double)(S_TO_US))/higher_half_period;
-  //double higher_step_frequency = ((double)(S_TO_US))/lower_half_period;
-
   double current_step_frequency;
   unsigned current_half_period;
   unsigned total_micros = 0;

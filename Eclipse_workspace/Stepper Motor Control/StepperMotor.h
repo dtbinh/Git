@@ -8,6 +8,7 @@
 #ifndef STEPPERMOTOR_H_
 #define STEPPERMOTOR_H_
 
+// Struct for holding all the motor configuration parameters
 struct MotorParameters {
   unsigned port_enable;
   unsigned port_direction;
@@ -19,7 +20,7 @@ class StepperMotor
 {
  private:
 
-  // Number of the GPIO ports connected to this motor
+  // Pinout of the interface board connecting to this motor
   unsigned port_enable_;
   unsigned port_direction_;
   unsigned port_step_;
@@ -30,7 +31,6 @@ class StepperMotor
   // State variables
   bool configured_;
   bool initialized_;
-
 
  public:
 

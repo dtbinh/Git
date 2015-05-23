@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
   // Move motors to the home position
   //device.calibrate
 
-  if(device.setInsertionWithDutyCycle(5.0, 1.0, 11.0, 0.5) == 0)
+  if(device.setInsertionWithDutyCycle(10.0, 1.0, 2.0, 0.66) == 0)
     device.startInsertion();
 
 
