@@ -580,7 +580,10 @@ int UStepDevice::calculateFeedbackInformation()
   {
     calculated_rotation_speed_ = ((double)(S_TO_US)) / micros_real_rotation_duration_;
 
-    unsigned total_insert_time_us = (num_dc_periods_ * (micros_rotation_ + micros_pure_insertion_)) + micros_remaining_;
+    unsigned rotation_time = (seconds_rotation_ * S_TO_US) + micros_rotation_;
+    unsigned insertion_time = (seconds_pure_insertion_ * S_TO_US) + micros_pure_insertion_;
+
+    unsigned total_insert_time_us = (num_dc_periods_ * (rotation_time + insertion_time)) + micros_remaining_;
     calculated_duty_cycle_ = ((double)(micros_real_rotation_duration_ * num_dc_periods_)) / total_insert_time_us;
   }
 
@@ -642,8 +645,11 @@ int UStepDevice::generateWaveInsertionWithRotation()
     Debug("\nDEBUG: Creating wave insertion with rotation\n");
     Debug("Vstep_hT = %u, NV = %u, TotalV = %u\n", insertion_step_half_period_, num_insertion_steps, num_insertion_steps*2*insertion_step_half_period_);
     Debug("Wstep_hT = %u, NW = %u, TotalW = %u\n", rotation_step_half_period_, num_rotation_steps, num_rotation_steps*2*rotation_step_half_period_);
-    Debug("\nLast insertion step: port on = %u, port off = %f, usdelay = %u\n", insertion_pulses[2*num_insertion_steps-1].gpioOn, log2((double)insertion_pulses[2*num_insertion_steps-1].gpioOff), insertion_pulses[2*num_insertion_steps-1].usDelay);
-    Debug("Last rotation step: port on = %u, port off = %f, usdelay = %u\n", rotation_pulses[2*num_insertion_steps-1].gpioOn, log2((double)rotation_pulses[2*num_insertion_steps-1].gpioOff), rotation_pulses[2*num_insertion_steps-1].usDelay);
+    Debug("Last insertion step: port on = %u, port off = %f, usdelay = %u\n", insertion_pulses[2*num_insertion_steps-1].gpioOn, log2((double)insertion_pulses[2*num_insertion_steps-1].gpioOff), insertion_pulses[2*num_insertion_steps-1].usDelay);
+    Debug("Last rotation step: port on = %u, port off = %f, usdelay = %u\n", rotation_pulses[2*num_rotation_steps-1].gpioOn, log2((double)rotation_pulses[2*num_rotation_steps-1].gpioOff), rotation_pulses[2*num_rotation_steps-1].usDelay);
+
+    //Debug("WAVE LIMITS: maxMicros = %d, maxPulses = %d, maxCbs = %d\n", gpioWaveGetMaxMicros(), gpioWaveGetMaxPulses(), gpioWaveGetMaxCbs());
+    //Debug("WAVE CURRENT STUFF: micros = %d, pulses = %d, cbs = %d \n", gpioWaveGetMicros(), gpioWaveGetPulses(), gpioWaveGetCbs());
 
     wave_insertion_with_rotation_ = gpioWaveCreate();
 
@@ -834,19 +840,19 @@ gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double 
       // Free the memory used for the ramp steps
       free(pulses_ramp);
 
-      /*
+
       // DEBUG
-      Debug("RAMP UP: Initial ht = %u, final ht = %u \n", pulses[0].usDelay,  pulses[2*num_steps_ramp-1].usDelay);
+      Debug("\nRAMP UP: Initial ht = %u, final ht = %u \n", pulses[0].usDelay,  pulses[2*num_steps_ramp-1].usDelay);
       Debug("Each ramp has %u steps, so both ramps have %u steps and take %u micros\n", num_steps_ramp, 2*num_steps_ramp, accumulated_time);
       Debug("There are %u steps and %u micros left for the constant speed\n", num_steps-2*num_steps_ramp, total_time-accumulated_time);
       // END DEBUG
-       */
+
 
       // If there are remaining steps to be generated
       if(num_steps_constant > 0)
       {
         // Complete the motion profile by filling the remaining steps with constant speed
-        current_delay = floor((((double)(S_TO_US))/frequency_final)/2);
+        current_delay = floor(((double)(total_time-accumulated_time))/(2*num_steps_constant));
         for(unsigned i_step = num_steps_ramp; i_step < num_steps_ramp+num_steps_constant; i_step++)
         {
           pulses[2*i_step].gpioOn = (1<<port_number);
@@ -863,6 +869,7 @@ gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double 
       // If the accumulated time is greater than the total time, something went wrong
       if(accumulated_time > total_time)
       {
+        Debug("T_ACC = %u, T_TOT = %u\n", accumulated_time, total_time);
         Error("ERROR UStepDevice::generatePulsesRampUpDown - Invalid calculated time \n");
         return (gpioPulse_t*)ERR_TIME_CALC_INVALID;
       }

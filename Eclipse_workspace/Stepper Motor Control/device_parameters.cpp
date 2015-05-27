@@ -44,17 +44,17 @@
 
 // Step size of the motors, configured through the DIP Switch of each STR2 driver
 #define STEP_SIZE_INSERTION     5000
-#define STEP_SIZE_ROTATION      2000
-#define STEP_SIZE_BACK_GRIPPER  2000
+#define STEP_SIZE_ROTATION      400
+#define STEP_SIZE_BACK_GRIPPER  400
 
 // Physical parameters of the motors
 #define MIN_SPEED 0.25
-#define MAX_SPEED 5.0
+#define MAX_SPEED 4.0
 #define MAX_FINAL_SPEED 30.0
-#define ACC 300.0
+#define ACC 200.0
 
 #define INS_REVS_PER_MM               1.0
-#define NEEDLE_TO_MOTOR_GEAR_RATIO    1.5
+#define NEEDLE_TO_MOTOR_GEAR_RATIO    3.0
 //#define NEEDLE_TO_MOTOR_GEAR_RATIO    ((32.0/28)*(5.0/2))
 
 // Threshold values for the duty cycle
