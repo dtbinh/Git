@@ -154,6 +154,8 @@ class UStepDevice
   // Send the duty cycle motion waves
   int startInsertion();
 
+  void testFunction();
+
   /*void openFrontGripper();
   void closeFrontGripper();
   void openBackGripper();

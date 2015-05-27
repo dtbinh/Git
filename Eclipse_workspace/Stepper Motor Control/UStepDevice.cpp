@@ -20,12 +20,12 @@
 #define US_TO_S   0.000001
 
 // Possible return values for the function 'checkExistingWaves()'
-#define WAVES_PRESENT_DC_ALWAYS               1
-#define WAVES_PRESENT_DC_AND_REMAINING        2
-#define WAVES_PRESENT_ROTATION_ALWAYS         3
-#define WAVES_PRESENT_ROTATION_AND_REMAINING  4
-#define WAVES_PRESENT_INSERTION_ONLY          5
-#define WAVES_PRESENT_NONE                    -1
+#define WAVES_ALL                 1
+#define WAVES_INSERT_ROT          2
+#define WAVES_ROT_REMAIN          3
+#define WAVES_ROT                 4
+#define WAVES_INSERT              5
+#define WAVES_NONE                -1
 
 UStepDevice::UStepDevice()
 {
@@ -160,16 +160,6 @@ int UStepDevice::setInsertionWithDutyCycle(double needle_insertion_depth,  doubl
         return result;
       }
 
-      // If the duty cycle is greater than 0 generate a wave containing insertion and rotation
-      if(micros_rotation_ > 0)
-      {
-        if((result = generateWaveInsertionWithRotation()))
-        {
-          Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave insertion with rotation \n");
-          return result;
-        }
-      }
-
       // If the duty cycle is smaller than 1 or there are remaining steps to be
       // performed after all duty cycle periods, generate a wave with insertion only
       if(micros_pure_insertion_ > 0 || micros_remaining_ > 0)
@@ -177,6 +167,16 @@ int UStepDevice::setInsertionWithDutyCycle(double needle_insertion_depth,  doubl
         if((result = generateWavePureInsertion()))
         {
           Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave pure insertion \n");
+          return result;
+        }
+      }
+
+      // If the duty cycle is greater than 0 generate a wave containing insertion and rotation
+      if(micros_rotation_ > 0)
+      {
+        if((result = generateWaveInsertionWithRotation()))
+        {
+          Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave insertion with rotation \n");
           return result;
         }
       }
@@ -203,55 +203,13 @@ int UStepDevice::startInsertion()
 {
   if(initialized_)
   {
-    Debug("DEBUG 0\n");
+    Debug("\nDEBUG 0\n");
     Debug("Wave rot = %d, during %u(s) and %u(us)\n", wave_insertion_with_rotation_, seconds_rotation_, micros_rotation_);
     Debug("Wave insert = %d, during %u(s) and %u(us)\n", wave_pure_insertion_, seconds_pure_insertion_, micros_pure_insertion_);
     Debug("Number of DC periods = %u, remaining micros = %u\n", num_dc_periods_, micros_remaining_);
     switch (checkExistingWaves())
     {
-      // Duty-cycle = 0: No rotation
-      case WAVES_PRESENT_INSERTION_ONLY:
-        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
-        gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
-        gpioWaveTxStop();
-        break;
-
-      // Duty-cycle = 1: Insert always with rotation
-      case WAVES_PRESENT_ROTATION_ALWAYS:
-        for(unsigned i_dc_period = 0; i_dc_period < num_dc_periods_; i_dc_period++)
-        {
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_REPEAT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioWaveTxStop();
-        break;
-
-      // Duty-cycle = 1: Insert with rotation and perform remaining insertion in the end
-      case WAVES_PRESENT_ROTATION_AND_REMAINING:
-        for(unsigned i_dc_period = 0; i_dc_period < num_dc_periods_; i_dc_period++)
-        {
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_REPEAT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
-        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
-        gpioWaveTxStop();
-        break;
-
-      // Duty-cycle between 0 and 1: Perform duty-cycle periods
-      case WAVES_PRESENT_DC_ALWAYS:
-        for(unsigned i_dc_period = 0; i_dc_period < num_dc_periods_; i_dc_period++)
-        {
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
-        }
-        gpioWaveTxStop();
-        break;
-
-      // Duty-cycle between 0 and 1: Perform duty-cycle periods and perform remaining insertion in the end
-      case WAVES_PRESENT_DC_AND_REMAINING:
+      case WAVES_ALL:
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
@@ -263,13 +221,49 @@ int UStepDevice::startInsertion()
         gpioWaveTxStop();
         break;
 
+      case WAVES_INSERT_ROT:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+        }
+        gpioWaveTxStop();
+        break;
+
+      case WAVES_ROT_REMAIN:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
+        gpioWaveTxStop();
+        break;
+
+      case WAVES_ROT:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioWaveTxStop();
+        break;
+
+      case WAVES_INSERT:
+        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+        gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+        gpioWaveTxStop();
+        break;
+
       // Error: the waves have not been set
-      case WAVES_PRESENT_NONE:
+      case WAVES_NONE:
         Error("ERROR UStepDevice::startInsertion - Waves not set \n");
-        return ERR_DEVICE_NOT_INITIALIZED;
+        return ERR_WAVES_NOT_PRESENT;
 
       default:
-          break;
+        break;
     }
   }
 
@@ -278,6 +272,9 @@ int UStepDevice::startInsertion()
     Error("ERROR UStepDevice::startInsertion - Device not initialized. You must call initGPIO() before \n");
     return ERR_DEVICE_NOT_INITIALIZED;
   }
+
+  gpioWrite(insertion_.port_step(), 0);
+  gpioWrite(rotation_.port_step(), 0);
 
   return 0;
 }
@@ -319,24 +316,24 @@ int UStepDevice::checkExistingWaves()
     if(has_wave_pure_insertion_)
     {
       if(has_wave_remaining_)
-        return WAVES_PRESENT_DC_AND_REMAINING;
+        return WAVES_ALL;
       else
-        return WAVES_PRESENT_DC_ALWAYS;
+        return WAVES_INSERT_ROT;
     }
     else
     {
       if(has_wave_remaining_)
-        return WAVES_PRESENT_ROTATION_AND_REMAINING;
+        return WAVES_ROT_REMAIN;
       else
-        return WAVES_PRESENT_ROTATION_ALWAYS;
+        return WAVES_ROT;
     }
   }
   else
   {
     if(has_wave_pure_insertion_)
-      return WAVES_PRESENT_INSERTION_ONLY;
+      return WAVES_INSERT;
     else
-      return WAVES_PRESENT_NONE;
+      return WAVES_NONE;
   }
 }
 
@@ -412,6 +409,11 @@ int UStepDevice::calculateDutyCycleMotionParameters(double insert_motor_distance
     rotation_step_half_period_ = 0;
     micros_rotation_ = 0;
     micros_remaining_ = 0;
+
+    // Calculate part of the feedback information
+    double total_insert_distance_rev = ((double)(total_insert_distance_step)) / insertion_.steps_per_revolution();
+    double real_insertion_speed_rev = S_TO_US * (total_insert_distance_rev / total_insert_time_us);
+    calculated_insertion_speed_ = real_insertion_speed_rev / insertion_revolutions_per_mm_;
 
     return 0;
   }
@@ -574,18 +576,19 @@ int UStepDevice::calculateFeedbackInformation()
   double real_rotation_motor_speed_ = S_TO_US * (rot_motor_distance_rev / micros_real_rotation_duration_);
   calculated_rotation_speed_ = real_rotation_motor_speed_ / motor_per_needle_revolutions_;*/
 
-  calculated_rotation_speed_ = ((double)(S_TO_US)) / micros_real_rotation_duration_;
+  if(micros_real_rotation_duration_ > 0)
+  {
+    calculated_rotation_speed_ = ((double)(S_TO_US)) / micros_real_rotation_duration_;
 
-  unsigned total_insert_time_us = (num_dc_periods_ * (micros_rotation_ + micros_pure_insertion_)) + micros_remaining_;
-  calculated_duty_cycle_ = ((double)(micros_real_rotation_duration_ * num_dc_periods_)) / total_insert_time_us;
+    unsigned total_insert_time_us = (num_dc_periods_ * (micros_rotation_ + micros_pure_insertion_)) + micros_remaining_;
+    calculated_duty_cycle_ = ((double)(micros_real_rotation_duration_ * num_dc_periods_)) / total_insert_time_us;
+  }
 
-  Debug("FEEDBACK: Real insert speed = %f, Real rot speed = %f\n", calculated_insertion_speed_, calculated_rotation_speed_);
+  Debug("\nFEEDBACK: Real insert speed = %f, Real rot speed = %f\n", calculated_insertion_speed_, calculated_rotation_speed_);
   Debug("FEEDBACK: Real DC = %f%%, Ramp percentage = %f%%\n", 100*calculated_duty_cycle_, 100*rotation_ramp_step_percentage_);
 
   return 0;
 }
-
-
 
 int UStepDevice::generateWaveInsertionWithRotation()
 {
@@ -633,14 +636,14 @@ int UStepDevice::generateWaveInsertionWithRotation()
   // If both sequences of pulses have been successfully generated, create the wave
   if(insertion_pulses >= 0 && rotation_pulses >= 0)
   {
-    Debug("DEBUG 1\n");
-    Debug("Num insert = %u, Num rot = %u\n", num_insertion_steps, num_rotation_steps);
     gpioWaveAddGeneric(2*num_insertion_steps, insertion_pulses);
     gpioWaveAddGeneric(2*num_rotation_steps, rotation_pulses);
 
-    Debug("DEBUG: Creating wave insertion with rotation\n");
+    Debug("\nDEBUG: Creating wave insertion with rotation\n");
     Debug("Vstep_hT = %u, NV = %u, TotalV = %u\n", insertion_step_half_period_, num_insertion_steps, num_insertion_steps*2*insertion_step_half_period_);
     Debug("Wstep_hT = %u, NW = %u, TotalW = %u\n", rotation_step_half_period_, num_rotation_steps, num_rotation_steps*2*rotation_step_half_period_);
+    Debug("\nLast insertion step: port on = %u, port off = %f, usdelay = %u\n", insertion_pulses[2*num_insertion_steps-1].gpioOn, log2((double)insertion_pulses[2*num_insertion_steps-1].gpioOff), insertion_pulses[2*num_insertion_steps-1].usDelay);
+    Debug("Last rotation step: port on = %u, port off = %f, usdelay = %u\n", rotation_pulses[2*num_insertion_steps-1].gpioOn, log2((double)rotation_pulses[2*num_insertion_steps-1].gpioOff), rotation_pulses[2*num_insertion_steps-1].usDelay);
 
     wave_insertion_with_rotation_ = gpioWaveCreate();
 
@@ -682,7 +685,6 @@ int UStepDevice::generateWavePureInsertion()
   // If the pulses have been successfully generated, create the wave
   if(insertion_pulses >= 0)
   {
-    Debug("DEBUG 2\n");
     gpioWaveAddGeneric(2, insertion_pulses);
     wave_pure_insertion_ = gpioWaveCreate();
 
@@ -765,7 +767,9 @@ gpioPulse_t* UStepDevice::generatePulsesConstantSpeed(unsigned port_number, unsi
     }
 
     // Save the original wave duration to the member variable (this is used for feedback purposes)
-    micros_real_rotation_duration_ = accumulated_time;
+    // This 'if' is just a work around for not measuring the insertion time
+    if(num_steps > 1)
+      micros_real_rotation_duration_ = accumulated_time;
 
     return pulses;
   }
@@ -830,11 +834,13 @@ gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double 
       // Free the memory used for the ramp steps
       free(pulses_ramp);
 
+      /*
       // DEBUG
       Debug("RAMP UP: Initial ht = %u, final ht = %u \n", pulses[0].usDelay,  pulses[2*num_steps_ramp-1].usDelay);
       Debug("Each ramp has %u steps, so both ramps have %u steps and take %u micros\n", num_steps_ramp, 2*num_steps_ramp, accumulated_time);
       Debug("There are %u steps and %u micros left for the constant speed\n", num_steps-2*num_steps_ramp, total_time-accumulated_time);
       // END DEBUG
+       */
 
       // If there are remaining steps to be generated
       if(num_steps_constant > 0)
@@ -924,4 +930,54 @@ unsigned UStepDevice::generatePulsesRampUp(unsigned port_number, double frequenc
   }
 
   return i_step;
+}
+
+
+
+
+
+
+
+
+
+void UStepDevice::testFunction()
+{
+  unsigned num_insert = 3;
+  unsigned num_rot = 7;
+
+  unsigned port_insert = insertion_.port_step();
+  unsigned port_rot = rotation_.port_step();
+
+  unsigned scale = 2;
+
+  unsigned half_period_insert = 50*scale;
+  unsigned half_period_rot = 20*scale;
+
+  gpioPulse_t *pulses_insert = (gpioPulse_t*) malloc(2*num_insert*sizeof(gpioPulse_t));
+  gpioPulse_t *pulses_rot = (gpioPulse_t*) malloc(2*num_rot*sizeof(gpioPulse_t));
+
+
+  // 7 * 2*20*2 = 560 us = 400 us + 160 us
+  for(unsigned i_step = 0; i_step < num_rot; i_step++)
+  {
+    pulses_rot[2*i_step].gpioOn = (1<<port_rot);
+    pulses_rot[2*i_step].gpioOff = 0;
+    pulses_rot[2*i_step].usDelay = half_period_rot;
+    pulses_rot[2*i_step+1].gpioOn = 0;
+    pulses_rot[2*i_step+1].gpioOff = (1<<port_rot);
+    pulses_rot[2*i_step+1].usDelay = half_period_rot;
+  }
+
+  gpioWaveAddGeneric(2*num_insert, pulses_insert);
+  gpioWaveAddGeneric(2*num_rot, pulses_rot);
+  int wid = gpioWaveCreate();
+
+  // Free the memory allocated for the pulse sequences
+  free(pulses_insert);
+  free(pulses_rot);
+
+  gpioWaveTxSend(wid, PI_WAVE_MODE_REPEAT);
+  gpioSleep(PI_TIME_RELATIVE, scale, 0);
+  gpioWaveTxStop();
+
 }
