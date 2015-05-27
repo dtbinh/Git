@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 
   //sleep(1);
   if(device.setInsertionWithDutyCycle(10.0, 1.0, 5.0, 1.0) == 0)
-    device.startInsertion();
+    device.startInsertionWithDutyCycle();
 
 
 

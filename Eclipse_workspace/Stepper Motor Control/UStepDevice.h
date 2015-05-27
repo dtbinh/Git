@@ -39,6 +39,8 @@ class UStepDevice
   // Mechanical parameters
   double insertion_revolutions_per_mm_;   // (6/5)*(1/1) motor revolutions / displacement mm
   double motor_per_needle_revolutions_;   // (32/28)*(5/2) motor revolutions / needle revolution
+  double gripper_default_displacement_;
+  double gripper_default_speed_;
 
   // Duty cycle threshold parameters
   double dc_max_threshold_;
@@ -51,6 +53,8 @@ class UStepDevice
   // State variables
   bool configured_;
   bool initialized_;
+  bool front_gripper_closed_;
+  bool back_gripper_closed_;
 
   // Waves
   int wave_insertion_with_rotation_;
@@ -89,7 +93,7 @@ class UStepDevice
   int checkExistingWaves();
 
   // Safety check
-  int verifyMotorSpeedLimits(double insertion_motor_speed, double rotation_motor_speed);
+  int verifyMotorSpeedLimits(double motor_speed, bool allow_ramp);
 
   // Calculate all the duty cycle parameters, based on the requested speeds and duty cycle
   // OBS: The actual speeds and duty cycle may differ from the requested due to
@@ -134,6 +138,9 @@ class UStepDevice
   // This function returns the number of pulses used in the ramp
   unsigned generatePulsesRampUp(unsigned port_number, double frequency_initial, double frequency_final, double step_acceleration, gpioPulse_t* pulses, unsigned max_steps);
 
+  // DESCRIPTION PENDING
+  int setDirection(unsigned motor, unsigned direction);
+
  public:
 
   // Empty constructor
@@ -152,7 +159,25 @@ class UStepDevice
   int setInsertionWithDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
 
   // Send the duty cycle motion waves
-  int startInsertion();
+  int startInsertionWithDutyCycle();
+
+  // DESCRIPTION PENDING
+  int performFullDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
+
+  // DESCRIPTION PENDING
+  int openFrontGripper();
+
+  // DESCRIPTION PENDING
+  int closeFrontGripper();
+
+  // DESCRIPTION PENDING
+  int openBackGripper();
+
+  // DESCRIPTION PENDING
+  int closeBackGripper();
+
+  // DESCRIPTION PENDING
+  int moveMotorConstantSpeed(unsigned motor, double displacement, double speed);
 
   void testFunction();
 
