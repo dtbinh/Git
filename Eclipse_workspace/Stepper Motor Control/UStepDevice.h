@@ -199,6 +199,9 @@ class UStepDevice
   int moveMotorConstantSpeed(unsigned motor, double displacement, double speed);
 
   // DESCRIPTION PENDING
+  int debugMoveMotorSteps(unsigned motor, double motor_displacement_step, double motor_speed_step);
+
+  // DESCRIPTION PENDING
   int setDirection(unsigned motor, unsigned direction);
 
   // DESCRIPTION PENDING

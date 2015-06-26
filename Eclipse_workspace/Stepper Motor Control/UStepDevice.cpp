@@ -659,6 +659,91 @@ int UStepDevice::moveMotorConstantSpeed(unsigned motor, double displacement, dou
   return 0;
 }
 
+int UStepDevice::debugMoveMotorSteps(unsigned motor, double motor_displacement_step, double motor_speed_step)
+{
+  // This function is analogous to the moveMotorConstantSpeed, but it must be used
+  // only for debug purposes. Its parameters are already given in steps, so all
+  // gear ratio parameters are ignored.
+
+  // OBS: It assumes that all motors are in the 20000 steps/rev configuration
+  // DO NOT forget to verify that
+
+  // Input units
+  //   - motor        : The code specifying the motor to move
+  //   - displacement : The requested displacement of the end effector in steps
+  //   - speed        : The requested speed of the end effector in steps/s
+
+
+  unsigned motor_port_step;
+  unsigned step_half_period;
+  unsigned duration_seconds;
+  unsigned duration_micros;
+
+  switch(motor)
+  {
+    case MOTOR_INSERTION:
+      motor_port_step = insertion_.port_step();
+      break;
+
+    case MOTOR_ROTATION:
+      motor_port_step = rotation_.port_step();
+      break;
+
+    case MOTOR_FRONT_GRIPPER:
+      motor_port_step = front_gripper_.port_step();
+      break;
+
+    case MOTOR_BACK_GRIPPER:
+      motor_port_step = back_gripper_.port_step();
+      break;
+
+    default:
+      Error("ERROR UStepDevice::moveMotor - Invalid motor code \n");
+      return ERR_INVALID_MOTOR_CODE;
+  }
+
+  step_half_period = round((S_TO_US / motor_speed_step) / 2);
+  duration_micros = motor_displacement_step * 2*step_half_period;
+  duration_seconds = floor(duration_micros*US_TO_S);
+  duration_micros = duration_micros - S_TO_US*duration_seconds;
+
+  Debug("UStepDevice::moveMotor - Preparing to send commands on port %u, with half step of %u, for a total of %u (s) and %u (us)\n", motor_port_step, step_half_period, duration_seconds, duration_micros);
+
+  gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
+
+  if(pulses >= 0)
+  {
+    gpioWaveClear();
+    gpioWaveAddGeneric(2, pulses);
+    int wave_id = gpioWaveCreate();
+
+    free(pulses);
+
+    if (wave_id >= 0)
+    {
+      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
+      gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
+      gpioWaveTxStop();
+      gpioWrite(motor_port_step, 0);
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
+      return ERR_GPIO_WAVE_CREATE_FAIL;
+    }
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
+    return ERR_MALLOC;
+  }
+
+  return 0;
+}
+
+
 int UStepDevice::setDirection(unsigned motor, unsigned direction)
 {
   if(initialized_)

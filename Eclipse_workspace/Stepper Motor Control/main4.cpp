@@ -22,6 +22,7 @@
 // Commands exchanged with the Matlab client
 #define CMD_MOVE_MOTOR              1
 #define CMD_SET_DIRECTION           2
+#define CMD_MOVE_MOTOR_STEPS        3
 #define CMD_SHUT_DOWN               255
 
 
@@ -111,7 +112,7 @@ void displayReceivedData(char *data_buffer, int bytes_received)
 
 int decodeReceivedMessage(ssize_t bytes_received)
 {
-  Debug("Received command %u\n", input_data_buffer[0]);
+  Debug("Received command %u with %u bytes\n", input_data_buffer[0], bytes_received);
 
   switch(input_data_buffer[0])
   {
@@ -137,6 +138,24 @@ int decodeReceivedMessage(ssize_t bytes_received)
       else
       {
         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_MOTOR \n");
+      }
+      break;
+
+    case CMD_MOVE_MOTOR_STEPS:
+      if(bytes_received == 18)
+      {
+        unsigned motor = input_data_buffer[1];
+        double displacement;
+        double speed;
+        memcpy(&displacement, input_data_buffer+2, 8);
+        memcpy(&speed, input_data_buffer+10, 8);
+        Debug("Received command MOVE_MOTOR_STEPS with parameters: motor = %u, displacement = %f, speed = %f\n", motor, displacement, speed);
+        device.debugMoveMotorSteps(motor, displacement, speed);
+
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_MOTOR_STEPS \n");
       }
       break;
 
@@ -232,7 +251,7 @@ int main(int argc, char *argv[])
     return ERR_GPIO_INIT_FAIL;
   }
 
-  device.calibrateMotorsStartingPosition();
+  //device.calibrateMotorsStartingPosition();
 
   // Connect to the Matlab client and answer to its commands
   communicateWithTheMatlabClient();
