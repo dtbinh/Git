@@ -1,0 +1,49 @@
+Installation:
+------------
+
+simply copy all the .m files into a directory 'robot' which is in your
+MATLABPATH.
+
+robot.pdf is the documentation in standard Mathworks style.  It is
+formatted for double sided printing which makes for a more compact
+manual and saves trees.
+
+Run the demo `rtdemo' to see how to use this.
+
+Citing the Toolbox:
+------------------
+
+If you use the Toolbox and want to cite it in a paper please use:
+
+@ARTICLE{Corke96b,
+	AUTHOR             = {P.I. Corke},
+	JOURNAL            = {IEEE Robotics and Automation Magazine},
+	MONTH              = mar,
+	NUMBER             = {1},
+	PAGES              = {24-32},
+	TITLE              = {A Robotics Toolbox for {MATLAB}},
+	VOLUME             = {3},
+	YEAR               = {1996}
+}
+
+Things to do:
+------------
+
+There are many things that could be done to improve the functionality of this
+toolbox.  I'd be happy to correspond with anybody regarding bug fixes or
+enhancements.  Some things to be added one day include:
+
+* more manipulator models
+* other rotational representations
+* more tutorial material, particularly on quaternions and hom. transforms
+* more examples
+* Simulink wrappers (part way there...)
+
+
+Home page:
+---------
+	http://www.cat.csiro.au/cmst/staff/pic/robot
+
+Please email bug reports, comments or code contribtions to me.
+
+	Peter Corke	pic@cat.csiro.au

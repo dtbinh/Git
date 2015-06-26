@@ -1,0 +1,2 @@
+#! /bin/tcsh
+awk '/SUMMARY_START/,/SUMMARY_END/' ref.tex | grep -v '^%' | sed -f mkhtml.sed

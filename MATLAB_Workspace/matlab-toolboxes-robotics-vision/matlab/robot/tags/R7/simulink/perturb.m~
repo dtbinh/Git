@@ -1,0 +1,27 @@
+%PERTURB	return robot object with perturbed dynamic parameters
+%
+%	ROBOT = NOFRICTION(ROBOT)
+%
+%
+
+% MOD HISTORY
+
+%	Copyright (C) 1999 Peter. I. Corke
+
+function  r2 = perturb(r, p)
+
+	if nargin == 1,
+		p = 0.1;	% 10 percent disturb by default
+	end
+
+
+	for i=1:r2.n,
+		l2{i} = r.link{i};
+		s = (2*rand-1)*p + 1;
+		l2{i}.m = l2{i}.m * s;
+		s = (2*rand-1)*p + 1;
+		l2{i}.I = l2{i}.I * s;
+	end
+
+	r2 = robot(r, l2);		% clone the robot
+	r2.name = ['P/' r.name];

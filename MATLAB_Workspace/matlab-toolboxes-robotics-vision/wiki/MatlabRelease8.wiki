@@ -1,0 +1,17 @@
+#summary Matlab release 8
+= Introduction =
+
+This is the first update to the toolbox since 2002.
+
+
+= Details =
+
+The main features of release 8 are:
+  * integration with Matlab desktop, help and demo systems
+  * variants of many functions that return a rotation rather than homog. transform matrix, for instance rotx() and trotx() return a 3x3 and 4x4 matrix respectively.
+  * HTML format function help documentation (generated using m2html) integrated with help browswer
+  * new robot models: Motoman, ABB, Fanuc
+  * rpy2r and eul2r accept trajectories
+  * fix errors in Simulink demos (due to code atrophy)
+  * tested with Matlab 2008b
+  * some functions have been retired

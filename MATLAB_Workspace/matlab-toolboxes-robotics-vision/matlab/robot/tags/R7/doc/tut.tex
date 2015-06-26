@@ -1,0 +1,1256 @@
+%\documentstyle[titlepage,tut,twoside,longtable,fancybox]{article}
+\documentclass{article}
+%\documentstyle[titlepage,ref,twoside]{article}
+\usepackage{verbatim}
+\usepackage{fancyheadings,fancybox,longtable}
+\usepackage{times}
+
+\def\topfraction{.9}
+\def\bottomfraction{.9}
+\def\textfraction{.1}
+\def\floatpagefraction{.9}
+
+\setlength{\topmargin}{10.4mm}      % top of header to top of paper
+\setlength{\textheight}{220mm}      % height of body
+\setlength{\textwidth}{128mm}  % width of text
+\setlength{\evensidemargin}{36.6mm} % even page - left paper edge to text
+\setlength{\oddsidemargin}{36.6mm}  % odd page - left paper edge to text 
+\setlength{\headsep}{12mm} %distance bet. header & body text
+\setlength{\footskip}{12mm}%distance bet. body of text & baseline of footer
+\setlength{\parindent}{0pt} %don't indent paragraphs
+\setlength{\parskip}{2mm} %distance between paragraphs
+
+\setlength{\hfuzz}{10pt} %allow for wider text
+
+% Include font file: either NFSS or PostScript:
+%\include{postfont}
+\include{nfssfont}
+\input{psfig}
+\newcommand{\DEF}[1]{{\it#1}}
+\newlength{\figwidth}
+\newlength{\rlwidth}            % for root-locus plots
+\setlength{\figwidth}{10cm}
+\setlength{\rlwidth}{10cm}
+\newlength{\bigwidth}           % for root-locus plots
+\setlength{\bigwidth}{10cm}
+\newcommand{\var}[1]{{\vtt #1}}
+\newcommand{\eq}[1]{(\ref{#1})}
+\newcommand{\floor}{{\rm floor}}
+\newcommand{\ceil}{{\rm ceil}}
+\newcommand{\ord}{{\rm Ord}}
+\newcommand{\fnumber}{{\it f}-number}
+\newcommand{\etal}{{et al.}}
+\newcommand{\apriori}{{\it a priori}}
+\renewcommand{\vec}[1]{\underline{#1}}
+\newcommand{\SNR}{\mbox{SNR}}
+%
+% use as \sci{5}{-2} for formatting 5e-2
+%
+\newcommand{\sci}[2]{\mbox{$#1 \times 10^{#2}$}}
+ 
+ %
+ % macros to display units in math or LR mode, 20\unit{lx/m^2}
+ %
+ \newcommand{\unit}[1]{\mbox{$\rm \,#1$}}
+ \newcommand{\Hz}{\unit{Hz}}
+ \newcommand{\ms}{\unit{ms}}
+ \newcommand{\us}{\unit{\mu s}}
+ \renewcommand{\deg}{${}^\circ$}
+
+
+\newcommand{\namelistlabel}[1]{\mbox{#1}\hfil}
+\newenvironment{namelist}[1]{%
+\begin{list}{}
+{
+\let\makelabel\namelistlabel
+\settowidth{\labelwidth}{#1}
+\setlength{\leftmargin}{1.1\labelwidth}
+}
+}{%
+\end{list}}
+
+\pagestyle{empty}
+\begin{document}
+\thispagestyle{empty}
+%
+% this is the HEADING  ************************************
+%
+%
+\vspace*{\fill}
+{\Headingi Robotics}
+
+\vspace{2mm}
+{\Heading TOOLBOX\\}
+
+\vspace{5mm}
+{\Afon for MATLAB}
+
+\vspace*{2cm}
+{\Afon (Release 7)}
+
+\vspace*{\fill}
+
+\begin{tabular}{ll}
+\psfig{figure=figs/plot.eps,width=6cm} &\psfig{figure=figs/surfl.eps,width=6cm}
+\end{tabular}
+
+\vspace*{\fill}
+\hrule
+\parbox{50mm}{{\Afon Peter I. Corke}\\
+Peter.Corke@csiro.au} \hfill {\Afon April 2002}\\
+http://www.cat.csiro.au/cmst/staff/pic/robot
+\newpage
+\vspace*{\fill}
+\setlength{\fboxsep}{10pt}%
+\doublebox{%
+\begin{Bflushleft}[b]
+Peter I. Corke\\
+CSIRO\\
+Manufacturing Science and Technology\\
+Pullenvale, AUSTRALIA, 4069.\\
+2002\\
+http://www.cat.csiro.au/cmst/staff/pic/robot
+\end{Bflushleft}}
+\vspace*{\fill}
+
+\copyright 2002 by Peter I. Corke.
+\noindent
+\cleardoublepage
+
+\newcommand{\Mlab}{M\eightTR ATLAB}
+\newcommand{\under}[1]{\underline{\rule[-.70ex]{0cm}{4mm}#1}}
+
+
+%{\School
+
+\pagestyle{headings}        % Gives page headings at top of page
+
+
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\bea}{\begin{eqnarray}}
+\newcommand{\eea}{\end{eqnarray}}
+\newcommand{\bi}{\begin{itemize}}
+\newcommand{\ei}{\end{itemize}}
+\newcommand{\ii}{\item}
+
+
+\renewcommand{\baselinestretch}{1.2}        % Expands inter-line spacing
+
+\newpage
+\rightline{\NNNfon 1}
+\vskip 4mm
+\rightline{\NNfon Preface}
+\vskip 2mm
+\moveleft 1.25in\vbox{\makebox[6.25in][l]
+{\vrule height .01 in width 6.25 true in}}
+\markboth{Introduction}{{}}
+\setcounter{section}{0}
+\addcontentsline{toc}{section}{Introduction}
+\vskip 5mm
+
+\section{Introduction}
+This, the seventh release of the Toolbox, represents nearly a decade of
+tinkering and a substantial level of maturity.  It finally includes many of
+the features I've been planning to add for some time, particularly MEX files,
+Simulink support and modified Denavit-Hartenberg support.
+The previous release has had thousands of downloads and the mailing list 
+has hundreds of subscribers.
+
+The Toolbox provides many functions that are useful in robotics
+including such things as kinematics, dynamics, and  trajectory generation.
+The Toolbox is useful for simulation as well as analyzing results from
+experiments with real robots.
+
+The Toolbox is based on a very general method of representing the kinematics
+and dynamics of serial-link manipulators.
+These parameters  are encapsulated in Matlab objects.  Robot objects
+can be created by the user for any serial-link manipulator and a number
+of examples are provided for well know robots such as the Puma 560 and the
+Stanford arm.
+The Toolbox also provides functions for manipulating and converting
+between datatypes such
+as vectors, homogeneous transformations and unit-quaternions which are necessary
+to represent 3-dimensional position and orientation.
+
+The routines are written in a straightforward manner which allows
+for easy understanding, perhaps at the expense of computational efficiency.
+My guide in all of this work has been the book of Paul\cite{Paul81a}, now
+out of print, but which I grew up with.
+If you feel strongly about computational efficiency then you can always
+rewrite the function to be more efficient,
+compile the M-file using the Matlab compiler, or
+create a MEX version.
+
+\subsection{What's new}
+This release has some significant new functionality as well as some
+bug fixes.
+\begin{itemize}
+\item	Full support for modified (Craig's) Denavit-Hartenberg notation,
+	forward and inverse kinematics, Jacobians and forward and inverse
+	dynamics.
+\item	Simulink blockset library and demonstrations included, see Section
+	\ref{sec:simulink}
+\item	MEX implementation of recursive Newton-Euler algorithm written in
+	portable C.  Speed improvements of at least 1000.  Tested on Solaris,
+	Linux and Windows. See Section \ref{sec:mex}.
+\item	Fixed still more bugs and missing files in quaternion code.
+\item	Remove `@' notation from \var{fdyn} to allow operation under
+	Matlab 5 and 6.
+\item	Fairly major update of documentation to ensure consistency between
+	code, online help and this manual.
+\end{itemize}
+
+All code is now under CVS control which should eliminate many of the
+versioning problems I had previously due to developing the code across 
+multiple computers.
+
+\subsection{Contact}
+The Toolbox home page is at
+\begin{quote}
+http://www.cat.csiro.au/cmst/staff/pic/robot
+\end{quote}
+This page will always list the current released version number as well as
+bug fixes and new code in between major releases. 
+
+A Mailing List is also available, subscriptions details are available
+off that web page.
+
+\subsection{How to obtain the Toolbox}
+The Robotics Toolbox is freely available from the Toolbox home
+page at 
+\begin{quote}
+http://www.cat.csiro.au/cmst/staff/pic/robot
+\end{quote}
+
+The files are available in either gzipped tar format (.gz) or zip
+format (.zip).  The web page requests some information from you
+regarding such as your country, type of organization and application.
+This is just a means for me to gauge interest and to help convince my
+bosses (and myself) that this is a worthwhile activity.
+%BUG
+%the MathWorks FTP server\linebreak
+%{\tt ftp.mathworks.com} in the directory {\tt pub/contrib/misc/robot}.
+%It is best to download all files in that directory since the Toolbox
+%functions are quite interdependent.
+
+The file {\tt robot.pdf} is a comprehensive manual with a tutorial introduction
+and details of each Toolbox function.
+A menu-driven demonstration can be invoked by the function {\tt rtdemo}.
+
+\subsection{MATLAB version issues}
+The Toolbox works with {\Mlab} version 6 and greater and has been tested 
+on a Sun with version 6.
+
+The Toolbox does not function under {\Mlab} v3.x or v4.x since those versions
+do not support objects.  An older version of the Toolbox, available from
+the Matlab4 ftp site is workable but lacks some features of this current
+Toolbox release.
+
+
+\subsection{Acknowledgements}
+I am grateful for the support of my employer, CSIRO, for supporting me in
+this activity and providing me with the Matlab tools and web server.
+
+I have corresponded with a great many people via email since the first 
+release of this Toolbox.  Some have identified bugs and shortcomings
+in the documentation, and even better, some have provided bug fixes and
+even new modules, thankyou.
+
+\subsection{Support, use in teaching, bug fixes, etc.}
+I'm always happy to correspond with people who have found genuine
+bugs or deficiencies
+in the Toolbox, or who have suggestions about ways to improve its
+functionality.  However I draw the line at providing help for people
+with their assignments and homework!
+
+Many people are using the Toolbox for teaching and this is something that
+I would encourage.  If you plan to duplicate the documentation for class
+use then every copy must include the front page.
+
+If you want to cite the Toolbox please use
+\begin{verbatim}
+@ARTICLE{Corke96b,
+        AUTHOR             = {P.I. Corke},
+        JOURNAL            = {IEEE Robotics and Automation Magazine},
+        MONTH              = mar,
+        NUMBER             = {1},
+        PAGES              = {24-32},
+        TITLE              = {A Robotics Toolbox for {MATLAB}},
+        VOLUME             = {3},
+        YEAR               = {1996}
+}
+\end{verbatim}
+which is also given in electronic form in the README file.
+
+\subsection{A note on kinematic conventions}
+Many people are not aware that there are two quite different forms of 
+Denavit-Hartenberg representation for serial-link manipulator kinematics:
+\begin{enumerate}
+\item Classical as per the original 1955 paper of Denavit and Hartenberg,
+and used in textbooks such as by Paul\cite{Paul81a}, Fu etal\cite{Fu87}, or 
+Spong and Vidyasagar\cite{Spong89}.
+\item Modified form as introduced by Craig\cite{Craig86} in his text book.
+\end{enumerate}
+Both notations represent a joint as 2 translations ($A$ and $D$) and 2
+rotation angles 
+($\alpha$ and $\theta$).  However the expressions for the link transform
+matrices are quite different.  In short, you must know which kinematic
+convention your Denavit-Hartenberg parameters conform to.
+
+Unfortunately many sources in the literature do not specify this crucial
+piece of information.
+Most textbooks cover only one and do not even allude to the existence of the
+other.
+These issues are discussed further in Section \ref{sec:kine-conventions}.
+
+The Toolbox has full support for both the classical and
+modified conventions.
+
+\subsection{Creating a new robot definition}
+Let's take a simple example like the two-link planar manipulator from
+Spong \& Vidyasagar\cite{Spong89} (Figure 3-6, p73) which has the following
+(standard) Denavit-Hartenberg link parameters 
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|} \hline
+Link & $a_i$ & $\alpha_i$ & $d_i$ & $\theta_i$ \\ \hline
+1 & 1 & 0 & 0 & $\theta_1^*$ \\
+2 & 1 & 0 & 0 & $\theta_2^*$ \\ \hline
+\end{tabular}
+\end{center}
+
+where we have set the link lengths to 1.  Now we can create a pair of
+link objects:
+\begin{verbatim}
+>> L1=link([0 1 0 0 0], 'standard') 
+ 
+ L1 = 
+  
+    0.000000      1.000000        0.000000        0.000000        R    (std)
+     
+>> L2=link([0 1 0 0 0], 'standard')
+      
+ L2 = 
+       
+    0.000000      1.000000        0.000000        0.000000        R    (std)
+
+>> r=robot({L1 L2})                
+ 
+r = 
+ 
+noname (2 axis, RR)
+                grav = [0.00 0.00 9.81]         standard D&H parameters
+  alpha           A               theta           D             R/P
+0.000000       1.000000        0.000000        0.000000        R    (std)
+0.000000       1.000000        0.000000        0.000000        R    (std)
+
+>>
+\end{verbatim}
+The first few lines create link objects, one per robot link.
+Note the second argument to \var{link} which specifies that the standard
+D\&H conventions are to be used (this is actually the default).
+The arguments to the link object can be found from
+\begin{verbatim}
+>> help link
+    .
+    .
+        LINK([alpha A theta D sigma], CONVENTION)
+    .
+    .
+\end{verbatim}
+which shows the order in which the link parameters must be passed (which
+is different to the column order of the table above).
+The fifth element of the first argument, \var{sigma}, is a flag that 
+indicates whether the
+joint is revolute (\var{sigma} is zero) or primsmatic (\var{sigma} is non zero).
+
+The link objects are passed as a cell array to the \var{robot()} function
+which creates a robot object which is in turn passed to many of the 
+other Toolbox functions.
+
+Note that displays of link data include the kinematic convention in
+brackets on the far right.  \var{(std)} for standard form, and 
+\var{(mod)} for modified form.
+
+The robot just created can be displayed graphically by
+\begin{verbatim}
+>> plot(r, [0 0])
+\end{verbatim}
+which will create the plot shown in Figure \ref{fig:simple-plot}.
+
+\begin{figure}
+\psfig{figure=figs/simple.eps,width=9cm}
+\caption{Simple two-link manipulator model.}\label{fig:simple-plot}
+\end{figure}
+
+\subsection{Using MEX files}\label{sec:mex}
+The Robotics Toolbox Release 7 includes portable C source code to generate
+a MEX file version of the \var{rne} function.
+
+The MEX file runs upto 500
+times faster than the interpretted version \var{rne.m} and this is critical
+for calculations involving forward dynamics.
+The forward dynamics requires the calculation of the manipulator inertia
+matrix at each integration time step.  The Toolbox uses a computationally
+simple but inefficient method that requires evaluating the \var{rne}
+function $n+1$ times, where $n$ is the number of robot axes.  For forward
+dynamics the \var{rne} is the bottleneck.
+
+The Toolbox stores all robot kinematic and inertial parameters in a
+\var{robot} object, but accessing these parameters from a C language
+MEX file is somewhat cumbersome and must be done on each call.  Therefore
+the speed advantage increases with the number of rows in the \var{q},
+\var{qd} and \var{qdd} matrices that are provided.  In other words
+it is better to call \var{rne} with a trajectory, than for each point on
+a trajectory.
+
+To build the MEX file:
+\begin{enumerate}
+\item Change directory to the \var{mex} subdirectory of the Robotics Toolbox.
+\item On a Unix system just type \texttt{make}.  For other platforms
+follow the Mathworks guidelines.  You need to compile and link three files
+with a command something like \texttt{mex frne.c ne.c vmath.c}.
+
+\item If successful you now have a file called \texttt{frne.ext} where 
+\var{ext} is the file extension and depends on the architecture
+(\var{mexsol} for Solaris, \var{mexlx} for Linux).
+
+\item From within Matlab \texttt{cd} into this same directory and run the 
+test script
+{\small
+\begin{verbatim}
+    >> cd ROBOTDIR/mex
+    >> check
+    ***************************************************************
+    ************************ Puma 560 *****************************
+    ***************************************************************
+    ************************ normal case *****************************
+    DH:  Fast RNE: (c) Peter Corke 2002
+    Speedup is         17, worst case error is 0.000000
+    MDH: Speedup is       1565, worst case error is 0.000000
+    ************************ no gravity *****************************
+    DH:  Speedup is       1501, worst case error is 0.000000
+    MDH: Speedup is       1509, worst case error is 0.000000
+    ************************ ext force *****************************
+    DH:  Speedup is       1497, worst case error is 0.000000
+    MDH: Speedup is        637, worst case error is 0.000000
+    
+    ***************************************************************
+    ********************** Stanford arm ***************************
+    ***************************************************************
+    ************************ normal case *****************************
+    DH:  Speedup is       1490, worst case error is 0.000000
+    MDH: Speedup is       1519, worst case error is 0.000000
+    ************************ no gravity *****************************
+    DH:  Speedup is       1471, worst case error is 0.000000
+    MDH: Speedup is       1450, worst case error is 0.000000
+    ************************ ext force *****************************
+    DH:  Speedup is        417, worst case error is 0.000000
+    MDH: Speedup is       1458, worst case error is 0.000000
+    >> 
+\end{verbatim}
+}
+
+This will run the M-file and MEX-file versions of the \var{rne} function
+for various robot models and options with various options.  For each case
+it should report a speedup greater than one, and an error of zero.
+The results shown above are for a Sparc Ultra 10.
+
+\item Copy the MEX-file \texttt{frne.ext} into the Robotics Toolbox main
+directory with the name \texttt{rne.ext}.  Thus all future references to
+\var{rne} will now invoke the MEX-file instead of the M-file.  The first
+time you run the MEX-file in any Matlab session it will print a one-line
+identification message.
+\end{enumerate}
+
+\clearpage
+\newpage
+\rightline{\NNNfon 2}
+\vskip 4mm
+\rightline{\NNfon Using the Toolbox with Simulink}
+\vskip 2mm
+\moveleft 1.25in\vbox{\makebox[6.25in][l]
+{\vrule height .01 in width 6.25 true in}}
+\markboth{Introduction}{{}}
+\setcounter{section}{1}
+\addcontentsline{toc}{section}{Introduction}
+\vskip 5mm
+
+\section{Introduction}\label{sec:simulink}
+Simulink is the block diagram editing and simulation environment for Matlab.
+Until its most recent release Simulink has not been able to handle matrix
+valued signals, and that has made its application to robotics somewhat 
+clumsy.  This shortcoming has been rectified with Simulink Release 4.
+Robot Toolbox Release 7 and higher includes a library of blocks for use
+in constructing robot kinematic and dynamic models.
+
+\begin{figure}[b]
+\psfig{figure=figs/roblocks.eps,width=12cm}
+\caption{The Robotics Toolbox blockset.}\label{fig:blockset}
+\end{figure}
+To use this new feature it is neccessary to include the Toolbox Simulink block
+directory in your Matlab path:
+\begin{verbatim}
+>> addpath ROBOTDIR/simulink
+\end{verbatim}
+To bring up the block library
+\begin{verbatim}
+>> roblocks
+\end{verbatim}
+which will create a display like that shown in Figure \ref{fig:blockset}.
+
+Users with no previous Simulink experience are advised
+to read the relevant Mathworks manuals and experiment with the examples 
+supplied.
+Experienced Simulink users should find the use of the Robotics blocks quite
+straightforward.  Generally there is a one-to-one correspondence between
+Simulink blocks and Toolbox functions.
+Several demonstrations have been included with the Toolbox in order to 
+illustrate common topics in robot control and demonstrate Toolbox Simulink 
+usage.
+These could be considered as starting points for your own work, just select
+the model closest to what you want and start changing it.
+Details of the blocks can be found using the File/ShowBrowser option on
+the block library window.
+
+\section{Examples}
+\subsection{Dynamic simulation of Puma 560 robot collapsing under gravity}
+The Simulink model, \var{demo1}, is shown in Figure \ref{fig:demo1}, and 
+the two blocks in this model would be
+familiar to Toolbox users.
+The \var{Robot} block is similar to the \var{fdyn()}
+function and represents the forward dynamics of the robot, and the \var{plot}
+block represents the \var{plot} function.
+Note the parameters of the \var{Robot} block contain the robot object 
+to be simulated and the initial joint angles.  
+The \var{plot} block has one parameter which is the robot object to be 
+displayed graphically and should be consistent with the robot being simulated.
+Display options are taken from the \var{plotbotopt.m} file, see help
+for \var{robot/plot} for details.
+\begin{figure}
+\psfig{figure=figs/demo1.eps,width=12cm}
+\caption{Robotics Toolbox example \texttt{demo1}, Puma robot
+collapsing under gravity.}\label{fig:demo1}
+\end{figure}
+
+To run this demo first create a robot object in
+the workspace,typically by using the \var{puma560} command, then start
+the simulation using Simulation/Start option from the model toolbar.
+\begin{verbatim}
+>> puma560
+>> demo1
+\end{verbatim}
+
+\subsection{Dynamic simulation of a simple robot with flexible
+transmission}
+The Simulink model, \var{demo2}, is shown in Figure \ref{fig:demo2}, and
+represents a simple 2-link robot with flexible or compliant transmission.
+The first joint receives a step position
+demand change at time 1s.  The resulting oscillation and dynamic coupling
+between the two joints can be seen clearly.  Note that the drive model
+comprises spring plus damper, and that the joint position control loops
+are simply unity negative feedback.
+
+\begin{figure}
+\psfig{figure=figs/demo2.eps,width=12cm}
+\caption{Robotics Toolbox example \texttt{demo2}, simple flexible
+2-link manipulator.}\label{fig:demo2}
+\end{figure}
+
+To run this demo first create a 2-link robot object in
+the workspace,typically by using the \var{twolink} command, then start
+the simulation using Simulation/Start option from the model toolbar.
+\begin{verbatim}
+>> twolink
+>> demo2
+\end{verbatim}
+
+\subsection{Computed torque control}
+The Simulink model, \var{demo3}, shown in Figure \ref{fig:demo3}, is
+for a Puma560 with a computed torque control structure.
+This is a ``classical"
+dynamic control technique in which the rigid-body dynamic model is inverted
+to compute the demand torque for the robot based on current joint angles
+and joint angle rates and demand joint angle acceleration.  This model
+introduces the \var{rne} block which computes the inverse dynamics using
+the recursive Newton-Euler algorithm (see \var{rne} function), and the
+\var{jtraj} block which computes a vector quintic polynomial.  \var{jtraj} has
+parameters which include the initial and final values of the each output
+element as well as the overall motion time.  Initial and final velocity are
+assumed to be zero.
+\begin{figure}[b]
+\psfig{figure=figs/demo3.eps,width=12cm}
+\caption{Robotics Toolbox example \texttt{demo3}, computed torque
+control.}\label{fig:demo3}
+\end{figure}
+
+In practice of course the dynamic model of the robot is not exactly known,
+we can only invert our best estimate of the rigid-body dynamics.  In the
+simulation we can model this by using the \var{perturb} function to alter
+the parameters of the dynamic model used in the \var{rne} block --- note
+the 'P/' prefix on the model name displayed by that block.
+This means that the inverse dynamics are computed for a slightly different 
+dynamic model to the robot under control and shows the effect of model
+error on control performance.
+
+To run this demo first create a robot object in
+the workspace,typically by using the \var{puma560} command, then start
+the simulation using Simulation/Start option from the model toolbar.
+\begin{verbatim}
+>> puma560
+>> demo3
+\end{verbatim}
+
+\subsection{Torque feedforward control}
+The Simulink model \var{demo4} demonstrates torque feedforward control,
+another ``classical" dynamic control technique in which the demanded 
+torque is computed using the
+\var{rne} block and added to the error torque computed from position and
+velocity error.  It is instructive to compare the structure of this
+model with \var{demo3}.
+The inverse dynamics are not in the forward path and since
+the robot configuration changes relatively slowly, they can be computed at a
+low rate (this is illustrated by the zero-order hold block sampling at 20Hz).
+
+To run this demo first create a robot object in
+the workspace,typically by using the \var{puma560} command, then start
+the simulation using Simulation/Start option from the model toolbar.
+\begin{verbatim}
+>> puma560
+>> demo4
+\end{verbatim}
+
+\subsection{Cartesian space control}
+The Simulink model, \var{demo5}, shown in Figure \ref{fig:demo5}, demonstrates
+Cartesian space motion control.
+There are two conventional approaches to 
+this. Firstly, resolve the Cartesian space demand to joint space using
+inverse kinematics and then perform the control in joint space.  The second,
+used here, is to compute the error in Cartesian space and resolve that to
+joint space via the inverse Jacobian.  This eliminates the need for inverse
+kinematics within the control loop, and its attendent problems of multiple
+solutions.  It also illustrates some additional Simulink blocks.
+
+\begin{figure}[b]
+\psfig{figure=figs/demo5.eps,width=12cm}
+\caption{Robotics Toolbox example \texttt{demo5}, Cartesian space
+control.}\label{fig:demo5}
+\end{figure}
+
+This demonstration is for a Puma 560
+robot moving the tool in a circle of radius 0.05m centered at the point 
+$(0.5,\, 0,\, 0)$.  The difference between the Cartesian demand and the current 
+Cartesian pose (in end-effector coordinates) is computed by the 
+\var{tr2diff} block which produces a 
+differential motion described by a 6-vector.
+The Jacobian block has as its input the current manipulator joint angles and
+outputs the Jacobian matrix.  Since the differential motion is with respect
+to the end-effector we use the JacobianN block rather than Jacobian0.
+We use standard Simulink block to invert the Jacobian and multiply it by the
+differential motion.  The result, after application of a simple 
+proportional gain, is the joint space motion required to 
+correct the Cartesian error.
+The robot is modelled by an integrator as a simple rate control device, or
+velocity servo.
+
+This example also demonstrates the use of the \var{fkine} block for forward
+kinematics and the \var{T2xyz} block which extracts the translational part
+of the robot's Cartesian state for plotting on the XY plane.
+
+This demonstration is very similar to the numerical method used to solve
+the inverse kinematics problem in \var{ikine}.
+
+To run this demo first create a robot object in
+the workspace,typically by using the \var{puma560} command, then start
+the simulation using Simulation/Start option from the model toolbar.
+\begin{verbatim}
+>> puma560
+>> demo5
+\end{verbatim}
+
+
+\subsection{Image-based visual servoing}
+The Simulink model, \var{demo6}, shown in Figure \ref{fig:demo6}, demonstrates
+image-based visual servoing (IBVS)\cite{Hutchinson96}.
+This is quite a complex example that simulates not only the robot but also
+a camera and the IBVS algorithm.
+The camera is assumed to be mounted on the robot's end-effector and this
+coordinate is passed into the camera block so that the relative position of
+the target with respect to the camera can be computed.
+Arguments to the camera block include the 3D coordinates of the target points.
+The output of the camera is the 2D image plane coordinates of the target
+points.
+The target points are used to compute an image Jacobian matrix which is
+inverted and multiplies the desired motion of the target points on the image
+plane.
+The desired motion is simply the difference between the observed target points
+and the desired point positions.
+The result is a velocity screw which drives the 
+robot to the desired pose with respect to a square target.
+\begin{figure}[b]
+\psfig{figure=figs/demo6.eps,width=12cm}
+\caption{Robotics Toolbox example \texttt{demo6}, image-based visual
+servoing.}\label{fig:demo6}
+\end{figure}
+
+When the simulation starts a new window, the camera view, pops up.  We
+see that initially the square target is off to one side and somewhat oblique.
+The image plane errors are mapped by an image Jacobian into desired Cartesian
+rates, and these are futher mapped by a manipulator Jacobian into joint
+rates which are applied to the robot which is again modelled as a rate
+control device.  This closed-loop system is performing a Cartesian 
+positioning task using information from a camera rather than encoders
+and a kinematic model (the Jacobian is a weak kinematic model).  Image-based
+visual servoing schemes have been found to be extremely robust with respect to
+errors in the camera model and manipulator Jacobian.
+
+\newpage
+\rightline{\NNNfon 3}
+\vskip 4mm
+\rightline{\NNfon Tutorial}
+\vskip 2mm
+\moveleft 1.25in\vbox{\makebox[6.25in][l]
+{\vrule height .01 in width 6.25 true in}}
+\markboth{Introduction}{{}}
+\setcounter{section}{2}
+\addcontentsline{toc}{section}{Introduction}
+\vskip 5mm
+
+\section{Manipulator kinematics}  \label{sec:robot-kine}
+Kinematics is the study of motion without regard to the forces which cause
+it.  Within kinematics one studies the position, velocity and acceleration,
+and all higher order derivatives of the position variables.
+The kinematics of manipulators involves the study of the geometric
+and time based properties of the motion, and in particular how the various
+links move with respect to one another and with time.
+
+Typical robots are \DEF{serial-link manipulators} comprising a set of bodies, called \DEF{links},
+in a chain, connected by \DEF{joints}\footnote{Parallel link and serial/parallel hybrid structures 
+are possible, though much less common in industrial manipulators.}.
+Each joint has one degree of freedom,
+either translational or rotational.  For a manipulator with $n$ joints
+numbered from $1$ to $n$,
+there are $n+1$ links, numbered from $0$ to $n$.  Link $0$ is the 
+base of the manipulator, generally fixed, and link $n$ carries the end-effector.
+Joint $i$ connects links $i$ and $i-1$.
+
+
+A link may be considered as a rigid body defining the relationship between
+two neighbouring joint axes.  A link can be specified by two numbers, the
+{\em link length} and {\em link twist}, which define the relative location
+of the two axes in space.  The link parameters for the first and last
+links are meaningless, but are arbitrarily chosen to be 0.
+Joints may be described by two parameters.  The {\em link offset}
+is the distance from one link to the next along the axis of the joint.
+The {\em joint angle} is the rotation of one link with respect to the
+next about the joint axis.
+
+To facilitate describing the location of each link we affix a coordinate
+frame to it --- frame $i$ is attached to link $i$.
+Denavit and Hartenberg\cite{Hartenberg55} proposed a
+matrix method
+of systematically assigning coordinate systems to each link of an
+articulated chain.
+The axis of revolute joint $i$ is aligned with $z_{i-1}$.
+The  $x_{i-1}$ axis is directed along the normal from $z_{i-1}$ to
+$z_i$ and for intersecting axes is parallel to $z_{i-1} \times z_i$.
+The link and joint parameters may be summarized as:
+
+\begin{center}
+\begin{tabular}{lrp{8cm}}
+link length & $a_i$ & the offset distance between the $z_{i-1}$ and $z_i$ axes
+along the $x_i$ axis;\\
+link twist & $\alpha_i$ & the angle from the $z_{i-1}$ axis to the $z_i$ axis about the
+$x_i$ axis;\\
+link offset & $d_i$ & the distance from the origin of frame $i-1$ to the
+$x_i$ axis along the $z_{i-1}$ axis;\\
+joint angle & $\theta_i$ & the angle between the $x_{i-1}$ and
+$x_i$ axes about the $z_{i-1}$ axis.
+\end{tabular}
+\end{center}
+
+\begin{figure}
+\centerline{\psfig{figure=figs/kine-std.id,width=\bigwidth}}
+\centerline{\mbox{(a) Standard form}}
+\centerline{\psfig{figure=figs/kine-mod.id,width=\bigwidth}}
+\centerline{\mbox{(b) Modified form}}
+\caption{Different forms of Denavit-Hartenberg notation.}
+\label{fig:kinematics}
+\end{figure}
+
+For a revolute axis $\theta_i$ is the
+joint variable and $d_i$ is constant, while for a prismatic joint $d_i$ is variable,
+and $\theta_i$ is constant.  In many of the formulations that follow we use
+generalized coordinates, $q_i$, where
+\[
+q_i = \left \{ \begin{array}{ll}
+	\theta_i & \mbox{for a revolute joint} \\
+	d_i & \mbox{for a prismatic joint}
+	\end{array} \right .
+\]
+and generalized forces
+\[
+Q_i = \left \{ \begin{array}{ll}
+	\tau_i & \mbox{for a revolute joint} \\
+	f_i & \mbox{for a prismatic joint}
+	\end{array} \right .
+\]
+
+The Denavit-Hartenberg (DH) representation results
+in a 4x4 homogeneous transformation matrix
+\begin{equation}
+{}^{i-1} {\bf A}_i = \left [ \begin{array}{cccc}
+	\cos \theta_i & -\sin \theta_i \cos \alpha_i & \sin \theta_i \sin
+	\alpha_i & a_i \cos \theta_i\\
+	\sin \theta_i & \cos \theta_i \cos \alpha_i & -\cos \theta_i \sin
+	\alpha_i & a_i \sin \theta_i\\
+	0 & \sin \alpha_i & \cos \alpha_i & d_i\\
+0 & 0 & 0 & 1
+	\end{array} \right ]    \label{eq:Amatrix}
+\end{equation}
+representing each link's
+coordinate frame with respect to the previous link's coordinate system; that is
+\begin{equation}
+{}^0 {\bf T}_i = {}^0 {\bf T}_{i-1} \;{}^{i-1} {\bf A}_i   \label{eq:joint-xform}
+\end{equation}
+where ${}^0 {\bf T}_i$ is the homogeneous transformation describing the pose
+of coordinate frame $i$ with respect to the world coordinate system $0$.
+
+Two differing methodologies have been established for assigning coordinate frames,
+each of which allows some freedom in the actual coordinate
+frame attachment:\label{sec:kine-conventions}
+\begin{enumerate}
+\item Frame $i$ has its origin along the axis of joint $i+1$, as described
+by Paul\cite{Paul81a} and Lee\cite{Fu87,Lee82a}.
+\item Frame $i$ has its origin along the axis of joint $i$, and is frequently
+referred to as `modified Denavit-Hartenberg' (MDH) form\cite{Craig89}.
+This form is commonly used in literature dealing with manipulator dynamics.
+The link transform matrix for this form differs from (\ref{eq:Amatrix}).
+\end{enumerate}
+Figure \ref{fig:kinematics} shows the notational differences between
+the two forms.  Note that $a_i$ is always the length of link $i$, but is
+the displacement between the origins of frame $i$ and frame $i+1$ in one
+convention, and frame $i-1$ and frame $i$ in the other\footnote{
+Many papers when tabulating the `modified' kinematic parameters
+of manipulators list $a_{i-1}$ and $\alpha_{i-1}$ not $a_i$ and $\alpha_i$.}.
+The Toolbox provides kinematic functions for both of these
+conventions --- those for modified DH parameters are prefixed by `m'.
+
+\subsection{Forward and inverse kinematics}
+For an n-axis rigid-link manipulator, the \DEF{forward kinematic solution} gives
+the coordinate frame, or pose, of the last link.
+It is obtained
+by repeated application of (\ref{eq:joint-xform})
+\begin{eqnarray}
+{}^0 {\bf T}_n &=& {}^0 {\bf A}_1 {}^1 {\bf A}_2 \cdots {}^{n-1}{\bf A}_n \\
+    &=& {\cal K}(\vec{q}) 
+\end{eqnarray}
+which is the product of the coordinate frame transform matrices for each link.
+The pose of the end-effector has 6 degrees of freedom in Cartesian space,
+3 in translation and 3 in rotation, so robot manipulators commonly have 6
+joints or degrees of freedom to allow arbitrary end-effector pose.
+The overall manipulator transform ${}^0 {\bf T}_n$ is frequently written as
+${\bf T}_n$, or ${\bf T}_6$ for a 6-axis robot.
+The forward kinematic solution may be computed for any manipulator, irrespective 
+of the number of joints or kinematic structure.
+
+Of more use in manipulator path planning is the \DEF{inverse kinematic solution}
+\begin{equation}
+\vec{q} = {\cal K}^{-1} ( {\bf T})
+\end{equation}
+which gives the joint
+angles required to reach the specified end-effector position.  In general
+this solution is non-unique, and for some classes of manipulator no
+closed-form solution exists.  If the manipulator has more than 6 joints it is
+said to be \DEF{redundant} and the solution for joint angles is under-determined.
+If no solution can be determined for a particular manipulator pose that 
+configuration is said to be \DEF{singular}.  
+The singularity may be due to an alignment
+of axes reducing the effective degrees of freedom,
+or the point ${\bf T}$ being out of reach.
+
+The manipulator Jacobian matrix, $\bf J_\theta$, transforms velocities 
+in joint space to velocities of the end-effector in Cartesian space.
+For an $n$-axis manipulator the end-effector Cartesian velocity is
+\bea
+ {}^0 \underline{\dot{x}}_n &=& {}^0 {\bf J}_\theta  \underline{\dot{q}} \\
+ {}^{t_n} \underline{\dot{x}}_n &=& {}^{t_n} {\bf J}_\theta  \underline{\dot{q}}
+\eea
+in base or end-effector coordinates respectively and where $\vec{x}$ is
+the Cartesian velocity represented by a 6-vector.
+For a 6-axis manipulator
+the Jacobian is square and provided it is not singular can be inverted to solve for joint 
+rates in terms of end-effector Cartesian rates.
+The Jacobian will not be invertible  at a kinematic singularity, and
+in practice will be poorly conditioned in the vicinity of the 
+singularity, resulting in high joint rates.
+A control scheme based on Cartesian rate control 
+\be
+\underline{\dot{q}} = {}^0 {\bf J}_\theta^{-1} \;  {}^0 \underline{\dot{x}}_n 
+\ee
+was proposed by Whitney\cite{Whitney72} 
+and is known as \DEF{resolved rate motion control}.
+For two frames $A$ and $B$ related by  ${}^A {\bf T}_B = [\vec{n}\; \vec{o}\; \vec{a}\; \vec{p}]$ the
+Cartesian velocity in frame $A$ may be transformed to frame $B$ by
+\be
+{}^B \vec{\dot{x}} = {}^B {\bf J}_A \,{}^A \vec{\dot{x}}
+\ee
+where the Jacobian is
+given by Paul\cite{Paul81b} as
+\be
+{}^B {\bf J}_A = f({}^A {\bf T}_B) = \left[ \begin{array}{cc}
+	[\vec{n}\; \vec{o}\; \vec{a}]^T & [\vec{p}\times \vec{n}\; \vec{p}\times \vec{o}\; \vec{p}\times \vec{a}]^T \\
+	0 & [\vec{n}\; \vec{o}\; \vec{a}]^T \end{array} \right]  \label{eq:tr2jac}
+\ee
+
+
+%%%%%%%%%%%%% RIGID-BODY DYNAMICS%%%%%%%%%%%%%%%
+\section{Manipulator rigid-body dynamics}  \label{sec:robot-rigid-body}
+Manipulator dynamics is concerned with the equations of motion, the way
+in which the manipulator moves in response to torques applied by the actuators,
+or external forces.
+The history and mathematics of the dynamics of serial-link
+manipulators is well covered by Paul\cite{Paul81a} and
+Hollerbach\cite{Hollerbach82}.
+There are two problems related to manipulator dynamics that are important to solve:
+\begin{itemize}
+\item \DEF{inverse dynamics} in which the manipulator's equations of motion  are
+solved for given motion to determine the generalized forces, discussed 
+further in Section \ref{sec:robot-control}, and
+\item \DEF{direct dynamics} in which the equations of motion are integrated to determine
+the generalized coordinate response to applied generalized forces discussed further
+in Section \ref{robot:direct-dyn}.
+\end{itemize}
+The equations of motion for an $n$-axis manipulator are given by
+\begin{equation}
+\vec{Q} =
+{\bf M}(\vec{q})\ddot{\vec{q}} + {\bf
+C}(\vec{q},\vec{\dot{q}}) \vec{\dot{q}} +
+{\bf F}(\vec{\dot{q}}) + {\bf G}(\vec{q}) \label{eq:inv-dyn}
+\end{equation}
+where
+
+\begin{tabular}{r p{5in}}
+$\vec{q}$ & is the vector of generalized joint coordinates describing
+the pose of the manipulator\\
+$\vec{\dot{q}}$ & is the vector of joint velocities;      \\
+$\vec{\ddot{q}}$ & is the vector of joint accelerations   \\
+$\bf M$ & is the symmetric joint-space inertia matrix, or manipulator inertia
+tensor\\
+$\bf C$ & describes Coriolis and centripetal effects --- Centripetal torques are
+proportional to $\dot{q}_i^2$, while the Coriolis torques are proportional
+to $\dot{q}_i \dot{q}_j$\\
+$\bf F$ & describes viscous and Coulomb friction and is not generally considered
+part of the rigid-body dynamics\\
+$\bf G$ & is the gravity loading\\
+$\vec{Q}$ & is the vector of generalized forces associated with the
+generalized coordinates $\vec{q}$.
+\end{tabular}
+
+The equations may be derived via a number of techniques, including
+Lagrangian (energy based), Newton-Euler,
+d'Alembert\cite{Fu87,Lee83}\
+or Kane's\cite{Kane83} method.
+The earliest reported work was by Uicker\cite{Uicker65} and Kahn\cite{Kahn69}\
+using the Lagrangian approach.
+Due to the enormous computational cost, $O(n^4)$, of this approach it was not
+possible to compute manipulator torque for real-time control.
+To achieve real-time performance many approaches were suggested, including 
+table lookup\cite{Raibert78} and
+approximation\cite{Bejczy74,Paul72}.  
+The most common
+approximation
+was to ignore the velocity-dependent term $\bf C$, since
+accurate positioning and
+high speed motion are exclusive in typical robot applications.
+
+Orin \etal\cite{Orin79} proposed an alternative approach based
+on the Newton-Euler (NE) equations of rigid-body motion applied to each link.
+Armstrong\cite{Armstrong79} then showed how recursion might
+be applied resulting in $O(n)$ complexity.
+Luh \etal\cite{Luh80a} provided a recursive formulation of
+the
+Newton-Euler equations with linear and angular velocities referred to link
+coordinate frames.  They suggested a time improvement from $7.9$s for the
+Lagrangian formulation to $4.5\unit{ms}$, and thus it became practical to
+implement `on-line'.
+Hollerbach\cite{Hollerbach80} showed how recursion could be applied to
+the Lagrangian form, and reduced the computation to within a factor of 3
+of the recursive NE.  Silver\cite{Silver82} showed
+the equivalence of the recursive Lagrangian and Newton-Euler forms, and
+that the difference in efficiency is due to the representation of angular
+velocity.
+
+``Kane's equations'' \cite{Kane83} provide another methodology for
+deriving the equations of motion for a specific manipulator.
+A number of `Z' variables are introduced, which while not necessarily
+of physical significance, lead to a dynamics formulation with low computational
+burden.
+Wampler\cite{Wampler85} discusses the computational costs of Kane's method
+in some detail.
+
+The NE and Lagrange forms can be written generally in terms of the
+Denavit-Hartenberg parameters ---
+however the specific formulations, such as Kane's, can have lower computational
+cost for the specific manipulator.
+Whilst the recursive forms are computationally more efficient, the
+non-recursive forms compute the individual dynamic terms ($\bf M$, $\bf C$
+and $\bf G$) directly.
+A comparison of computation costs  is given in Table \ref{tab:dyn-costs}.
+
+\begin{table}
+\centering
+\begin{tabular}{|l|l|l||r|r|} \hline
+Method &        Multiplications & Additions & \multicolumn{2}{c|}{For N=6}
+\\ \cline{4-5}
+       &                        &           & Multiply & Add \\ \hline
+Lagrangian\cite{Hollerbach80} &
+	$32\frac{1}{2}n^4 + 86\frac{5}{12}n^3$ &
+	$25n^4 + 66\frac{1}{3}n^3$ &
+	66,271 & 51,548 \\
+    &   $+ 171\frac{1}{4}n^2 + 53\frac{1}{3}n$  &
+	$+ 129\frac{1}{2}n^2 + 42\frac{1}{3}n$ & & \\
+     &  $-128$ &  $-96$ & & \\
+Recursive NE\cite{Hollerbach80} &
+	$150n - 48$     & $131n-48$     & 852 & 738     \\
+Kane\cite{Kane83} &                  &               & 646 & 394     \\
+Simplified RNE\cite{Murray84} &                &               & 224 & 174     \\ \hline
+\end{tabular}
+\caption[Comparison of computational costs for inverse dynamics.]{Comparison 
+of computational costs for inverse dynamics from various sources.  The last
+entry is achieved by symbolic simplification using the software package ARM.}
+\label{tab:dyn-costs}
+\end{table}
+
+
+\subsection{Recursive Newton-Euler formulation}\label{sec:robot-control}
+The recursive Newton-Euler (RNE) formulation\cite{Luh80a}
+computes the inverse manipulator dynamics, that is, the joint torques
+required for a given set of joint angles, velocities and accelerations.
+The forward recursion propagates kinematic information --- such as
+angular velocities, angular accelerations, linear accelerations --- from the base
+reference frame (inertial frame) to the end-effector.  The backward
+recursion propagates the forces and moments exerted on each link from
+the end-effector of the manipulator to the base reference frame\footnote{It 
+should be noted that using MDH notation with its different
+axis assignment conventions the Newton Euler formulation is expressed
+differently\cite{Craig89}.}.
+Figure \ref{fig:dynamics-notation} shows the variables involved in the
+computation for one link.
+
+The notation of Hollerbach\cite{Hollerbach80} and Walker and Orin
+\cite{Walker82} will be used in
+which the left superscript indicates the reference coordinate
+frame for the variable.  The notation of Luh \etal\cite{Luh80a}
+and later Lee\cite{Lee82a,Fu87} is considerably less clear.
+
+\begin{figure}
+\centerline{\psfig{figure=figs/dyn.id,width=\bigwidth}}
+\caption[Notation for inverse dynamics]{Notation used for
+inverse dynamics, based on standard Denavit-Hartenberg notation.}
+\label{fig:dynamics-notation}
+\end{figure}
+
+\paragraph{Outward recursion, $1\leq i\leq n$.}
+
+\begin{eqnarray}
+\lefteqn{\mbox{If axis $i+1$ is rotational}}            \nonumber       \\
+\mbox{}^{i+1}\vec{\omega}_{i+1} & = &
+	{}^{i+1} {\bf R}_i \left( \mbox{}^i\vec{\omega}_i + \vec{z}_0\dot{\vec{q}}_{i+1} \right)	\label{eq:rne-start}
+	\\
+\mbox{}^{i+1}\dot{\vec{\omega}}_{i+1}  & = &
+	{}^{i+1} {\bf R}_i \left\{ \mbox{}^i\dot{\vec{\omega}}_i +
+	\vec{z}_0\ddot{\vec{q}}_{i+1} +
+	\mbox{}^i\vec{\omega}_i \times \left(\vec{z}_0\dot{\vec{q}}_{i+1}\right)\right\}                    \\
+\mbox{}^{i+1}\vec{v}_{i+1} & = &
+	\mbox{}^{i+1}\vec{\omega}_{i+1} \times  {}^{i+1}\vec{p}_{i+1}^{*} +
+	{}^{i+1} {\bf R}_i \mbox{}^i\vec{v}_i
+	\label{eq:v-rot}                        \\
+\mbox{}^{i+1}\dot{\vec{v}}_{i+1} & = &
+	\mbox{}^{i+1}\dot{\vec{\omega}}_{i+1} \times {}^{i+1}\vec{p}_{i+1}^{*} +
+	\mbox{}^{i+1}\vec{\omega}_{i+1} \times \left\{
+	    \mbox{}^{i+1}\vec{\omega}_{i+1} \times  {}^{i+1}\vec{p}_{i+1}^{*}
+	\right\} + {}^{i+1} {\bf R}_i \mbox{}^i\dot{\vec{v}}_i
+	\\
+\lefteqn{\mbox{If axis $i+1$ is translational}}         \nonumber       \\
+\mbox{}^{i+1}\vec{\omega}_{i+1} & = &
+	{}^{i+1} {\bf R}_i \mbox{}^i\vec{\omega}_i
+	\\
+\mbox{}^{i+1}\dot{\vec{\omega}}_{i+1}  & = &
+	{}^{i+1} {\bf R}_i  \mbox{}^i\dot{\vec{\omega}}_i
+	\\
+\mbox{}^{i+1}\vec{v}_{i+1} & = &
+	{}^{i+1} {\bf R}_i \left(\vec{z}_0\dot{\vec{q}}_{i+1} + \mbox{}^i\vec{v}_i\right) +
+	\mbox{}^{i+1}\vec{\omega}_{i+1} \times {}^{i+1}\vec{p}_{i+1}^{*}
+	\label{eq:v-trans}                       \\
+\mbox{}^{i+1}\dot{\vec{v}}_{i+1} & = &
+	{}^{i+1} {\bf R}_i \left(\vec{z}_0 \ddot{\vec{q}}_{i+1} + \mbox{}^i\dot{\vec{v}}_i\right) +
+	\mbox{}^{i+1}\dot{\vec{\omega}}_{i+1} \times {}^{i+1}\vec{p}_{i+1}^{*} +
+	2\; \mbox{}^{i+1}\vec{\omega}_{i+1}  \times \left({}^{i+1} {\bf R}_i \vec{z}_0
+	\dot{\vec{q}}_{i+1}\right) \nonumber \\
+	&& + \mbox{}^{i+1}\vec{\omega}_{i+1} \times \left(
+		\mbox{}^{i+1}\vec{\omega}_{i+1} \times {}^{i+1}\vec{p}_{i+1}^{*}\right)
+\end{eqnarray}
+\begin{eqnarray}
+\mbox{}^i\dot{\vec{\overline{v}}}_i & = &
+	\mbox{}^i\dot{\vec{\omega}}_i \times \vec{s}_i +
+	\mbox{}^i\vec{\omega}_i \times \left\{
+		\mbox{}^i\vec{\omega}_i \times \vec{s}_i
+	\right\} +
+	\mbox{}^i\dot{\vec{v}}_i \label{eq:rne-vbar}\\
+\mbox{}^i\vec{F}_i & = & m_i \mbox{}^i\dot{\vec{\overline{v}}}_i \label{eq:rne-Fi}\\
+\mbox{}^i\vec{N}_i & = &
+	{\bf J}_i  \mbox{}^i\dot{\vec{\omega}}_i +
+	\mbox{}^i\vec{\omega}_i \times \left({\bf J}_i \mbox{}^i\vec{\omega}_i\right)
+\end{eqnarray}
+
+\paragraph{Inward recursion, $n \geq i \geq 1$.}
+\begin{eqnarray}
+\mbox{}^i\vec{f}_i  & = &
+	{}^i {\bf R}_{i+1}\,  \mbox{}^{i+1}\vec{f}_{i+1} + \mbox{}^i\vec{F}_i\\
+\mbox{}^i\vec{n}_i & = &
+	{}^i {\bf R}_{i+1} \, \left\{ \mbox{}^{i+1}\vec{n}_{i+1} +
+	\left( {}^{i+1} {\bf R}_i \mbox{}^i\vec{p}_i^{*} \right) \times {}^i \mbox{}^{i+1}\vec{f}_{i+1}\right\} +
+	\left(\mbox{}^i\vec{p}_i^{*} + \vec{s}_i\right) \times \mbox{}^i\vec{F}_i +
+	\mbox{}^i\vec{N}_i  \label{eq:rne-ni} \\
+\vec{Q}_i & = &  \left\{ \begin{array}{ll}
+	\left(\mbox{}^i\vec{n}_i\right)^T \left({}^i {\bf R}_{i+1} \vec{z}_0\right) &
+		\mbox{if link $i+1$ is rotational} \\
+	\left(\mbox{}^i\vec{f}_i\right)^T \left({}^i {\bf R}_{i+1} \vec{z}_0\right)&
+		\mbox{if link $i+1$ is translational}
+	\end{array} \right.				\label{eq:rne-end}
+\end{eqnarray}
+where
+
+\begin{longtable}{r p{12cm}}
+$i$ & is the link index, in the range $1$ to $n$ \\
+${\bf J}_i$ & is the moment of inertia of link $i$ about its COM\\
+$\vec{s}_i$ & is the position vector of the COM of link $i$ with respect to
+frame $i$\\
+$\vec{\omega}_i$ & is the angular velocity of link $i$\\
+$\dot{\vec{\omega}}_i$ & is the angular acceleration of link $i$\\
+$\vec{v}_i$ & is the linear velocity of frame $i$\\
+$\dot{\vec{v}}_i$ & is the linear acceleration of frame $i$\\
+$\vec{\overline{v}}_i$ & is the linear velocity of the COM of link $i$ \\
+$\dot{\vec{\overline{v}}}_i$ & is the linear acceleration of the COM of link
+$i$ \\
+$\vec{n}_i$ & is the moment exerted on link $i$ by link $i-1$ \\
+$\vec{f}_i$ & is the force exerted on link $i$ by link $i-1$ \\
+$\vec{N}_i$ & is the total moment at the COM of link $i$\\
+$\vec{F}_i$ & is the total force at the COM of link $i$ \\
+$\vec{Q}_i$ & is the force or torque exerted by the actuator at joint $i$\\
+${}^{i-1} {\bf R}_i$ & is the orthonormal rotation matrix defining
+frame $i$ orientation with respect to frame $i-1$.  It is the upper $3 \times
+3$
+portion of the link transform matrix given in (\ref{eq:Amatrix}).
+\begin{eqnarray}
+{}^{i-1} {\bf R}_i &=& \left[ \begin{array}{ccc}
+ \cos \theta_i & -\cos \alpha_i \sin \theta_i & \sin \alpha_i \sin \theta_i \\
+ \sin \theta_i & \cos \alpha_i \cos \theta_i & -\sin \alpha_i \cos \theta_i \\
+ 0             & \sin \alpha_i               & \cos \alpha_i
+ \end{array} \right] \\
+{}^{i} {\bf R}_{i-1} &=& ( {}^{i-1} {\bf R}_{i} ) ^{-1} = ( {}^{i-1} {\bf R}_{i} ) ^T
+\end{eqnarray}
+\\
+${}^i \vec{p}_i^{*}$ & is the displacement from the origin of frame $i-1$
+to frame $i$ with respect to frame $i$.
+\begin{equation}
+\mbox{}^i\vec{p}_i^{*} = \left[ \begin{array}{c}
+	a_i \\
+	d_i \sin \alpha_i \\
+	d_i \cos \alpha_i
+	\end{array} \right]
+\end{equation}
+It is the negative translational part of $({}^{i-1} {\bf A}_{i})^{-1}$.\\
+$\vec{z}_0$ & is a unit vector in Z direction, $\vec{z}_0 = [0\;0\;1]$ \\
+\end{longtable}
+
+\noindent
+Note that the COM linear velocity given by equation (\ref{eq:v-rot}) or
+(\ref{eq:v-trans}) does not need to be computed since no other
+expression depends upon it.
+Boundary conditions are used to introduce the effect of gravity by setting the
+acceleration of the base link
+\be
+\dot{v}_0 = -\vec{g}
+\ee
+where $\vec{g}$ is the gravity vector in the reference coordinate 
+frame, generally acting in the negative Z direction, downward.
+Base velocity is generally zero
+\begin{eqnarray}
+v_0 &=& 0       \\
+\omega_0 &=& 0 \\
+\dot{\omega}_0 &=& 0
+\end{eqnarray}
+
+At this stage the Toolbox only provides an implementation of this algorithm
+using the standard Denavit-Hartenberg conventions.
+
+\subsection{Direct dynamics}  \label{robot:direct-dyn}
+Equation (\ref{eq:inv-dyn}) may be used to compute the so-called inverse dynamics, that is,
+actuator torque as a function
+of manipulator state and is useful for on-line control.
+For simulation the direct, integral or \DEF{forward dynamic} formulation is required 
+giving joint motion in terms of input torques.  
+
+Walker and Orin\cite{Walker82} describe several
+methods for computing the forward dynamics, and all make use of an
+existing inverse dynamics solution.
+Using the RNE algorithm for inverse dynamics, the computational complexity of
+the forward dynamics using `Method 1'  is $O(n^3)$ for an n-axis manipulator.
+Their other methods are increasingly more sophisticated but reduce the computational
+cost, though still $O(n^3)$.
+Featherstone\cite{Featherstone87}\
+has described the ``articulated-body method'' for $O(n)$ computation of
+forward dynamics, however for $n < 9$ it is more expensive than the 
+approach of Walker and Orin.
+Another $O(n)$ approach for forward
+dynamics has been described by Lathrop\cite{Lathrop86}.
+
+\subsection{Rigid-body inertial parameters} \label{sec:robot-rigidbody-params}
+Accurate model-based dynamic control of a manipulator requires knowledge of the
+rigid-body inertial parameters.
+Each link has ten independent  inertial parameters:
+\begin{itemize}
+\item link mass, $m_i$;
+\item three first moments, which may be expressed
+as the COM location, $\vec{s}_i$, with respect to some datum on the link
+or as a moment $\vec{S}_i = m_i \vec{s}_i$;
+\item six second moments, which represent the inertia of the link about a
+given axis, typically through the COM.
+The second moments may be expressed in matrix or tensor form as
+\be
+{\bf J} = \left[ \begin{array}{ccc}
+		J_{xx} & J_{xy} & J_{xz}\\
+		J_{xy} & J_{yy} & J_{yz}\\
+		J_{xz} & J_{yz} & J_{zz}
+	   \end{array}
+	\right]		\label{eq:inertia-matrix}
+\ee
+where the diagonal elements are the \DEF{moments of inertia}, and the
+off-diagonals are \DEF{products of inertia}.
+Only six of these nine elements are unique:
+three moments and three products of inertia.
+
+For any point in a rigid-body there is one set of axes known as the
+\DEF{principal axes of inertia} for which the off-diagonal terms, or products, are
+zero.  These axes are given by the eigenvectors of the
+inertia matrix \eq{eq:inertia-matrix} and the eigenvalues are the principal moments of
+inertia.  Frequently the products of inertia of the robot links are zero due 
+to symmetry.
+\end{itemize}
+
+A 6-axis manipulator rigid-body dynamic model thus entails 60 
+inertial parameters.
+There may be additional parameters per joint due to friction and motor 
+armature inertia.  
+Clearly, establishing numeric values for this number of parameters is a difficult task.
+Many parameters cannot be measured without dismantling the robot and performing
+careful experiments, though this approach was used by Armstrong \etal\cite{Armstrong86}.
+Most parameters could be derived from CAD models of the robots, but this information
+is often considered proprietary and not made available to researchers.
+
+\bibliographystyle{ieeetr}
+\bibliography{strings,robot,control,dynamics,kinematics,force,grind,publist,software}
+\end{document}

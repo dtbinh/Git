@@ -1,0 +1,12 @@
+#summary Wishlist.
+
+= Wishlist =
+
+Things for RTB 10, MVTB 3 and RVC second edition
+
+  * bundle adjustment
+  * loop closure and path graph relaxation
+  * Vehicle class becomes abstract, subclasses for Bicycle, Unicycle, DiffSteer and CenterSteer
+  * do images become objects instead of being matrices, lots of advantages to this
+  * MVTB layered on OpenCV, gets the power of GPU to MATLAB users
+  * connecting toolboxes to the world, ROS integration etc.

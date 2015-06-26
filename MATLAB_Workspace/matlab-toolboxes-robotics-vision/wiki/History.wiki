@@ -1,0 +1,62 @@
+#summary One-sentence summary of this page.
+
+= About the Toolboxes =
+
+The toolboxes are based on Matlab code developed by Peter Corke for his [http://eprints.infodiv.unimelb.edu.au/archive/00000547/ PhD research] over the period 1990 to 1994.  
+
+= Robotics Toolbox for MATLAB (RTB) =
+
+==  release 9 (September 2011) ==
+
+Significant expansion to support the [http://petercorke.com/RVC Robotics, Vision & Control] book.  Major additions include:
+  * changes of class names for arm-type robots
+  * mobile robot control, planning and localization
+  * quadrotor control
+  * improved documentation
+
+==  release 8 (December 2008) ==
+
+This is the first update to the toolbox since 2002.
+The main features of release 8 are:
+  * integration with Matlab desktop, help and demo systems
+  * variants of many functions that return a rotation rather than homog. transform matrix, for instance rotx() and trotx() return a 3x3 and 4x4 matrix respectively.
+  * HTML format function help documentation (generated using m2html) integrated with help browswer
+  * new robot models: Motoman, ABB, Fanuc
+  * rpy2r and eul2r accept trajectories
+  * fix errors in Simulink demos (due to code atrophy)
+  * tested with Matlab 2008b
+  * some functions have been retired
+  * adopt the new MATLAB classdef object syntax
+
+
+== release 7 (April 2002) ==
+
+MEX files, Simulink models and modified Denavit-Hartenberg support.  This was released to support the third edition of John Craig's textbook where the exercises made use of RTB.
+
+== release 6 (April 2001) ==
+
+
+== release 5 (April 1999) ==
+
+First release with objects.  Before that everything was a matrix.
+
+== release 4 (August 1996) ==
+
+Corresponded to the article published in the IEEE Robotics & Automation magazine.
+
+
+
+= MVTB =
+
+
+==  release 3 (September 2011) ==
+Significant expansion to support the [http://petercorke.com/RVC Robotics, Vision & Control] book.  Major additions include:
+ * camera classes
+ * feature classes
+ * SIFT, SURF, graph-based segmentation, tracking, bag of words etc.
+
+
+==  release 2 (2005) ==
+
+
+==  release 1 (??) ==

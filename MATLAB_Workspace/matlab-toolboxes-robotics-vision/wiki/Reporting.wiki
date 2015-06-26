@@ -1,0 +1,30 @@
+#summary How to report bugs.
+
+= How to report bugs =
+
+I'm not able to test the Toolboxes on all platforms and currently R2013a is what I am working with.  MATLAB evolves so there can be problems if you use older or newer versions. I do welcome your help in finding and fixing bugs.  If you post a bug report be sure to include:
+
+
+  # what you do and how MATLAB/Toolbox responds, cut and paste your session
+  # the output of the `ver` command which looks something like this
+{{{
+>> ver
+--------------------------------------------------------------------------------------------------------
+MATLAB Version: 8.0.0.783 (R2012b)
+MATLAB License Number: 597855
+Operating System: Mac OS X  Version: 10.7.5 Build: 11G63b 
+Java Version: Java 1.6.0_31-b04-415-11M3635 with Apple Inc. Java HotSpot(TM) 64-Bit Server VM mixed mode
+--------------------------------------------------------------------------------------------------------
+MATLAB                                                Version 8.0        (R2012b)
+Simulink                                              Version 8.0        (R2012b)
+Control System Toolbox                                Version 9.4        (R2012b)
+Image Processing Toolbox                              Version 8.1        (R2012b)
+Optimization Toolbox                                  Version 6.2.1      (R2012b)
+Robotics Toolbox                                      Version 9.5.0              
+Signal Processing Toolbox                             Version 6.18       (R2012b)
+Statistics Toolbox                                    Version 8.1        (R2012b)
+Symbolic Math Toolbox                                 Version 5.9        (R2012b)
+}}}
+and cut and paste it into your posting.
+
+*The more information you provide the easier it is for me or others on this list to suggest a fix.*

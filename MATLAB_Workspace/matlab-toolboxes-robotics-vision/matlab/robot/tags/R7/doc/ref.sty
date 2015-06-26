@@ -1,0 +1,167 @@
+\long\def\comment#1{}
+\comment{
+
+\documentstyle[10pt,tut]{article}
+%document begin here
+
+\begin{document}
+
+\pagestyle{myheadings}  % to obtain the progrept footer & header
+
+%your text here
+
+%the usual place for a bibliography
+
+\begin{thebibliography}{99}
+
+\end{thebibliography}
+
+
+
+\clearpage
+\setlength{\parskip}{0pt}  %separation between entries as you please
+
+\tableofcontents
+
+\listoffigures
+
+\listoftables
+
+
+
+\end{document}
+
+
+
+}
+
+\typeout{Document Style 'SSSIT Tut'}
+
+%article.sty entry for index
+
+\def\theindex{\@restonecoltrue\if@twocolumn\@restonecolfalse\fi
+
+\columnseprule \z@
+
+\columnsep 35pt\twocolumn[\section*{Index}]
+
+% \@mkboth{INDEX}{INDEX}\thispagestyle{plain}\parindent\z@
+
+                                             \parindent\z@
+
+ \parskip\z@ plus .3pt\relax\let\item\@idxitem}
+
+
+%make title modified to remove the plain page style
+
+\def\maketitle{\par
+
+ \begingroup
+
+ \def\thefootnote{\fnsymbol{footnote}}
+
+ \def\@makefnmark{\hbox
+
+ to 0pt{$^{\@thefnmark}$\hss}}
+
+ \if@twocolumn
+
+ \twocolumn[\@maketitle]
+
+ \else \newpage
+
+% \global\@topnum\z@ \@maketitle \fi\thispagestyle{plain}\@thanks
+
+  \global\@topnum\z@ \@maketitle \fi                     \@thanks
+
+ \endgroup
+
+ \setcounter{footnote}{0}
+
+ \let\maketitle\relax
+
+ \let\@maketitle\relax
+
+ \gdef\@thanks{}\gdef\@author{}\gdef\@title{}\let\thanks\relax}
+
+
+%redefine headers and footers
+
+\def\ps@myheadings{\let\@mkboth\@gobbletwo
+
+\def\@oddhead{\docoddhead}
+
+\def\@evenhead{\docevenhead}
+
+\def\@oddfoot{\docoddfoot}
+
+\def\@evenfoot{\docevenfoot}
+
+}
+
+
+% a modified headings command to put the page numbers at the bottom
+
+\if@twoside         % If two-sided printing.
+
+\def\ps@headings{\let\@mkboth\markboth
+
+%\def\@oddfoot{\thepage \hfill}
+
+\def\@evenfoot{\kern-1.25in\elevenTI 2--\thepage\hfill}
+
+\def\@oddfoot{\kern-1.25in\nineTI Robotics Toolbox User's
+Guide\hfill \elevenTI 2--\thepage}%
+
+
+
+%\def\@evenfoot{\hfil \thepage}%
+
+\def\@evenhead{\kern-1.25in\nineTI\leftmark\hfill}%  Left heading.
+
+\def\@oddhead{\hfill\nineTI \rightmark \hbox{}  }% Right heading.
+
+\def\sectionmark##1{\markboth {{\ifnum \c@secnumdepth >\z@
+
+    \thesection\hskip 1em\relax \fi ##1}}{}}%
+
+\def\subsectionmark##1{\markright {\ifnum \c@secnumdepth >\@ne
+
+          \thesubsection\hskip 1em\relax \fi ##1}}}
+
+\else               % If one-sided printing.
+
+\def\ps@headings{\let\@mkboth\markboth
+\def\@evenfoot{\kern-1.25in\elevenTI 2--\thepage\hfill}
+
+\def\@oddfoot{\kern-1.25in\nineTI Robot Toolbox User's Guide\hfill \elevenTI 2--\thepage}%
+\def\@oddhead{\hfill\nineTI \rightmark \hbox{}}% Heading.
+
+\def\sectionmark##1{\markright {{\ifnum \c@secnumdepth >\z@
+
+    \thesection\hskip 1em\relax \fi ##1}}}}
+
+\fi
+
+%define variables used in the footer and header
+
+\def\docevenhead#1{\gdef\@docevenhead{#1}}
+
+\def\docoddhead#1{\gdef\@docoddhead{#1}}
+
+\def\docevenfoot#1{\gdef\@docevenfoot{#1}}
+
+\def\docoddfoot#1{\gdef\@docoddfoot{#1}}
+
+%initialize  variables
+
+\docevenhead{}
+
+\docoddhead{}
+
+\docevenfoot{}
+
+\docoddfoot{}
+
+%
+

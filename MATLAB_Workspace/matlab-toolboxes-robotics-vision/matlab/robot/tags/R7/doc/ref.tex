@@ -1,0 +1,2603 @@
+\documentclass{article}
+%\documentstyle[titlepage,ref,twoside]{article}
+\usepackage{verbatim}
+\usepackage{fancyheadings}
+
+
+\setlength{\topmargin}{10.4mm}      % top header - top paper
+\setlength{\textheight}{220mm} % height of body, not head and footer
+\setlength{\textwidth}{128mm}  % width of text
+\setlength{\evensidemargin}{36.6mm} % even page - left paper edge to text
+\setlength{\oddsidemargin}{36.6mm}  % odd page - left paper edge to text 
+\setlength{\headsep}{12mm} %distance bet. header & body text
+\setlength{\footskip}{12mm}%distance bet. body of text & baseline of footer
+\setlength{\parindent}{0pt} %don't indent paragraphs
+\setlength{\parskip}{2mm} %distance between paragraphs
+\setlength{\hfuzz}{10pt} %allow for slight overflow to right margin
+
+% Include font file: either NFSS or PostScript:
+
+
+%\include{postfont}
+\include{nfssfont}
+
+%\renewcommand{\rmdefault}{phv}
+%\renewcommand{\sfdefault}{phv}
+%\renewcommand{\ttdefault}{pcr}
+
+% Define reference page commands.
+%
+%	\mdes	Description
+%	\msa	See also
+%	\mex	Examples
+%	\mlim	Limitations
+%	\mdia	Diagnostics
+%	\msyn	Synopsis
+%	\mpur	Purpose
+%	\malg	Algorithm
+%	\mcau	Caution
+%	\mref	References
+%
+\newcommand{\mdes}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Description}}}{#1}\vskip 0.25in}
+
+\newcommand{\msa}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon See Also}}}{#1}\vskip 0.25in}
+
+\newcommand{\mex}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Examples}}}{#1}\vskip 0.25in}
+
+\newcommand{\mlim}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Limitations}}}{#1}\vskip 0.25in}
+
+\newcommand{\mdia}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Diagnostics}}}{#1}\vskip 0.25in}
+
+\newcommand{\msyn}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Synopsis}}}{\parbox[t]{10cm}{\Cfon #1}}\vskip 0.25in}
+
+\newcommand{\mpur}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Purpose}}}{#1}\vskip 0.25in}
+
+\newcommand{\malg}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Algorithm}}}{#1}\vskip 0.25in}
+
+\newcommand{\mcau}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Cautionary}}}{#1}\vskip 0.25in}
+
+\newcommand{\mref}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon References}}}{#1}\vskip 0.25in}
+
+\newcommand{\example}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Example}}}{#1}\vskip 0.25in}
+
+\newcommand{\mauthor}[1]{\hskip -1.25in 
+{\hbox{\makebox[1.25in][l]{\Refon Author}}}{#1}\vskip 0.25in}
+
+
+\newcommand{\function}[1]{\section*{\kern -1.25in\tms #1\hfill\markboth{#1}{#1}}
+\vspace*{-4mm}
+\moveleft 1.25in\vbox{\makebox[6.25in][l]{\vrule height .01 in width 6.25 true in}}
+\vskip .25 true in}
+
+\newcommand{\vvar}[1]{{\vtt #1}}
+
+
+\newcommand{\var}[1]{{\vtt #1}}
+%\newcommand{\newblock}{}
+
+\newcommand{\namelistlabel}[1]{\mbox{#1}\hfil}
+\newenvironment{namelist}[1]{%
+\begin{list}{}
+{
+\let\makelabel\namelistlabel
+\settowidth{\labelwidth}{#1}
+\setlength{\leftmargin}{1.1\labelwidth}
+}
+}{%
+\end{list}}
+
+\renewcommand{\hom}{homogeneous transform}
+\newcommand{\Hom}{Homogeneous transform}
+\renewcommand{\vec}[1]{\underline{#1}}
+\input{psfig}
+
+\begin{document}
+
+
+\newcommand{\Mlab}{{\School M}{\eightTR ATLAB}}
+\newcommand{\MLAB}{{\emph M}{\eightIT ATLAB}}
+\newcommand{\undersec}[1]{\underline{\rule[-.70ex]{0cm}{0cm}#1}}
+
+
+%{\School
+%\pagestyle{headings}        % Gives page headings at top of page
+\pagestyle{fancyplain}
+\rhead{\rm\thepage}
+\lfoot{Robotics Toolbox Release 7}
+\rfoot{Peter Corke, April 2002}
+\cfoot{}
+\setlength{\headrulewidth}{0pt}
+
+\newpage   % Starts introduction on RH page
+\def\be{\begin{equation}}
+\def\ee{\end{equation}}
+\newcommand{\under}[1]{\underline{\rule[-.70ex]{0cm}{0cm}#1}}
+\renewcommand{\baselinestretch}{1.2}           % Stretches line spacing
+\tolerance=10000
+
+
+\rightline{\NNNfon 2}
+\vskip 4mm
+\rightline{\NNfon Reference}
+\vskip 2mm
+\moveleft 1.25in\vbox{\makebox[6.25in][l]
+{\vrule height .01 in width 6.25 true in}}
+
+\vskip 5mm
+%\vfil\eject 
+\addcontentsline{toc}{section}{Introduction}
+
+For an n-axis manipulator the following matrix naming and dimensional
+conventions apply.
+
+\begin{tabular}
+{|lp{30mm}p{70mm}|}\hline
+Symbol & Dimensions & Description\\ \hline
+\var{l} & \textbf{link} & manipulator link object\\
+\var{q} & $1 \times n$ & joint coordinate vector\\
+\var{q} & $m \times n$ & $m$-point joint coordinate trajectory \\
+\var{qd} & $1 \times n$ & joint velocity vector\\
+\var{qd} & $m \times n$ & $m$-point joint velocity trajectory \\
+\var{qdd} & $1 \times n$ & joint acceleration vector\\
+\var{qdd} & $m \times n$ & $m$-point joint acceleration trajectory \\
+\var{robot} & \textbf{robot} & robot object\\
+\var{T} & $4 \times 4$ & \hom \\
+\var{T} & $4 \times 4 \times m$ & $m$-point \hom\ trajectory\\
+\var{Q} & \textbf{quaternion} & unit-quaternion object\\
+\var{M} & $1 \times 6$ & vector with elements of 0 or 1 corresponding
+to Cartesian DOF along X, Y, Z and around X, Y, Z.  1 if that Cartesian
+DOF belongs to the task space, else 0.\\
+\var{v} & $3 \times 1$ & Cartesian vector\\
+\var{t} & $m\times 1$ & time vector\\
+\var{d} & $6\times 1$ & differential motion vector\\ \hline
+\end{tabular}
+
+Object names are shown in bold typeface.
+
+A trajectory is represented by a matrix in which each row corresponds to
+one of $m$ time steps.
+For a joint coordinate, velocity or acceleration trajectory the columns correspond
+to the robot axes.
+For \hom\ trajectories we use 3-dimensional matrices where the last
+index corresponds to the time step.
+
+\section*{Units}
+All angles are in radians.
+The choice of all other units is up to the user, and this choice will flow
+on to the units in which \hom s, Jacobians, inertias and torques
+are represented.
+
+\vfil\eject
+\markboth{Introduction}{Introduction}
+
+%\begin{tabular}
+%{|p{1.25in}p{3.25in}|}\cline{1-2}
+%&\\
+%\multicolumn{2}{|c|}{\tmsss Reference Page Commands}\\
+%\hline
+%&\\
+%{\Mono ml\_demo1,clc} & User-written function to convert parameter
+%vector into a state-space system model.\\
+%{\Mono wersum} & Variable augmented with a-priori weighting term.\\
+%&\\
+%\cline{1-2}
+%\end{tabular}
+
+%%SUMMARY_START
+\begin{tabular}
+{|p{1.25in}p{3.25in}|}\cline{1-2}
+&\\
+\multicolumn{2}{|c|}{\tmsss Homogeneous Transforms} \\ \hline
+{\Mono eul2tr} & Euler angle to \hom \\
+{\Mono oa2tr} & orientation and approach vector to \hom \\
+{\Mono rotvec} & \hom\ for rotation about arbitrary vector \\
+{\Mono rotx} & \hom\ for rotation about X-axis \\
+{\Mono roty} & \hom\ for rotation about Y-axis \\
+{\Mono rotz} & \hom\ for rotation about Z-axis \\
+{\Mono rpy2tr} & Roll/pitch/yaw angles to \hom \\
+{\Mono tr2eul} & \hom\ to Euler angles \\
+{\Mono tr2rot} & \hom\ to rotation submatrix\\
+{\Mono tr2rpy} & \hom\ to roll/pitch/yaw angles\\ 
+{\Mono transl} & set or extract the translational component of a \hom \\
+{\Mono trnorm} & normalize a \hom \\ \hline
+\end{tabular}
+
+\begin{tabular}
+{|p{1.25in}p{3.25in}|}\cline{1-2}
+&\\
+\multicolumn{2}{|c|}{\tmsss Trajectory Generation} \\ \hline
+{\Mono ctraj} & Cartesian trajectory \\
+%{\Mono drivepar} & Cartesian trajectory parameters \\
+{\Mono jtraj} & joint space trajectory \\ 
+{\Mono trinterp} & interpolate \hom s\\  \hline
+\end{tabular}
+
+
+\begin{tabular}
+{|p{1.25in}p{3.25in}|}\cline{1-2}
+&\\
+\multicolumn{2}{|c|}{\tmsss Quaternions} \\ \hline
+{\Mono /} & divide quaternion by quaternion or scalar\\
+{\Mono *} & multiply quaternion by a quaternion or vector\\
+{\Mono inv} & invert a quaternion \\
+{\Mono norm} & norm of a quaternion \\
+{\Mono plot} & display a quaternion as a 3D rotation\\
+{\Mono q2tr} & quaternion to \hom\\
+{\Mono quaternion} & construct a quaternion \\
+{\Mono qinterp} & interpolate quaternions\\ 
+{\Mono unit} & unitize a quaternion \\  \hline
+\end{tabular}
+
+\begin{tabular}
+{|p{1.25in}p{3.25in}|}\cline{1-2}
+&\\
+\multicolumn{2}{|c|}{\tmsss Manipulator Models} \\ \hline
+{\Mono link} & construct a robot link object \\
+{\Mono nofriction} & remove friction from a robot object \\
+{\Mono perturb} & randomly modify some dynamic parameters\\
+{\Mono puma560} & Puma 560 data \\
+{\Mono puma560akb} & Puma 560 data (modified Denavit-Hartenberg)\\
+{\Mono robot} & construct a robot object \\ 
+{\Mono showlink} & show link/robot data in detail\\ 
+{\Mono stanford} & Stanford arm data \\ 
+{\Mono twolink} & simple 2-link example \\ \hline
+\end{tabular}
+
+\begin{tabular}
+{|p{1.25in}p{3.25in}|}\cline{1-2}
+&\\
+\multicolumn{2}{|c|}{\tmsss Kinematics} \\ \hline
+{\Mono diff2tr} & differential motion vector to transform \\
+{\Mono fkine} & compute forward kinematics \\
+{\Mono ftrans} & transform force/moment \\
+{\Mono ikine} & compute inverse kinematics \\
+{\Mono ikine560} & compute inverse kinematics for Puma 560 like arm\\
+{\Mono jacob0} & compute Jacobian in base coordinate frame\\
+{\Mono jacobn} & compute Jacobian in end-effector coordinate frame\\
+{\Mono tr2diff} & \hom\ to differential motion vector \\
+{\Mono tr2jac} & \hom\ to Jacobian \\ \hline
+\end{tabular}
+
+\begin{tabular}
+{|p{1.25in}p{3.25in}|}\cline{1-2}
+&\\
+\multicolumn{2}{|c|}{\tmsss Graphics} \\ \hline
+{\Mono drivebot} & drive a graphical  robot \\ 
+{\Mono plot} & plot/animate robot \\ \hline
+\end{tabular}
+
+\begin{tabular}
+{|p{1.25in}p{3.25in}|}\cline{1-2}
+&\\
+\multicolumn{2}{|c|}{\tmsss Dynamics} \\ \hline
+{\Mono accel} & compute forward dynamics\\
+{\Mono cinertia} & compute Cartesian manipulator inertia matrix \\
+{\Mono coriolis} & compute centripetal/coriolis torque \\
+{\Mono fdyn} & forward dynamics (motion given forces) \\
+{\Mono friction} & joint friction\\
+{\Mono gravload} & compute gravity loading \\
+{\Mono inertia} & compute manipulator inertia matrix \\
+{\Mono itorque} & compute inertia torque \\
+{\Mono rne} & inverse dynamics (forces given motion)\\ \hline
+\end{tabular}
+
+\begin{tabular}
+{|p{1.25in}p{3.25in}|}\cline{1-2}
+&\\
+\multicolumn{2}{|c|}{\tmsss Other} \\ \hline
+%{\Mono cross} & vector cross product \\
+{\Mono ishomog} & test if matrix is $4 \times 4$\\
+{\Mono maniplty} & compute manipulability \\
+{\Mono rtdemo} & toolbox demonstration\\
+{\Mono unit} & unitize a vector\\ \hline
+\end{tabular}
+%%SUMMARY_END
+\vfil\eject
+
+
+%\section*{\kern -1.25in\tms mmle.m\hfill\markboth{mmle.m}{mmle.m}}
+%\vspace*{-4mm}
+%\moveleft 1.25in\vbox{\makebox[6.25in][l]{\vrule height .01 in width 6.25 true in}}
+%\vskip .25 true in
+%\mpur{Handle models with known or unknown measurement and/or state noise.}
+%
+%\synopsis{\Cfon
+%{\obeylines
+%format compact
+%
+%load ml\_demo1,clc}
+%} 
+%
+%\mdes{A simple user-written function is created to convert
+%the parameter vector into a state-space system model, some input
+%options are defined and {\vtt mmle.m} executed.}
+%
+%\mex{Use standard {\Mlab} \ commands to plot any of the above inputs
+%and outputs.
+%The innovations can be plotted using :
+%\begin{center}
+%{\vtt plot(dt$\times$[0:ndp-1], uydata(:,ym)-yest) }
+%\end{center}}
+%
+%\malg{The variable, {\vtt wersum} is
+%augmented with the a-priori weighting term to give, using program variable
+%names, 
+%\be \mbox{wersum}
+% =
+%\frac{1}{Nm} \left[ \sum_{i=1}^N \mbox{inov}^T \mbox{gg}^{-1} \mbox{inov} + 
+%(\mbox{p} - \mbox{pref})^T \mbox{wapriori} (\mbox{p} - \mbox{pref})  \right] 
+%\ee
+%
+%Variable {\vtt inov} is the innovations sequence from the Kalman filter,
+%{\vtt gg} is the assumed innovations covariance,
+%{\vtt p} is the parameter vector,
+%{\vtt pref} is the reference value, and
+%{\vtt wapriori} is the a-priori weighting.
+%The a-priori weighting can be used to bias the estimated parameters
+%in a (possibly wrong) direction favored by the analyst.
+%
+%The Maximum Likelihood Estimate at the minimum of the LLF  (Log-Likelihood Funct
+%ion) is achieved by making
+%{\vtt wapriori}  zero and by using the correct value for {\vtt gg}, i.e., \be
+%\mbox{gg} \Leftarrow \mbox{rr} \equiv \frac{1}{N} \sum_{i=1}^{N}
+%\mbox{\ inov} \mbox{\ inov}^T \label{samcov}
+%\ee}
+%
+%\mcau{Beware of special cases.}
+%
+%\mlim{Assume a linear time-independent noise model.} 
+%
+%\msa{\Cfon ml\_p2ss3.m}
+%
+%\mdia{At each parameter optimization step {\vtt mmle.m} prints :
+%\begin{center}
+%\begin{tabular}{lcl}
+% {\vtt STEP}       &  :& step number \\
+%{\vtt PIDF\und nsum}   & :& sum of new {\vtt p(pidf)}, where  {\vtt p} = parameter vector \\
+% {\vtt GG\und osum}     & :& old sum of innovations cov. used during the step \\
+% {\vtt RR\und nsum}     & :& sum of innovations cov. with new parameters \\
+% {\vtt MAXGRAD}    &  :& max(abs(grad)) for {\si old} parameter values \\
+% {\vtt MAX$|$dP$|$}   &   :& largest parameter change \\
+% {\vtt LLF}      &    :& LLF with new parameter values \\
+% {\vtt WERSUM}  &   :& See the {\si Tutorial} and Equation 1. \\
+% {\vtt ppid}    &    : & {\vtt p(pid)} = latest identified parameter values \\
+%\end{tabular}
+%\end{center}}
+%
+%\mref{Information on references is in the {\si Tutorial}.} 
+%
+%\vfil\eject 
+%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{accel}
+\mpur{Compute manipulator forward dynamics}
+
+\msyn{
+qdd = accel(robot, q, qd, torque)
+}
+\mdes{Returns a vector of joint accelerations
+that result from applying the actuator \var{torque} to the manipulator 
+\var{robot} with joint coordinates \var{q} and velocities \var{qd}.
+}
+
+\malg{Uses the method 1 of Walker and Orin to compute the forward dynamics.  This
+form is useful for simulation of manipulator dynamics, in conjunction with
+a numerical integration function.}
+
+\msa{rne, robot, fdyn, ode45}
+\mref{M.~W. Walker and D.~E. Orin.
+\newblock Efficient dynamic computer simulation of robotic mechanisms.
+\newblock {\em ASME Journal of Dynamic Systems, Measurement and Control},
+  104:205--211, 1982.}
+
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{cinertia}
+\mpur{
+Compute the Cartesian (operational space) manipulator inertia matrix}
+
+\msyn{
+M = cinertia(robot, q)
+}
+
+\mdes{\var{cinertia} computes the Cartesian, or operational space, inertia matrix.
+\var{robot} is a robot object that describes the manipulator dynamics 
+and kinematics, and \var{q} is
+an n-element vector of joint coordinates.}
+
+
+\malg{The Cartesian inertia matrix is calculated from the joint-space inertia
+matrix by
+\[
+{\bf M}(\vec{x}) = {\bf J}(\vec{q})^{-T} {\bf M}(\vec{q}) {\bf J}(\vec{q})^{-1}
+\]
+and relates Cartesian force/torque to Cartesian
+acceleration
+\[
+\vec{F} = {\bf M}(\vec{x}) \vec{\ddot{x}}
+\]
+}
+\msa{inertia, robot, rne}
+\mref{O.~Khatib, ``A unified approach for motion and force control of robot
+  manipulators: the operational space formulation,'' {\em IEEE Trans. Robot.
+    Autom.}, vol.~3, pp.~43--53, Feb. 1987.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{coriolis}
+\mpur{Compute the manipulator Coriolis/centripetal torque components}
+
+\msyn{
+tau\_c = coriolis(robot, q, qd)
+}
+\mdes{\var{coriolis} returns the joint torques due to rigid-body
+Coriolis and centripetal effects for the specified joint state
+\var{q} and velocity \var{qd}.
+\var{robot} is a robot object that 
+describes the manipulator dynamics and kinematics.
+
+If \var{q} and \var{qd} are row vectors, \var{tau\_c} is a row vector 
+of joint torques.
+If \var{q} and \var{qd} are matrices, each row is interpreted as a joint state 
+vector, and \var{tau\_c} is a matrix each row being the 
+corresponding joint torques.
+}
+
+
+\malg{Evaluated from the equations of motion, using \var{rne}, with
+joint acceleration and gravitational acceleration set to zero,
+\[
+\vec{\tau} = {\bf C}(\vec{q}, \vec{\dot{q}}) \vec{\dot{q}}
+\]
+
+Joint friction is ignored in this calculation.}
+
+\msa{robot, rne, itorque, gravload}
+\mref{M.~W. Walker and D.~E. Orin.
+\newblock Efficient dynamic computer simulation of robotic mechanisms.
+\newblock {\em ASME Journal of Dynamic Systems, Measurement and Control},
+  104:205--211, 1982.}
+
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\function{cross}
+%\mpur{Vector cross product}
+%
+%\msyn{
+%v = cross(v1, v2)
+%}
+%\mdes{Returns the vector cross product \var{v1} $\times$ \var{v2}
+%The result has the same orientation (row or column vector) as the two
+%inputs.
+%
+%Note that this function is no longer provided with the Toolbox since it is
+%now part of the core MATLAB toolbox (\var{specfun/cross.m}).}
+%
+%\vfil\eject 
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{ctraj}
+\mpur{Compute a Cartesian trajectory between two points}
+
+\msyn{
+TC = ctraj(T0, T1, m)\\[0pt]
+TC = ctraj(T0, T1, r)
+}
+\mdes{\var{ctraj} returns a Cartesian trajectory (straight line motion)
+\var{TC} from the point
+represented by \hom\ \var{T0} to \var{T1}.  
+The number
+of points along the path is \var{m} or the length of the given  vector \var{r}.
+For the second case \var{r} is a vector of distances along the path (in the
+range 0 to 1) for
+each point.  The first case has the points equally spaced, but different
+spacing may be specified to achieve acceptable acceleration profile.
+\var{TC} is a $4 \times 4 \times m$ matrix.
+}
+
+\mex{To create a Cartesian path with smooth acceleration we can use the
+\var{jtraj} function to create the path vector \var{r} with continuous
+derivitives.}
+\begin{verbatim}
+>> T0 = transl([0 0 0]);  T1 = transl([-1 2 1]);
+>> t= [0:0.056:10];
+>> r = jtraj(0, 1, t);
+>> TC = ctraj(T0, T1, r);
+>> plot(t, transl(TC));
+\end{verbatim}
+
+\centerline{\psfig{figure=figs/ctraj.eps,width=8cm}}
+
+\msa{trinterp, qinterp, transl}
+\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{diff2tr}
+\mpur{Convert a differential motion vector to a homogeneous transform}
+
+\msyn{
+delta = diff2tr(x)
+}
+
+\mdes{Returns a homogeneous transform representing differential
+translation and rotation corresponding to Cartesian velocity
+$x = [v_x\; v_y\; v_z\; \omega_x\; \omega_y\; \omega_z]$.}
+
+%\malg{For a differential motion $\Delta = [d_x\; d_y\; d_z\; \delta_x\; \delta_y\; \delta_z]$ the corresponding \hom\ is
+%\[
+%\Delta = \left[ \begin{array}{cccc}
+%	0 &	 -\delta_z &	 \delta_y &	d_x \\
+%	\delta_z &	0 &	-\delta_x &	d_y \\
+%	-\delta_y &	\delta_x & 0 &		d_z \\
+%	0 &		0 &	0 &		0
+%	\end{array} \right]
+%\]
+%Note that the rotational submatrix is skew-symmetric.}
+\malg{From mechanics we know that
+\[
+\dot{\bf R} = Sk(\Omega) {\bf R}
+\]
+where $\bf R$ is an orthonormal rotation matrix and
+\[
+{\bf Sk}(\Omega) = \left[ \begin{array}{ccc}
+	0 &	 -\omega_z &	 \omega_y \\
+	\omega_z &	0 &	-\omega_x \\
+	-\omega_y &	\omega_x & 0 \end{array} \right]
+\]
+and is a skew-symmetric matrix.
+This can be generalized to
+\[
+\dot{\bf T} = \left[ \begin{array}{cc}
+	Sk(\Omega) & \dot{P} \\
+	0 0 0 & 1 \end{array} \right] {\bf T}
+\]
+for the rotational and translational case.}
+
+\msa{tr2diff}
+\mref{R.~P. Paul.
+\newblock {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock MIT Press, Cambridge, Massachusetts, 1981.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{drivebot}
+\mpur{Drive a graphical robot}
+
+\msyn{
+drivebot(robot)\\[0pt]
+drivebot(robot, q)
+}
+
+\centerline{\psfig{figure=figs/drivebot.eps,width=8cm}}
+
+\mdes{Pops up a window with one slider for each joint.  Operation
+of the sliders will drive the graphical robot on the screen.
+Very useful for gaining an understanding of joint limits and robot
+workspace.
+
+The joint coordinate state is kept with the graphical robot and can
+be obtained using the \var{plot} function.
+If \var{q} is specified it is used as the initial joint angle, otherwise
+the initial value of
+joint coordinates is taken from the graphical robot.
+}
+
+\mex{To drive a graphical Puma 560 robot}
+\begin{verbatim}
+>> puma560           % define the robot
+>> plot(p560,qz)     % draw it
+>> drivebot(p560)    % now drive it
+\end{verbatim}
+
+\msa{robot/plot,robot}
+
+\vfil\eject 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\function{drivepar}
+%\mpur{Compute Cartesian path drive parameters}
+%
+%\msyn{
+%dp = drivepar(T0, T1)
+%}
+%
+%\mdes{\var{drivepar} returns a vector which represents the `difference'
+%between \hom\ \var{T0} and \var{T1} as a translation and three angles.
+%This is most frequently used in planning a Cartesian path between 
+%\hom\ \var{T0} and \var{T1} and \var{dp} would be passed  to \var{trinterp}.
+%}
+%
+%\msa{ctraj, trinterp}
+%\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+%\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+%\vfil\eject 
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{eul2tr}
+\mpur{Convert Euler angles to a \hom}
+
+\msyn{
+T = eul2tr([r p y])\\[0pt]
+T = eul2tr(r,p,y)
+}
+
+\mdes{\var{eul2tr} returns a homogeneous transformation for the specified
+Euler angles in radians.
+\[
+T = R_Z(a) R_Y(b) R_Z(c)
+\]
+}
+
+\mcau{Note that 12 different Euler angle sets or conventions exist.  The
+convention used here is the common one for robotics, but is not the one used
+for example in the aerospace community.}
+
+\msa{tr2eul, rpy2tr}
+\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{fdyn}
+\mpur{Integrate forward dynamics}
+
+\msyn{
+[t q qd] = fdyn(robot, t0, t1)\\[0pt]
+[t q qd] = fdyn(robot, t0, t1, torqfun)\\[0pt]
+[t q qd] = fdyn(robot, t0, t1, torqfun, q0, qd0)
+[t q qd] = fdyn(robot, t0, t1, torqfun, q0, qd0, arg1, arg2, ...)
+}
+
+\mdes{\var{fdyn} integrates the manipulator equations of motion over the time interval 
+\var{t0} to \var{t1} using \Mlab's \var{ode45} numerical integration function.
+Manipulator kinematic and dynamic chacteristics are given by the robot
+object \var{robot}.
+It returns a time vector \var{t}, and matrices of manipulator joint state \var{q} and
+joint velocities \var{qd}.
+These matrices have one row per time step and one column per joint.
+
+Actuator torque may be specified by a user function
+\begin{center}
+\var{tau = torqfun(t, q, qd, arg1, arg2, ...)}
+\end{center}
+
+where \var{t} is the current time, and 
+\var{q} and \var{qd} are the manipulator joint coordinate
+and velocity state respectively.
+Optional arguments passed to \var{fdyn} will be passed through to the 
+user function.
+Typically this function would be used to implement some axis control scheme as a
+function of manipulator state and passed in setpoint information.
+If \var{torqfun} is not specified then zero torque is applied to the 
+manipulator.
+
+Initial joint coordinates and velocities may be specified by the optional
+arguments \var{q0} and \var{qd0} respectively.
+}
+
+\malg{The joint acceleration is a function of joint coordinate and velocity given by
+\[
+\vec{\ddot{q}} = {\bf M}(\vec{q})^{-1} \left\{ \vec{\tau} - {\bf C}(\vec{q}, \vec{\dot{q}}) \vec{\dot{q}} - {\bf G}(\vec{q}) - {\bf F}(\vec{\dot{q}}) \right\}
+\]}
+
+\example{The following example shows how \var{fdyn()} can be used to simulate a
+robot and its controller.  The manipulator is a Puma 560 with simple
+proportional and  derivative controller.  The simulation results are shown in
+the figure, and further gain tuning is clearly required.  Note that high gains
+are required on joints 2 and 3 in order to counter the significant disturbance
+torque due
+to gravity.
+}
+
+{\small
+\begin{verbatim}
+    >> puma560                         % load Puma parameters
+    >> t = [0:.056:5]';                % time vector
+    >> q_dmd = jtraj(qz, qr,t);        % create a path
+    >> qt = [t q_dmd];
+    >> Pgain = [20 100 20 5 5 5];   % set gains
+    >> Dgain = [-5 -10 -2 0 0 0];
+    >> [tsim,q,qd] = fdyn(nofriction(p560), 0, 5, 'taufunc', qz, qz, Pgain, Dgain, qt);
+\end{verbatim}}
+\noindent
+Note the use of \var{qz} a zero vector of length 6 defined by \var{puma560}
+pads out the two initial condition arguments, and we place the control
+gains and the path as optional arguments.
+Note also the use of the \var{nofriction()} function, see Cautionary note below.
+The invoked function is
+{\small
+\begin{verbatim}
+    %
+    %        taufunc.m
+    %
+    % user written function to compute joint torque as a function
+    % of joint error.  The desired path is passed in via the global
+    % matrix qt.  The controller implemented is PD with the proportional
+    % and derivative gains given by the global variables Pgain and Dgain
+    % respectively.
+    %
+function tau = taufunc(t, q, qd, Pgain, Dgain, qt)
+
+        % interpolate demanded angles for this time
+	if t > qt(end,1),        % keep time in range
+		t = qt(end,1);
+	end
+	q_dmd = interp1(qt(:,1), qt(:,2:7), t)';
+
+	% compute error and joint torque
+	e = q_dmd - q;
+	tau = diag(Pgain)*e + diag(Dgain)*qd;
+\end{verbatim}}
+
+{\centerline{\psfig{figure=figs/taufunc.eps,height=8cm}}
+Results of \var{fdyn()} example.  Simulated path shown as
+solid, and reference path as dashed.}
+
+\mcau{The presence of non-linear friction in the dynamic model can prevent the
+integration from converging.  The function \var{nofriction()} can be
+used to return a Coulomb friction free robot object.}
+\msa{accel, nofriction, rne, robot, ode45}
+\mref{M.~W. Walker and D.~E. Orin.
+\newblock Efficient dynamic computer simulation of robotic mechanisms.
+\newblock {\em ASME Journal of Dynamic Systems, Measurement and Control},
+  104:205--211, 1982.
+}
+
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{fkine}
+\mpur{
+Forward robot kinematics for serial link manipulator}
+
+\msyn{
+T = fkine(robot, q)
+}
+
+\mdes{\var{fkine}
+computes forward kinematics for the joint coordinate \var{q} giving a 
+\hom\ for the location of the end-effector.
+\var{robot} is a robot object which contains a kinematic model in either
+standard or modified Denavit-Hartenberg notation.
+Note that the robot object can specify an arbitrary \hom\ for the base of
+the robot and a tool offset.
+
+If \var{q} is a vector it is interpreted as the generalized joint coordinates,
+and \var{fkine} returns a homogeneous transformation for the final link of the
+manipulator. If \var{q} is a matrix each row is interpreted as a joint state
+vector, and \var{T} is a $4 \times 4 \times m$ matrix where \var{m} is the
+number  of rows in \var{q}.
+}
+\mcau{
+Note that the dimensional units for the last column of the \var{T} matrix
+will be the same as the dimensional units used in the \var{robot} object.  The
+units can be whatever you choose (metres, inches,
+cubits or furlongs) but the choice will affect the numerical value of the 
+elements in the last column of \var{T}.
+The Toolbox definitions \var{puma560} and \var{stanford}
+all use SI units with dimensions in metres.}
+
+\msa{link, robot}
+\mref{R.~P. Paul.
+\newblock {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock MIT Press, Cambridge, Massachusetts, 1981.\\
+J.~J. Craig, {\em Introduction to Robotics}.
+\newblock Addison Wesley, second~ed., 1989.}
+
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{link/friction}
+\mpur{Compute joint friction torque}
+
+\msyn{
+tau\_f = friction(link, qd)
+}
+
+\mdes{\var{friction} computes the joint friction torque based on friction
+parameter data, if any, in the link object \var{link}.
+Friction is a function only of joint velocity \var{qd}
+
+If \var{qd} is a vector then
+\var{tau\_f} is a vector in which each element is the friction torque for the
+the corresponding element in \var{qd}.
+}
+
+\malg{The friction model is a fairly standard one comprising viscous friction
+and direction dependent Coulomb friction
+\[
+F_{i}(t) = \cases{ {B_{i}}\, \dot{q} + {\tau_{i}^{-}}  \; ,& 
+			$ \dot{\theta} < 0 $ \cr
+		   {B_{i}}\, \dot{q} + {\tau_{i}^{+}}  \; ,& 
+			   $ \dot{\theta} > 0 $ \cr}
+\]
+}
+\msa{link,robot/friction,nofriction}
+
+\vfil\eject 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{robot/friction}
+\mpur{Compute robot friction torque vector}
+
+\msyn{
+tau\_f = friction(robot, qd)
+}
+
+\mdes{\var{friction} computes the joint friction torque vector
+for the robot object \var{robot} with a joint velocity vector \var{qd}.
+}
+
+\msa{link, link/friction, nofriction}
+
+\vfil\eject 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{ftrans}
+\mpur{Force transformation}
+
+\msyn{
+F2 = ftrans(F, T)
+}
+
+\mdes{Transform the force vector \var{F} in the current coordinate
+frame to force vector \var{F2} in the second coordinate frame.  The second
+frame is related to the first by the \hom\ \var{T}.
+\var{F2} and \var{F} are each 6-element vectors comprising force and
+moment components $[F_x \; F_y \; F_z \; M_x \; M_y \; M_z]$.
+}
+
+
+\msa{diff2tr}
+
+
+\vfil\eject 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{gravload}
+\mpur{Compute the manipulator gravity torque components}
+
+\msyn{
+tau\_g = gravload(robot, q)\\[0pt]
+tau\_g = gravload(robot, q, grav)
+}
+
+\mdes{\var{gravload} computes the joint torque due to gravity for the 
+manipulator in pose \var{q}.
+
+If \var{q} is a row vector, \var{tau\_g} returns a row vector of joint torques.
+If \var{q} is a matrix each row is interpreted as as a joint state vector, and
+\var{tau\_g} is a matrix in which each row is the gravity torque for the
+the corresponding row in \var{q}.
+
+The default gravity direction comes from the robot object but
+may be overridden by the optional \var{grav} argument.
+}
+
+\msa{robot, link, rne, itorque, coriolis}
+\mref{M.~W. Walker and D.~E. Orin.
+\newblock Efficient dynamic computer simulation of robotic mechanisms.
+\newblock {\em ASME Journal of Dynamic Systems, Measurement and Control},
+  104:205--211, 1982.
+  }
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{ikine}
+\mpur{Inverse manipulator kinematics}
+
+\msyn{
+q = ikine(robot, T)\\[0pt]
+q = ikine(robot, T, q0)\\[0pt]
+q = ikine(robot, T, q0, M)
+}
+
+\mdes{\var{ikine} returns the joint coordinates for the manipulator
+described by the object \var{robot} whose
+end-effector \hom\  is given by \var{T}.
+Note that the robot's base can be arbitrarily specified within the robot
+object.
+
+If \var{T} is a \hom\ then a row vector of joint coordinates is returned.
+The estimate for the first step is \var{q0} if this is given else 0.
+
+If \var{T} is a \hom\ trajectory of size $4 \times 4 \times m$ then \var{q}
+ will be an $n \times m$ matrix where each row is a vector of joint
+ coordinates corresponding to the last subscript of \var{T}. 
+The estimate for the first step in the sequence is \var{q0} if this is given 
+else 0.
+The initial estimate of \var{q} for each time
+step is taken as the solution from the previous time step.
+
+Note  that the inverse kinematic solution is
+generally not unique, and depends on the initial value \var{q0} (which defaults to 0).
+
+For the case of a manipulator with fewer than 6 DOF it is not possible for
+the end-effector to satisfy the end-effector pose specified by an 
+arbitrary \hom.  This typically leads to non-convergence in \var{ikine}.
+A solution is to specify a 6-element weighting vector, \var{M}, whose
+elements are 0 for those Cartesian DOF that are unconstrained and 1 otherwise.
+The elements correspond to translation along the X-, Y- and Z-axes and rotation
+about the X-, Y- and Z-axes respectively.
+For example, a 5-axis manipulator may be incapable of independantly controlling
+rotation about the end-effector's Z-axis.  In this case \var{M = [1 1 1 1 1 0]}
+would enable a solution in which the end-effector adopted the pose \var{T}
+{\it except} for the end-effector rotation.
+The number of non-zero elements should equal the number of robot DOF.}
+
+\malg{The solution is computed iteratively using the pseudo-inverse 
+of the manipulator Jacobian.
+\[
+\vec{\dot{q}} = {\bf J}^+(\vec{q}) \Delta \left( {\cal F}(\vec{q}) - T \right)
+\]
+where $\Delta$ returns the `difference' between two transforms as
+a  6-element vector of displacements and rotations (see \var{tr2diff}).}
+
+\mcau{Such a solution is completely general, though much less efficient than specific
+inverse kinematic solutions derived symbolically.
+
+The returned joint angles may be in non-minimum form, ie. $q + 2n\pi$.
+
+This approach allows a solution to obtained at a singularity, but the joint 
+coordinates within the null space are arbitrarily assigned.
+
+Note that the dimensional units used for the last column of the \var{T} matrix
+must agree with the dimensional units used in the robot definition.  These
+units can be whatever you choose (metres, inches, cubits or furlongs) but they
+must be consistent.  The Toolbox definitions \var{puma560} and \var{stanford}
+all use SI units with dimensions in metres.}
+
+\msa{fkine, tr2diff, jacob0, ikine560, robot}
+
+\mref{S.~Chieaverini, L.~Sciavicco, and B.~Siciliano, ``Control of robotic systems
+  through singularities,'' in {\em Proc. Int. Workshop on Nonlinear and
+    Adaptive Control: Issues in Robotics} (C.~C. de~Wit, ed.), Springer-Verlag,
+      1991.}
+
+\vfil\eject 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{ikine560}
+\mpur{Inverse manipulator kinematics for Puma 560 like arm}
+
+\msyn{
+q = ikine560(robot, config)
+}
+
+\mdes{\var{ikine560} returns the joint coordinates corresponding to the
+end-effector \hom\  \var{T}.
+It is computed using a symbolic solution appropriate for Puma 560 like robots,
+that is, all revolute 6DOF arms, with a spherical wrist.
+The use of a symbolic solution means that it executes over 50 times
+faster than \var{ikine} for a Puma 560 solution.
+
+A further advantage is that \var{ikine560()} allows control over the
+specific solution returned.
+\var{config} is a string which contains one or more of the configuration
+control letter codes
+
+\begin{center}
+\begin{tabular}{rl}
+\var{'l'} & left-handed (lefty) solution (default)\\
+\var{'r'} & $\dagger$right-handed (righty) solution\\
+\var{'u'} & $\dagger$elbow up solution (default)\\
+\var{'d'} & elbow down solution \\
+\var{'f'} & $\dagger$wrist flipped solution \\
+\var{'n'} & wrist not flipped solution (default)\\
+\end{tabular}
+\end{center}
+}
+
+\mcau{Note that the dimensional units used for the last column of the \var{T} matrix
+must agree with the dimensional units used in the \var{robot} object.  These
+units can be whatever you choose (metres, inches, cubits or furlongs) but they
+must be consistent.  The Toolbox definitions \var{puma560} and \var{stanford}
+all use SI units with dimensions in metres.}
+
+\msa{fkine, ikine, robot}
+
+
+\mref{R.~P. Paul and H.~Zhang, ``Computationally efficient kinematics for
+  manipulators with spherical wrists,'' {\em Int. J. Robot. Res.}, vol.~5,
+    no.~2, pp.~32--44, 1986.}
+
+\mauthor{Robert Biro and Gary McMurray, Georgia Institute of Technology, gt2231a@acmex.gatech.edu}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{inertia}
+\mpur{Compute the manipulator joint-space inertia matrix}
+
+\msyn{
+M = inertia(robot, q)
+}
+
+\mdes{\var{inertia} computes the joint-space
+inertia matrix which relates joint torque to joint acceleration
+\[
+\vec{\tau} = {\bf M}(\vec{q}) \vec{\ddot{q}}
+\]
+\var{robot} is a robot object that describes the manipulator dynamics and
+kinematics, and \var{q} is an n-element vector of joint state.
+For an n-axis manipulator \var{M} is an $n \times n$ symmetric 
+matrix.
+
+If \var{q} is a matrix each row is interpreted as a joint state
+vector, and \var{I} is an $n \times n \times m$ matrix where \var{m} is the
+number  of rows in \var{q}.
+
+Note that if the \var{robot} contains motor inertia parameters then motor
+inertia, referred to the link reference frame, will be added to the diagonal of
+\var{M}.
+}
+\example{To show how the inertia `seen' by the waist joint varies as
+a function of joint angles 2 and 3 the following code could be used.}
+{\small
+\begin{verbatim}
+      >> [q2,q3] = meshgrid(-pi:0.2:pi, -pi:0.2:pi);
+      >> q = [zeros(length(q2(:)),1) q2(:) q3(:) zeros(length(q2(:)),3)];
+      >> I = inertia(p560, q);
+      >> surfl(q2, q3, squeeze(I(1,1,:)));
+\end{verbatim}}
+\centerline{\psfig{figure=figs/surfl.eps,width=10cm}}
+
+\msa{robot, rne, itorque, coriolis, gravload}
+\mref{M.~W. Walker and D.~E. Orin.
+\newblock Efficient dynamic computer simulation of robotic mechanisms.
+\newblock {\em ASME Journal of Dynamic Systems, Measurement and Control},
+  104:205--211, 1982.
+  }
+
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{ishomog}
+\mpur{Test if argument is a homogeneous transformation}
+
+\msyn{
+ishomog(x)
+}
+
+\mdes{Returns true if \var{x} is a 4 $\times$ 4 matrix.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{itorque}
+\mpur{Compute the manipulator inertia torque component}
+
+\msyn{
+tau\_i = itorque(robot, q, qdd)
+}
+
+\mdes{\var{itorque} returns the joint torque due to inertia at the
+specified pose \var{q} and acceleration \var{qdd} which is given by
+\[
+\vec{\tau}_i = {\bf M}(\vec{q}) \vec{\ddot{q}}
+\]
+
+
+If \var{q} and \var{qdd} are row vectors, \var{itorque} is a row vector 
+of joint torques.
+If \var{q} and \var{qdd} are matrices, each row is interpreted as a joint state 
+vector, and \var{itorque} is a matrix in which each row is the inertia torque
+for the corresponding rows of  \var{q} and \var{qdd}.
+
+\var{robot} is a robot object that describes the kinematics and dynamics
+of the manipulator and drive.
+If  \var{robot} contains motor inertia parameters then motor
+inertia, referred to the link reference frame, will be included
+in the diagonal of \var{M} and influence the inertia torque result.
+}
+
+
+\msa{robot, rne, coriolis, inertia, gravload}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{jacob0}
+\mpur{Compute manipulator Jacobian in base coordinates}
+
+\msyn{
+jacob0(robot, q)
+}
+
+\mdes{\var{jacob0} returns a Jacobian matrix for the robot object
+\var{robot} in the  pose \var{q} and as 
+expressed in the base coordinate frame.
+
+The manipulator Jacobian matrix, $ {}^0 {\bf J}_q$, maps differential
+velocities in joint space, $\dot{q}$, to Cartesian velocity of the end-effector expressed
+in the base coordinate frame.
+\[
+{}^0 \vec{\dot{x}} = {}^0 {\bf J}_q(\vec{q}) \vec{\dot{q}}
+\]
+
+For an n-axis manipulator the Jacobian is a $6 \times n$ matrix.}
+
+\msa{jacobn, diff2tr, tr2diff, robot}
+\mref{R.~P. Paul, B. Shimano and G.  E. Mayer.
+\newblock {\em Kinematic Control Equations for Simple Manipulators}.
+\newblock IEEE Systems, Man and Cybernetics 11(6), pp 449-455, June 1981.}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{jacobn}
+\mpur{Compute manipulator Jacobian in end-effector coordinates}
+
+\msyn{
+jacobn(robot, q)
+}
+
+\mdes{\var{jacobn} returns a Jacobian matrix for the robot object
+\var{robot} in the  pose \var{q} and as 
+expressed in the  end-effector coordinate frame.
+
+The manipulator Jacobian matrix, $ {}^0 {\bf J}_q$, maps differential
+velocities in joint space, $\dot{q}$, to Cartesian velocity of the end-effector expressed
+in the end-effector
+coordinate frame.
+\[
+{}^n \vec{\dot{x}} = {}^n {\bf J}_q(\vec{q}) \vec{\dot{q}}
+\]
+The relationship between tool-tip forces and joint torques is given
+by
+\[
+\vec{\tau} = {}^n {\bf J}_q(\vec{q})^\prime {}^n \vec{F}
+\]
+For an n-axis manipulator the Jacobian is a $6 \times n$ matrix.}
+
+\msa{jacob0, diff2tr, tr2diff, robot}
+\mref{R.~P. Paul, B. Shimano and G.  E. Mayer.
+\newblock {\em Kinematic Control Equations for Simple Manipulators}.
+\newblock IEEE Systems, Man and Cybernetics 11(6), pp 449-455, June 1981.}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{jtraj}
+\mpur{Compute a joint space trajectory between two joint coordinate poses}
+
+\msyn{
+[q qd qdd] = jtraj(q0, q1, n)\\[0pt]
+[q qd qdd] = jtraj(q0, q1, n, qd0, qd1)\\[0pt]
+[q qd qdd] = jtraj(q0, q1, t)\\[0pt]
+[q qd qdd] = jtraj(q0, q1, t, qd0, qd1)
+}
+
+\mdes{\var{jtraj} returns a joint space trajectory \var{q} from joint
+coordinates  \var{q0} to \var{q1}.  The number
+of points is \var{n} or the length of the given time vector \var{t}.  A 7th
+order polynomial is used with default zero boundary conditions for
+velocity and acceleration.
+
+  Non-zero boundary velocities can be
+optionally specified as \var{qd0} and \var{qd1}.
+
+The trajectory is a matrix, with one row per time step, and
+one column per joint.
+The function can optionally return a velocity and acceleration
+trajectories as \var{qd} and \var{qdd} respectively.
+}
+\msa{ctraj}
+
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{link}
+\mpur{Link object}
+
+\msyn{
+L = link\\[0pt]
+L = link([alpha, a, theta, d], convention)\\[0pt]
+L = link([alpha, a, theta, d, sigma], convention)\\[0pt]
+L = link(dyn\_row, convention)\\[0pt]
+A = link(q)\\[0pt]
+show(L)
+}
+
+\mdes{The \var{link} function constructs a \textbf{link} object.
+The object contains kinematic and dynamic parameters as well as actuator and
+transmission
+parameters.
+The first form returns a default object, while the second and third forms
+initialize the kinematic model based on Denavit and Hartenberg parameters.
+The dynamic model can be initialized using the fourth form of the constructor
+where \var{dyn\_row} is a $1 \times 20$ matrix which is one row of the legacy
+\var{dyn} matrix.
+
+By default the standard Denavit and Hartenberg conventions are assumed but
+this can be overridden by the optional \var{convention} argument which can
+be set to either \var{'modified'} or \var{'standard'} (default).  Note
+that any abbreviation of the string can be used, ie. \var{'mod'} or even
+\var{'m'}.
+
+The second last form given above is not a constructor but a link method that returns
+the link transformation matrix for the given joint coordinate.
+The argument is given to
+the link object using parenthesis.  The single argument is taken as the link
+variable $q$ and substituted for $\theta$ or $D$ for a revolute or prismatic
+link respectively.
+
+The  Denavit and Hartenberg parameters describe the spatial relationship between
+this link and the previous one.  The meaning of the fields for each kinematic
+convention are
+summarized in the following table.
+
+\begin{tabular}{lccl}
+variable & DH & MDH & description \\ \hline
+\var{alpha} & $\alpha_i$    & $\alpha_{i-1}$ & link twist angle \\
+\var{A}     &  $A_i$        & $A_{i-1}$      & link length \\
+\var{theta} &  $\theta_i$   & $\theta_i$     & link rotation angle \\
+\var{D}     & $D_i$         & $D_i$          & link offset distance \\
+\var{sigma} &  $\sigma_i$   & $\sigma_i$     & joint type; 0 for revolute, non-zero for prismatic \\
+\end{tabular}
+
+
+Since Matlab does not support the concept of public class variables methods have
+been written to allow link object parameters to be referenced (r) or assigned
+(a) as given by the following table
+ 
+\begin{center}
+\begin{tabular}{lcp{6cm}}
+Method          & Operations & \multicolumn{1}{c|}{Returns} \\
+\tt \textbf{link}.alpha	&r+a&  link twist angle \\	
+\tt \textbf{link}.A		&r+a&   link length \\
+\tt \textbf{link}.theta	&r+a&   link rotation angle \\
+\tt \textbf{link}.D		&r+a&   link offset distance \\
+\tt \textbf{link}.sigma	&r+a&  joint type; 0 for revolute, non-zero for prismatic\\
+\tt \textbf{link}.RP		&r&  joint type; 'R' or 'P'\\
+\tt \textbf{link}.mdh	&r+a& DH convention: 0 if standard, 1 if modified\\ \hline
+\tt \textbf{link}.I		&r& $3 \times 3$ symmetric inertia matrix\\
+\tt \textbf{link}.I		&a& assigned from a $3 \times 3$  matrix or a 6-element vector
+interpretted as $[I_{xx} \, I_{yy} \, I_{zz} \, I_{xy} \, I_{yz} \, I_{xz} ]$\\
+\tt \textbf{link}.m		&r+a& link mass\\
+\tt \textbf{link}.r		&r+a& $3 \times 1$ link COG vector \\ \hline
+\tt \textbf{link}.G		&r+a& gear ratio\\
+\tt \textbf{link}.Jm		&r+a& motor inertia\\
+\tt \textbf{link}.B		&r+a& viscous friction\\
+\tt \textbf{link}.Tc		&r& Coulomb friction, $1\times 2$ vector
+where $[\tau^+ \; \tau^-]$\\ 
+\tt \textbf{link}.Tc		&a& Coulomb friction; for symmetric friction
+this is a scalar, for asymmetric friction it is a 2-element vector for
+positive and negative velocity \\ \hline
+\tt \textbf{link}.dh		&r+a&  row of legacy DH matrix \\
+\tt \textbf{link}.dyn	&r+a& row of legacy DYN matrix \\
+\tt \textbf{link}.qlim	&r+a& joint coordinate limits, 2-vector \\
+\tt \textbf{link}.islimit(q)	&r& return true if value of \var{q} is outside
+			the joint limit bounds\\
+\tt \textbf{link}.offset	&r+a& joint coordinate offset (see discussion for
+\var{robot} object).
+\end{tabular}
+\end{center} 
+
+The default is for standard Denavit-Hartenberg conventions, zero friction,
+mass and inertias.
+
+The \var{display} method gives a one-line summary of the link's kinematic
+parameters.
+The \var{show} method displays as many link parameters as have been initialized
+for that link.
+}
+
+\mex{}
+\begin{verbatim}
+>> L = link([-pi/2, 0.02, 0, 0.15])
+L =  
+  -1.570796     0.020000        0.000000        0.150000        R      (std)
+>> L.RP
+ans =
+  R
+>> L.mdh
+ans =
+     0
+>> L.G = 100;
+>> L.Tc = 5;
+>> L 
+L =  
+  -1.570796     0.020000        0.000000        0.150000        R     (std)
+>> show(L)
+alpha  = -1.5708
+A      = 0.02
+theta  = 0
+D      = 0.15
+sigma  = 0
+mdh    = 0
+G      = 100
+Tc     = 5 -5
+>> 
+\end{verbatim}
+
+
+\malg{For the standard Denavit-Hartenberg conventions the \hom
+\[
+{}^{i-1} {\bf A}_i = \left [ \begin{array}{cccc}
+        \cos \theta_i & -\sin \theta_i \cos \alpha_i & \sin \theta_i \sin
+        \alpha_i & a_i \cos \theta_i\\
+        \sin \theta_i & \cos \theta_i \cos \alpha_i & -\cos \theta_i \sin
+        \alpha_i & a_i \sin \theta_i\\
+        0 & \sin \alpha_i & \cos \alpha_i & d_i\\
+0 & 0 & 0 & 1
+        \end{array} \right ]    \label{eq:Amatrix}
+\]
+represents each link's
+coordinate frame with respect to the previous link's coordinate system.
+For a revolute joint $\theta_i$ is offset by 
+
+For the modified Denavit-Hartenberg conventions it is instead
+\[
+{}^{i-1} {\bf A}_i = \left [ \begin{array}{cccc}
+        \cos \theta_i & -\sin \theta_i & 0 & a_{i-1}\\
+        \sin \theta_i \cos \alpha_{i-1} & \cos \theta_i \cos \alpha_{i-1} & - \sin
+        \alpha_{i-1} & -d_i \sin \alpha_{i-1}\\
+        \sin \theta_i \sin \alpha_{i-1}  & \cos \theta_i \sin \alpha_{i-1} & \cos \alpha_{i-1} & d_i \cos \alpha_{i-1} \\
+0 & 0 & 0 & 1
+        \end{array} \right ]    \label{eq:Amatrix-m}
+\]
+}
+
+\msa{showlink, robot}
+\mref{R.~P. Paul.
+\newblock {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock MIT Press, Cambridge, Massachusetts, 1981.\\
+J.~J. Craig, {\em Introduction to Robotics}.
+\newblock Addison Wesley, second~ed., 1989.}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{maniplty}
+\mpur{Manipulability measure}
+
+\msyn{
+m = maniplty(robot, q)\\[0pt]
+m = maniplty(robot, q, which)
+}
+
+\mdes{\var{maniplty} computes the scalar manipulability index for the manipulator
+at the given pose.  Manipulability varies from 0 (bad) to 1 (good).
+\var{robot} is a robot object that contains kinematic and optionally dynamic
+parameters for the manipulator.
+Two measures are supported and are selected by the optional argument
+\var{which} can be either \var{'yoshikawa'} (default) or \var{'asada'}.
+Yoshikawa's manipulability measure is based purely on kinematic data, and gives
+an indication of how `far' the manipulator is from singularities and thus able
+to move and exert forces uniformly in all directions. 
+
+Asada's manipulability measure utilizes manipulator dynamic data, and indicates 
+how close the inertia ellipsoid is to spherical.
+
+If \var{q} is a vector \var{maniplty} returns a scalar manipulability index.
+If \var{q} is a matrix \var{maniplty }returns a column vector and each
+row is the manipulability index for the pose specified by the corresponding
+row of \var{q}.
+}
+
+
+\malg{Yoshikawa's measure is based on the condition number of the manipulator
+Jacobian
+\[
+\eta_{yoshi} = \sqrt{| {\bf J}(\vec{q}) {\bf J}(\vec{q})'|}
+\]
+Asada's measure is computed from the Cartesian inertia matrix
+\[
+{\bf M}(\vec{x}) = {\bf J}(\vec{q})^{-T} {\bf M}(\vec{q}) {\bf J}(\vec{q})^{-1}
+\]
+The Cartesian manipulator inertia ellipsoid is
+\[
+\vec{x}' {\bf M}(\vec{x}) \vec{x} = 1
+\]
+and gives an indication of how well the manipulator can accelerate
+in each of the Cartesian directions.  The scalar measure computed
+here is the ratio of the smallest/largest ellipsoid axes
+\[
+\eta_{asada} = \frac{\min x}{\max x}
+\]
+Ideally the ellipsoid would be spherical, giving a ratio of 1, but in
+practice will be less than 1.}
+
+\msa{jacob0, inertia,robot}
+\mref{T.~Yoshikawa, ``Analysis and control of robot manipulators with redundancy,''
+  in {\em Proc. 1st Int. Symp. Robotics Research}, (Bretton Woods, NH),
+    pp.~735--747, 1983.}
+
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{robot/nofriction}
+\mpur{Remove friction from robot object}
+
+\msyn{
+robot2 = nofriction(robot)\\[0pt]
+robot2 = nofriction(robot, 'all')\\[0pt]
+}
+
+\mdes{Return a new robot object with modified joint friction properties.
+The first form sets the Coulomb friction values to zero in the
+constituent links
+The second form sets viscous and Coulomb friction values in the constituent 
+links are set to zero.
+
+The resulting robot object has its name string prepended with 'NF/'.
+
+This is important for forward dynamics computation (\var{fdyn()})
+where the presence of friction can prevent the numerical integration
+from converging.
+}
+
+\msa{link/nofriction, robot, link, friction, fdyn}
+
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{link/nofriction}
+\mpur{Remove friction from link object}
+
+\msyn{
+link2 = nofriction(link)\\[0pt]
+link2 = nofriction(link, 'all')\\[0pt]
+}
+
+\mdes{Return a new link object with modified joint friction properties.
+The first form sets the Coulomb friction values to zero.
+The second form sets both viscous and Coulomb friction values to zero.
+
+This is important for forward dynamics computation (\var{fdyn()})
+where the presence of friction can prevent the numerical integration
+from converging.
+}
+
+\msa{robot/nofriction, link, friction, fdyn}
+
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{oa2tr}
+\mpur{Convert OA vectors to \hom}
+
+\msyn{
+oa2tr(o, a)
+}
+
+\mdes{\var{oa2tr} returns a rotational homogeneous transformation specified in
+terms of the Cartesian orientation and approach vectors \var{o} and
+\var{a} respectively.}
+
+\malg{\[
+{\bf T} = \left[ \begin{array}{cccc}
+	\vec{\hat{o}} \times \vec{\hat{a}} & \vec{\hat{o}} & \vec{\hat{a}} & 0 \\
+	0 & 0 & 0 & 1 \end{array} \right]
+\]
+where $\vec{\hat{o}}$ and $\vec{\hat{a}}$ are unit vectors corresponding
+to \var{o} and \var{a} respectively.}
+
+\msa{rpy2tr, eul2tr}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{perturb}
+\mpur{Perturb robot dynamic parameters}
+
+\msyn{
+robot2 = perturb(robot, p)
+}
+
+\mdes{Return a new robot object with randomly modified dynamic parameters:
+link mass and inertia.
+The perturbation is multiplicative so that
+values are multiplied by random numbers in the interval (1-p) to (1+p).
+
+Useful for investigating the robustness of various model-based control 
+schemes where one model forms the basis of the model-based controller and
+the peturbed model is used for the actual plant.
+
+The resulting robot object has its name string prepended with 'P/'.
+}
+
+\msa{fdyn, rne, robot}
+
+\vfil\eject 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{puma560}
+\mpur{Create a Puma 560 robot object}
+
+\msyn{
+puma560
+}
+
+\mdes{Creates the \textbf{robot} object \var{p560} which describes the kinematic and dynamic
+characteristics of a Unimation Puma 560 manipulator.
+The kinematic conventions used are as per Paul and Zhang, and
+all quantities are in standard SI units.
+
+Also defines the joint coordinate vectors \var{qz}, \var{qr} and \var{qstretch} 
+corresponding to the zero-angle, ready and fully extended (in X-direction)
+poses respectively.}
+
+\centerline{\psfig{figure=figs/pumaaxis.eps,height=8cm}}
+Details of coordinate frames used for the Puma 560 shown here in its zero angle pose.
+
+\msa{robot, puma560akb, stanford}
+\mref{R.~P. Paul and H.~Zhang, ``Computationally efficient kinematics for
+  manipulators with spherical wrists,'' {\em Int. J. Robot. Res.}, vol.~5,
+    no.~2, pp.~32--44, 1986.
+    
+P.~Corke and B.~Armstrong-H\'{e}louvry, ``A search for consensus among model
+  parameters reported for the {PUMA} 560 robot,'' in {\em Proc. IEEE Int. Conf.
+    Robotics and Automation}, (San Diego), pp.~1608--1613, May 1994.
+    
+P.~Corke and B.~Armstrong-H\'{e}louvry, ``A meta-study of {PUMA} 560 dynamics:
+  A critical appraisal of literature data,'' {\em Robotica}, vol.~13, no.~3,
+    pp.~253--258, 1995.
+    }
+
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{puma560akb}
+\mpur{Create a Puma 560 robot object}
+
+\msyn{
+puma560akb
+}
+
+\mdes{Creates the \textbf{robot} object \var{p560m} which describes the 
+kinematic and dynamic
+characteristics of a Unimation Puma 560 manipulator.
+It uses Craig's modified Denavit-Hartenberg notation with the
+particular kinematic conventions from Armstrong, Khatib and Burdick.
+All quantities are in standard SI units.
+
+Also defines the joint coordinate vectors \var{qz}, \var{qr} and \var{qstretch} 
+corresponding to the zero-angle, ready and fully extended 
+(in X-direction) poses respectively.}
+
+\msa{robot, puma560, stanford}
+\mref{
+B.~Armstrong, O.~Khatib, and J.~Burdick, ``The explicit dynamic model and
+  inertial parameters of the {Puma} 560 arm,'' in {\em Proc. IEEE Int. Conf.
+    Robotics and Automation}, vol.~1, (Washington, USA), pp.~510--18, 1986.
+
+}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{qinterp}
+\mpur{Interpolate unit-quaternions}
+
+\msyn{
+QI = qinterp(Q1, Q2, r)
+}
+
+\mdes{Return a unit-quaternion that interpolates between Q1 and Q2 as 
+\var{r} varies between 0 and 1 inclusively.
+This is a spherical linear interpolation (slerp) that can
+be interpreted as interpolation along a great circle arc on a sphere.
+
+If \var{r} is a vector, then a cell array of quaternions is returned 
+corresponding to successive values of \var{r}.}
+
+\mex{A simple example}
+\begin{verbatim}
+>> q1 = quaternion(rotx(0.3))
+ 
+q1 = 
+  0.98877 <0.14944, 0, 0>
+ 
+>> q2 = quaternion(roty(-0.5))
+ 
+q2 = 
+  0.96891 <0, -0.2474, 0>
+ 
+>> qinterp(q1, q2, 0)
+ 
+ans = 
+  0.98877 <0.14944, 0, 0>
+ 
+>> qinterp(q1, q2, 1)
+ 
+ans = 
+  0.96891 <0, -0.2474, 0>
+ 
+>> qinterp(q1, q2, 0.3)
+ 
+ans = 
+  0.99159 <0.10536, -0.075182, 0>
+ 
+>> 
+\end{verbatim}
+
+\mref{K.~Shoemake, ``Animating rotation with quaternion curves.,'' in {\em
+  Proceedings of ACM SIGGRAPH}, (San Francisco), pp.~245--254, The Singer
+    Company, Link Flight Simulator Division, 1985.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{quaternion}
+\mpur{Quaternion object}
+
+\msyn{
+q = quaternion(qq)\\[0pt]
+q = quaternion(v, theta)\\[0pt]
+q = quaternion(R)\\[0pt]
+q = quaternion([s vx vy vz])
+}
+
+\mdes{\var{quaternion} is the constructor for a \textbf{quaternion} object.
+The first form returns a new
+object with the same value as its argument.
+The second form initializes the quaternion to a rotation of \var{theta}
+about the vector \var{v}.  }
+
+\mex{A simple example}
+\begin{verbatim}
+>> quaternion(1, [1 0 0])
+ 
+ans = 
+  0.87758 <0.47943, 0, 0>
+ 
+>> quaternion( rotx(1) )
+ 
+ans = 
+  0.87758 <0.47943, 0, 0>
+ 
+>> 
+\end{verbatim}
+
+The third form sets the quaternion to a rotation equivalent to the
+given $3\times3$ rotation matrix, or the rotation submatrix of a
+$4\times 4$ \hom.
+
+The fourth form sets the four quaternion elements directly where \var{s}
+is the scalar component and \var{[vx vy vz]} the vector.
+
+All forms, except the last, return a unit quaternion, ie. one whose
+magnitude is unity.
+
+Some operators are overloaded for the quaternion class
+
+\begin{tabular}{lp{8cm}}
+\var{q1 * q2} & returns quaternion product or compounding \\
+\var{q * v}   & returns a quaternion vector product, that is the vector $v$ is 
+		rotated by the quaternion.  $v$ is a $ 3 \times 3$ vector \\
+\var{q1 / q2} &  returns $q_1 * q_2^{-1}$ \\
+\var{q}$\wedge$\var{j}    & returns $q^j$ where $j$ is an integer exponent.  For $j>0$ the 
+		result is obtained by repeated multiplication.  
+		For $j<0$ the final result is inverted.\\
+\var{double(q)} & returns the quaternion coeffients as a 4-element row vector \\
+\var{inv(q)} & returns the quaterion inverse \\
+\var{norm(q)} & returns the quaterion magnitude \\
+\var{plot(q)} & displays a 3D plot showing the standard coordinate frame after
+rotation by \var{q}.\\
+\var{unit(q)} & returns the corresponding unit quaterion 
+\end{tabular}
+
+Some public class variables methods are also available for reference only.
+ 
+\begin{center}
+\begin{tabular}{lp{6cm}}
+method        & \multicolumn{1}{c}{Returns} \\ \hline
+\tt \textbf{quaternion}.d    &  return 4-vector of quaternion elements \\        
+\tt \textbf{quaternion}.s    &  return scalar component \\        
+\tt \textbf{quaternion}.v    &  return vector component \\        
+\tt \textbf{quaternion}.t    &  return equivalent homogeneous transformation matrix \\        
+\tt \textbf{quaternion}.r    &  return equivalent orthonormal rotation matrix 
+\end{tabular}
+\end{center} 
+}
+
+\mex{}
+\begin{verbatim}
+>> t = rotx(0.2) 
+t =
+    1.0000         0         0         0
+         0    0.9801   -0.1987         0
+         0    0.1987    0.9801         0
+         0         0         0    1.0000
+>> q1 = quaternion(t) 
+q1 = 
+  0.995 <0.099833, 0, 0>
+
+>> q1.r
+ans =
+    1.0000         0         0
+         0    0.9801   -0.1987
+         0    0.1987    0.9801
+
+>> q2 = quaternion( roty(0.3) ) 
+q2 = 
+  0.98877 <0, 0.14944, 0>
+
+>> q1 * q2
+ans = 
+  0.98383 <0.098712, 0.14869, 0.014919>
+
+>> q1*q1 
+ans = 
+  0.98007 <0.19867, 0, 0>
+
+>> q1^2 
+ans = 
+  0.98007 <0.19867, 0, 0>
+
+>> q1*inv(q1)
+ans = 
+  1 <0, 0, 0>
+ 
+>> q1/q1
+ans = 
+  1 <0, 0, 0>
+ 
+>> q1/q2
+ans = 
+  0.98383 <0.098712, -0.14869, -0.014919>
+  
+>> q1*q2^-1
+ans = 
+  0.98383 <0.098712, -0.14869, -0.014919>
+
+\end{verbatim}
+
+\mcau{At the moment vectors or arrays of quaternions are not supported.
+You can however use cell arrays to hold a number of quaternions.}
+
+\msa{quaternion/plot}	
+\mref{K.~Shoemake, ``Animating rotation with quaternion curves.,'' in {\em
+  Proceedings of ACM SIGGRAPH}, (San Francisco), pp.~245--254, The Singer
+    Company, Link Flight Simulator Division, 1985.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{quaternion/plot}
+\mpur{Plot quaternion rotation}
+
+\msyn{
+plot(Q)
+}
+
+\mdes{\var{plot} is overloaded for \textbf{quaternion} objects
+and displays a 3D plot which shows how the standard axes are transformed
+under that rotation.}
+
+\mex{A rotation of 0.3rad about the X axis.  Clearly the X axis is 
+invariant under this rotation.}
+\begin{verbatim}
+>> q=quaternion(rotx(0.3))
+ 
+q = 
+ 
+  0.85303<0.52185, 0, 0>
+ 
+>> plot(q)
+\end{verbatim}
+
+\centerline{\psfig{figure=figs/quat.eps,width=10cm}}
+
+
+\msa{quaternion}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{rne}
+\mpur{Compute inverse dynamics via recursive Newton-Euler formulation}
+
+\msyn{
+tau = rne(robot, q, qd, qdd)\\[0pt]
+tau = rne(robot, [q qd qdd])\\[0pt]
+
+tau = rne(robot, q, qd, qdd, grav)\\[0pt]
+tau = rne(robot, [q qd qdd], grav)\\[0pt]
+
+tau = rne(robot, q, qd, qdd, grav, fext)\\[0pt]
+tau = rne(robot, [q qd qdd], grav, fext)
+}
+
+\mdes{\var{rne} computes the equations of motion in an efficient manner, giving
+joint torque as a function of 
+joint position, velocity and acceleration.
+
+If \var{q}, \var{qd} and \var{qdd} are row vectors then \var{tau} is a row
+vector of joint torques.
+If  \var{q}, \var{qd} and \var{qdd} are matrices then \var{tau} is a matrix
+in which each row is the joint torque for the corresponding rows of
+ \var{q}, \var{qd} and \var{qdd}.
+
+Gravity direction is defined by the robot object
+but may be overridden by providing a gravity acceleration
+vector \var{grav = [gx gy gz]}.
+
+An external force/moment acting on the end of the manipulator may also be
+specified by a 6-element vector \var{fext = [Fx Fy Fz Mx My Mz]} in the
+end-effector coordinate frame.
+
+The torque computed may contain contributions due to armature
+inertia and joint friction if these are specified in the parameter matrix \var{dyn}.
+
+The MEX-file version of this function is over 1000 times faster than the
+M-file.  See Section 1 of this manual for information about how to compile
+and install the MEX-file.}
+
+\malg{
+Coumputes the joint torque
+\[
+\vec{\tau} =
+{\bf M}(\vec{q})\ddot{\vec{q}} + {\bf
+C}(\vec{q},\vec{\dot{q}}) \vec{\dot{q}} +
+{\bf F}(\vec{\dot{q}}) + {\bf G}(\vec{q})
+\]
+where $\bf M$ is the manipulator inertia matrix, $\bf C$ is the Coriolis
+and centripetal torque, $\bf F$ the viscous and Coulomb friction, and $\bf G$
+the gravity load.}
+
+\mcau{
+The MEX file currently ignores support base and tool transforms.}
+
+\msa{robot, fdyn, accel, gravload, inertia, friction}
+
+\mlim{A MEX file is currently only available for Sparc architecture.}
+\mref{J.~Y.~S. Luh, M.~W. Walker, and R.~P.~C. Paul.
+\newblock On-line computational scheme for mechanical manipulators.
+\newblock {\em ASME Journal of Dynamic Systems, Measurement and Control},
+  102:69--76, 1980.
+}
+
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{robot}
+\mpur{Robot object}
+
+\msyn{
+r = robot\\[0pt]
+r = robot(rr)\\[0pt]
+r = robot(link ...)\\[0pt]
+r = robot(DH ...)\\[0pt]
+r = robot(DYN ...)
+}
+
+\mdes{\var{robot} is the constructor for a robot object.
+The first form creates a default robot, and the second form returns a new
+robot object with the same value as its argument.
+The third form creates a robot from a cell array of link objects which define
+the robot's kinematics and optionally dynamics.
+The fourth and fifth forms create a robot object from legacy DH and DYN format
+matrices.
+
+The last three forms all accept optional trailing string arguments which are
+taken in order as being robot name, manufacturer and comment.
+
+Since Matlab does not support the concept of public class variables methods have
+been written to allow robot object parameters to be referenced (r) or assigned
+(a) as given by the following table
+ 
+\begin{center}
+\begin{tabular}{lcp{6cm}}
+method        & Operation & \multicolumn{1}{c}{Returns} \\
+\tt \textbf{robot}.n       &r   &  number of joints \\        
+\tt \textbf{robot}.link    &r+a &   cell array of link objects \\
+\tt \textbf{robot}.name    &r+a &   robot name string \\
+\tt \textbf{robot}.manuf   &r+a &   robot manufacturer string \\
+\tt \textbf{robot}.comment &r+a &  general comment string\\
+\tt \textbf{robot}.gravity &r+a   &  3-element vector defining gravity direction\\
+\tt \textbf{robot}.mdh     &r   & DH convention: 0 if standard, 1 if modified.  Determined
+from the link objects.\\ \hline
+\tt \textbf{robot}.base    &r+a & \hom\ defining base of robot\\
+\tt \textbf{robot}.tool    &r+a & \hom\ defining tool of robot\\
+\tt \textbf{robot}.dh      &r   &  legacy DH matrix \\
+\tt \textbf{robot}.dyn     &r   & legacy DYN matrix \\
+\tt \textbf{robot}.q  &r+a   & joint coordinates \\
+\tt \textbf{robot}.qlim  &r+a   & joint coordinate limits, $n \times 2$ matrix \\
+\tt \textbf{robot}.islimit  &r   & joint limit vector, for each joint set to
+-1, 0 or 1 depending if below low limit, OK, or greater than upper limit\\
+\tt \textbf{robot}.offset  &r+a   & joint coordinate offsets \\
+\tt \textbf{robot}.plotopt  &r+a   & options for \var{plot()}\\
+\tt \textbf{robot}.lineopt  &r+a   & line style for robot graphical links \\
+\tt \textbf{robot}.shadowopt  &r+a   & line style for robot shadow links \\
+\tt \textbf{robot}.handle  &r+a   & graphics handles
+\end{tabular}
+\end{center} 
+
+Some of these operations at the robot level are actually wrappers around
+similarly named link object functions: \var{offset},
+\var{qlim}, \var{islimit}.
+
+The offset vector is added to the user specified joint angles before
+any kinematic or dynamic function is invoked (it is actually implemented
+within the link object).  Similarly it is subtracted after an operation
+such as inverse kinematics.  The need for a joint offset vector arises
+because of the constraints of the Denavit-Hartenberg (or modified
+Denavit-Hartenberg) notation.  The pose of the robot with zero joint
+angles is frequently some rather unusual (or even unachievable) pose.
+The joint coordinate offset provides a means to make an arbitrary pose
+correspond to the zero joint angle case.
+
+Default values for robot parameters are:
+
+\begin{center}
+\begin{tabular}{ll}
+\textbf{robot}.name    & 'noname' \\
+\textbf{robot}.manuf   & '' \\
+\textbf{robot}.comment & '' \\
+\textbf{robot}.gravity & $ [0 \,0 \,9.81]\, {\rm m/s^2}$ \\
+\textbf{robot}.offset    & \var{ones(n,1)} \\
+\textbf{robot}.base    & \var{eye(4,4)} \\
+\textbf{robot}.tool    & \var{eye(4,4)} \\
+\textbf{robot}.lineopt  & 'Color', 'black', 'Linewidth', 4 \\
+\textbf{robot}.shadowopt  & 'Color', 'black', 'Linewidth', 1
+\end{tabular}
+\end{center}
+
+The multiplication operator, \var{*}, is overloaded and the product of two robot
+objects is a robot which is the series connection of the multiplicands.
+Tool transforms of all but the last robot are ignored, base transform of
+all but the first robot are ignored.
+
+The \var{plot} function is also overloaded and is used to provide a robot
+animation.  
+}
+
+\mex{}
+\begin{verbatim}
+>> L{1} = link([ pi/2  0  0  0])
+L = 
+    [1x1 link]
+
+>> L{2} = link([ 0  0 0.5 0])
+L = 
+    [1x1 link]    [1x1 link]
+
+>> r = robot(L)
+
+r = 
+ (2 axis, RR)
+                grav = [0.00 0.00 9.81]
+                standard D&H parameters
+
+  alpha           A               theta           D             R/P
+1.570796        0.000000        0.000000        0.000000        R     (std)
+0.000000        0.000000        0.500000        0.000000        R     (std)
+
+>> 
+\end{verbatim}
+
+\msa{link,plot}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{robot/plot}
+\mpur{Graphical robot animation}
+
+\msyn{
+plot(robot, q)\\[0pt]
+plot(robot, q, arguments...)\\[0pt]
+}
+
+\centerline{\psfig{figure=figs/plot.eps,width=12cm}}
+
+\mdes{\var{plot} is overloaded for \textbf{robot} objects
+and displays a graphical representation of the robot given
+the kinematic information in \var{robot}.
+The robot is represented by a simple stick figure polyline where line 
+segments join
+the origins of the link coordinate frames.
+If \var{q} is a matrix representing a joint-space trajectory then an animation
+of the robot motion is shown.
+
+
+{\tmsss GRAPHICAL ANNOTATIONS}
+
+The basic stick figure robot can be annotated with
+\begin{itemize}
+\item shadow on the `floor'
+\item XYZ wrist axes and labels,
+shown by 3 short orthogonal line segments
+which are colored: red (X or normal), green (Y or orientation) and blue (Z or
+approach).  They can be optionally labelled XYZ or NOA.
+\item joints,
+these are 3D cylinders for 
+revolute joints and boxes for prismatic joints\\
+\item the robot's name
+\end{itemize}
+
+All of these require some kind of dimension and this is determined
+using a simple heuristic from the workspace dimensions.  This dimension
+can be changed by setting the multiplicative scale factor using the
+\var{mag} option below.  These various annotations do slow the rate
+at which animations will be rendered.
+
+{\tmsss OPTIONS}
+
+Options are specified by a variable length argument list comprising strings
+and numeric values.  The allowed values are:}
+
+\begin{tabular}{l p{4in}}
+\vtt workspace \var{w} & set the 3D plot bounds or workspace to the matrix
+\var{[xmin xmax ymin ymax zmin zmax]}\\
+\vtt perspective & show a perspective view \\
+\vtt ortho & show an orthogonal view \\
+\vtt base, nobase & control display of base, a line from the floor upto joint 0\\
+\vtt wrist, nowrist & control display of wrist axes\\
+\vtt name, noname & control display of robot name near joint 0\\
+\vtt shadow, noshadow & control display of a 'shadow' on the floor\\
+\vtt joints, nojoints & control display of joints, these are cylinders for 
+revolute joints and boxes for prismatic joints\\
+\vtt xyz & wrist axis labels are X, Y, Z\\
+\vtt noa & wrist axis labels are N, O, A\\
+\vtt mag \var{scale} & annotation scale factor \\
+\vtt erase, noerase & control erasure of robot after each change\\
+\vtt loop, noloop & control whether animation is repeated endlessly
+\end{tabular}
+
+The options come from 3 sources and are processed in the order:
+\begin{enumerate}
+\item Cell array of options returned by the function \var{PLOTBOTOPT} if
+found on the user's current path.
+\item Cell array of options returned by the \var{.plotopt} method of the
+\var{robot} object.  These are set by the \var{.plotopt} method.
+\item  List of arguments in the command line.
+\end{enumerate}
+
+{\tmsss GETTING GRAPHICAL ROBOT STATE}
+
+Each graphical robot has a unique tag set equal to the robot's name.
+When \var{plot} is called it looks for all graphical objects with that name
+and moves them.  The graphical robot holds a copy of the \var{robot} object
+as \var{UserData}.  That copy contains the graphical handles of all the
+graphical sub-elements of the robot and also the current joint angle state.
+
+This state is used, and adjusted, by the \var{drivebot} function.
+The current joint angle state can be obtained by
+\var{q = plot(robot)}.
+If multiple instances exist, that of the first one returned by \var{findobj()}
+is given.
+
+\mex{To animate two Pumas moving in the same figure window.}
+\begin{verbatim}
+>> clf
+>> p560b = p560;                         % duplicate the robot
+>> p560b.name = 'Another Puma 560';      % give it a unique name
+>> p560b.base = transl([-.05 0.5 0]);    % move its base
+>> plot(p560, qr);   % display it at ready position 
+>> hold on
+>> plot(p560b, qr);  % display it at ready position
+>> t = [0:0.056:10];
+>> jt = jtraj(qr, qstretch, t);  % trajectory to stretch pose
+>> for q = jt', % for all points on the path
+>>    plot(p560, q); 
+>>    plot(p560b, q);
+>> end
+\end{verbatim}
+
+To show multiple views of the same robot.
+\begin{verbatim}
+>> clf
+>> figure             % create a new figure
+>> plot(p560, qz);    % add a graphical robot
+>> figure             % create another figure
+>> plot(p560, qz);    % add a graphical robot
+>> plot(p560, qr);    % both robots should move
+\end{verbatim}
+
+Now the two figures can be adjusted to give different viewpoints, for
+instance, plan and elevation.
+
+\mcau{\var{plot()} options are only processed on the first call when the
+graphical object is established, they are skipped on subsequent calls.
+Thus if you wish to change options, clear the figure before replotting.}
+
+\msa{drivebot, fkine, robot}
+\vfil\eject 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{rotvec}
+\mpur{Rotation about a vector}
+
+\msyn{
+T = rotvec(v, theta)
+}
+
+\mdes{\var{rotvec} returns a homogeneous transformation representing a 
+rotation of \var{theta} radians about the vector \var{v}.}
+
+\msa{rotx, roty, rotz}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{rotx,roty,rotz}
+\mpur{Rotation about X, Y or Z axis}
+
+\msyn{
+T = rotx(theta)\\[0pt]
+T = roty(theta)\\[0pt]
+T = rotz(theta)
+}
+
+\mdes{Return a homogeneous transformation representing a 
+rotation of \var{theta} radians about the X, Y or Z axes.}
+
+\msa{rotvec}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{rpy2tr}
+\mpur{Roll/pitch/yaw angles to \hom}
+
+\msyn{
+T = rpy2tr([r p y])\\[0pt]
+T = rpy2tr(r,p,y)
+}
+
+\mdes{\var{rpy2tr}
+returns a homogeneous transformation for the specified
+roll/pitch/yaw angles in radians.
+\[
+T = R_Z(r) R_Y(p) R_X(y)
+\]
+}
+
+\msa{tr2rpy, eul2tr}
+\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{rtdemo}
+\mpur{Robot Toolbox demonstration}
+
+\msyn{
+rtdemo
+}
+
+\mdes{This script provides demonstrations for most functions within
+the Robotics Toolbox.
+}
+
+\mcau{This script clears all variables in the workspace and deletes
+all figures.}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{showlink}
+\mpur{Show robot link details}
+
+\msyn{
+showlink(robot)\\[0pt]
+showlink(link)
+}
+
+\mdes{
+Displays in detail all the parameters, including all defined
+inertial parameters, of a link.  The first form provides this
+level of detail for all links in the specified manipulator.
+roll/pitch/yaw angles in radians.
+}
+\mex{To show details of Puma link 2}
+\begin{verbatim}
+>> showlink(p560.link{2})
+alpha  = 0
+A      = 0.4318
+theta  = 0
+D      = 0
+sigma  = 0
+mdh    = 0
+offset = 0
+m      = 17.4
+r      = -0.3638
+           0.006
+          0.2275
+I      = 0.13           0           0
+            0       0.524           0
+            0           0       0.539
+Jm     = 0.0002
+G      = 107.815
+B      = 0.000817
+Tc     = 0.126      -0.071
+qlim   = 
+>> 
+\end{verbatim}
+
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{stanford}
+\mpur{Create a Stanford manipulator robot object }
+
+\msyn{
+stanford
+}
+
+\centerline{\psfig{figure=figs/stanford.eps,width=12cm}}
+
+\mdes{Creates the \textbf{robot} object \var{stan} which describes the kinematic and dynamic
+characteristics of a Stanford manipulator.
+Specifies armature inertia and gear ratios.
+All quantities are in standard SI units.}
+
+
+\msa{robot, puma560}
+\mref{R.~Paul, ``Modeling, trajectory calculation and servoing of a computer
+  controlled arm,'' Tech. Rep. {AIM}-177, Stanford University, Artificial
+    Intelligence Laboratory, 1972.
+
+R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{tr2diff}
+\mpur{Convert a \hom\ to a differential motion vector}
+
+\msyn{
+d = tr2diff(T)\\[0pt]
+d = tr2diff(T1, T2)\\[0pt]
+}
+
+\mdes{The first form of \var{tr2diff} returns a 6-element differential 
+motion vector representing the incremental translation and rotation described by
+the homogeneous transform \var{T}.  It is assumed that \var{T} is of the
+form
+\[
+\left[ \begin{array}{cccc}
+	0 &	 -\delta_z &	 \delta_y &	d_x \\
+	\delta_z &	0 &	-\delta_x &	d_y \\
+	-\delta_y &	\delta_x & 0 &		d_z \\
+	0 &		0 &	0 &		0
+	\end{array}
+\right]
+\]
+The translational elements of \var{d} are assigned directly.  The rotational
+elements are computed from the mean of the two values that appear in the
+skew-symmetric matrix.
+
+The second form of \var{tr2diff} returns a 6-element differential
+motion vector representing the displacement from \var{T1} to \var{T2},
+that is,  \var{T2} - \var{T1}.
+\[
+d = \left[ \begin{array}{c}
+	\vec{p}_2 - \vec{p}_1 \\
+	1/2 \left( \vec{n}_1 \times \vec{n}_2 + \vec{o}_1 \times \vec{o}_2 +
+		\vec{a}_1 \times \vec{a}_2 \right) \end{array} \right]
+\]
+}
+
+\msa{diff2tr}
+\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{tr2eul}
+\mpur{Convert a homogeneous transform to Euler angles}
+
+\msyn{
+[a b c] = tr2eul(T)
+}
+
+\mdes{\var{tr2eul} returns a vector of Euler angles, in radians,
+corresponding
+to the rotational part of the homogeneous transform \var{T}.
+\[
+T_{rot} = R_Z(a) R_Y(b) R_Z(c)
+\]
+}
+\mcau{Note that 12 different Euler angle sets or conventions exist.  The
+convention used here is the common one for robotics, but is not the one used
+for example in the aerospace community.}
+
+\msa{eul2tr, tr2rpy}
+\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{tr2jac}
+\mpur{Compute a Jacobian to map differential motion between frames}
+
+\msyn{
+jac = tr2jac(T)
+}
+
+\mdes{\var{tr2jac} returns a $6 \times 6$ Jacobian matrix to map 
+differential motions or velocities between
+frames related by the homogeneous transform \var{T}.
+
+If \var{T} represents a homogeneous transformation from frame A to frame B,
+${}^A {\bf T}_B$, then
+\[
+	{}^B \vec{\dot{x}} = {}^B {\bf J}_A {}^A \vec{\dot{x}}
+\]
+where ${}^B {\bf J}_A$ is given by \var{tr2jac(T)}.
+}
+
+\msa{tr2diff, diff2tr}
+\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{tr2rpy}
+\mpur{Convert a homogeneous transform to roll/pitch/yaw angles}
+
+\msyn{
+[a b c] = tr2rpy(T)
+}
+
+\mdes{\var{tr2rpy} returns a vector of roll/pitch/yaw angles, in radians,
+corresponding to the rotational part of the homogeneous transform \var{T}
+\[
+T_{rot} = R_Z(r) R_Y(p) R_X(y)
+\]
+}
+
+\msa{rpy2tr, tr2eul}
+\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{transl}
+\mpur{Translational transformation}
+
+\msyn{
+T = transl(x, y, z)\\[0pt]
+T = transl(v)\\[0pt]
+v = transl(T)\\[0pt]
+xyz = transl(TC)
+}
+
+\mdes{The first two forms return a homogeneous transformation representing a 
+translation expressed as three scalar \var{x}, \var{y} and \var{z},
+or a Cartesian vector \var{v}.
+
+The third form returns the translational part of a homogeneous 
+transform as a 3-element column vector.
+
+The fourth form returns a matrix whose columns are the X, Y and Z columns
+of the $4 \times 4 \times m$ Cartesian trajectory matrix \var{TC}.}
+
+
+\msa{ctraj}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{trinterp}
+\mpur{Interpolate \hom s}
+
+\msyn{
+T = trinterp(T0, T1, r)
+}
+
+\mdes{\var{trinterp} interpolates between the two \hom s
+\var{T0} and \var{T1} as \var{r} varies between 0 and 1 inclusively.
+This is generally used for computing straight line or `Cartesian'
+motion.  Rotational interpolation is achieved using quaternion
+spherical linear interpolation.
+}
+
+\mex{Interpolation of homogeneous transformations.}
+\begin{verbatim}
+>> t1=rotx(.2)              
+
+t1 =
+    1.0000         0         0         0
+         0    0.9801   -0.1987         0
+         0    0.1987    0.9801         0
+         0         0         0    1.0000
+
+>> t2=transl(1,4,5)*roty(0.3)         
+
+t2 =
+    0.9553         0    0.2955    1.0000
+         0    1.0000         0    4.0000
+   -0.2955         0    0.9553    5.0000
+         0         0         0    1.0000
+
+>> trinterp(t1,t2,0)	% should be t1
+
+ans =
+    1.0000         0         0         0
+         0    0.9801   -0.1987         0
+         0    0.1987    0.9801         0
+         0         0         0    1.0000
+
+>> trinterp(t1,t2,1)   % should be t2
+
+ans =
+    0.9553         0    0.2955    1.0000
+         0    1.0000         0    4.0000
+   -0.2955         0    0.9553    5.0000
+         0         0         0    1.0000
+
+>> trinterp(t1,t2,0.5)	% 'half way' in between
+
+ans =
+    0.9887    0.0075    0.1494    0.5000
+    0.0075    0.9950   -0.0998    2.0000
+   -0.1494    0.0998    0.9837    2.5000
+         0         0         0    1.0000
+
+>> 
+\end{verbatim}
+\msa{ctraj, qinterp}
+\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+
+\vfil\eject 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{trnorm}
+\mpur{Normalize a homogeneous transformation}
+
+\msyn{
+TN = trnorm(T)
+}
+
+\mdes{Returns a normalized copy of the homogeneous transformation \var{T}.
+Finite word length arithmetic can lead to homogeneous transformations in which
+the rotational submatrix is not orthogonal, that is, $det({\bf R}) \neq -1$.}
+
+\malg{Normalization is performed by orthogonalizing the
+rotation submatrix $\vec{n} = \vec{o} \times \vec{a}$.}
+
+\msa{oa2tr}
+\mref{J.~Funda, ``Quaternions and homogeneous transforms in robotics,'' Master's
+  thesis, University of Pennsylvania, Apr. 1988.}
+\vfil\eject 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{twolink}
+\mpur{Load kinematic and dynamic data for a simple 2-link mechanism}
+
+\msyn{
+twolink
+}
+
+\centerline{\psfig{figure=figs/twolink.eps,width=12cm}}
+
+\mdes{Creates the \textbf{robot} object \var{tl} which describes the kinematic 
+and dynamic
+characteristics of a simple two-link planar manipulator.
+The manipulator operates in the horizontal (XY) plane and is therefore
+not influenced by gravity.
+
+Mass is assumed to be concentrated at the joints.  All masses and
+lengths are unity.
+}
+\msa{puma560, stanford}
+\mref{Fig 3-6 of ``Robot Dynamics and Control'' by M.W. Spong and M. Vidyasagar,
+1989.}
+\vfil\eject 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{unit}
+\mpur{Unitize a vector}
+
+\msyn{
+vn = unit(v)
+}
+
+\mdes{\var{unit} returns a unit vector aligned with \var{v}.}
+\malg{\[
+\vec{v}_n = \frac{\vec{v}}{|| \vec{v} ||}
+\]}
+\vfil\eject
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{dh (legacy)}
+\mpur{Matrix representation of manipulator kinematics}
+
+\mdes{A \var{dh} matrix describes the
+kinematics of a manipulator in a general way using the standard
+Denavit-Hartenberg conventions.
+Each row represents one link of the manipulator and the columns are assigned
+according to the following table.
+
+\begin{center}
+\begin{tabular}{ccl}
+Column & Symbol & \multicolumn{1}{c}{Description}\\
+1 & $\alpha_i$ & link twist angle \\
+2 & $A_i$ & link length\\
+3 & $\theta_i$ & link rotation angle \\
+4 & $D_i$ & link offset distance \\
+5 & $\sigma_i$ & joint type; 0 for revolute, non-zero for prismatic \\
+\end{tabular}
+\end{center}
+
+If the last column is not given, toolbox functions assume that
+the manipulator is all-revolute.
+For an n-axis manipulator \var{dh} is an $n \times 4$ or $n\times 5$ matrix.
+
+The first 5 columns of a \var{dyn} matrix contain the kinematic parameters
+and maybe used anywhere that a \var{dh} kinematic matrix is required --- the
+dynamic data is ignored.}
+
+Lengths $A_i$ and $D_i$ may be expressed in any unit, and this choice will flow
+on to the units in which \hom s and Jacobians are represented.
+All angles are in radians.
+
+\msa{puma560,stanford,mdh}
+\mref{R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.}
+\vfil\eject 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\function{dyn (legacy)}
+\mpur{Matrix representation of manipulator kinematics and dynamics}
+
+\mdes{A \var{dyn} matrix describes the
+kinematics and dynamics of a manipulator in a general way using the standard
+Denavit-Hartenberg conventions.
+Each row represents one link of the manipulator and the columns are assigned
+according to the following table.
+
+\begin{center}
+\begin{tabular}{ccl}
+Column & Symbol & \multicolumn{1}{c}{Description}\\
+1 & $\alpha$ & link twist angle \\
+2 & A & link length \\
+3 & $\theta$ & link rotation angle \\
+4 & D & link offset distance \\
+5 & $\sigma$ & joint type; 0 for revolute, non-zero for prismatic \\
+6 & mass & mass of the link \\
+7 & rx & link COG with respect to the link coordinate frame \\
+8 & ry \\
+9 & rz \\
+10 & Ixx & elements of link inertia tensor about the link COG \\
+11 & Iyy \\
+12 & Izz \\
+13 & Ixy \\
+14 & Iyz \\
+15 & Ixz \\
+16 & Jm & armature inertia \\
+17 & G & reduction gear ratio; joint speed/link speed \\
+18 & B & viscous friction, motor referred\\
+19 & Tc+ & coulomb friction (positive rotation), motor referred\\
+20 & Tc- &     coulomb friction (negative rotation), motor referred\\
+\end{tabular}
+\end{center}
+
+For an n-axis manipulator, \var{dyn} is an $n \times 20$ matrix.
+The first 5 columns of a \var{dyn} matrix contain the kinematic parameters
+and maybe used anywhere that a \var{dh} kinematic matrix is required --- the
+dynamic data is ignored.
+}
+
+All angles are in radians.
+The choice of all other units is up to the user, and this choice will flow
+on to the units in which \hom s, Jacobians, inertias and torques
+are represented.
+
+\msa{dh}
+\vfil\eject 
+
+
+\cleardoublepage
+\end{document}

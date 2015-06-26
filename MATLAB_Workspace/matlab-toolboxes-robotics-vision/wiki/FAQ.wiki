@@ -1,0 +1,288 @@
+#summary FAQ page.
+
+= Frequently asked questions =
+
+<wiki:toc />
+
+== What is a MEX-file? ==
+
+MEX-files are written in C or C++ and compiled into a binary module that is dynamically linked by MATLAB at run time.  MEX-files can be much faster than the equivalent M-files but the disadvantage is that they are not portable, they must be compiled for the particular platform that you are using.
+
+MEX-files have names that are of the form:
+  * `function.mexw32` for a 32-bit Windows platform
+  * `function.mexglx` for a GNU-Linux platform (implicitly x86 based)
+  * `function.mexmaci64` for an Apple Mac with a 64-bit Intel processor
+
+To learn more about MEX files and how to create them have a look at this [http://www.mathworks.com.au/help/matlab/matlab_external/building-mex-files.html online documentation].  For 32-bit Windows MATLAB comes with a simple compiler called `lcc` but for 64-bit Windows you need to provide your own compiler.
+
+I distribute MEX-files for 64-bit Mac, Linux and 32-bit Windows only.
+
+== How do I build the MEX files? ==
+
+For either toolbox change into its `mex` folder, that is `rvctools/robot/mex` or `rvctools/vision/mex` and execute
+{{{
+>> make
+}}}
+which will invoke the appropriate compiler.  If there are errors then either the mex compiler is not setup correctly, so have a look at the relevant [http://www.mathworks.com.au/help/matlab/matlab_external/building-mex-files.html Mathworks documentation].
+
+If you're a command line kind of person just `cd` into the `mex` directory and run `make` from the command line.  This assumes that the `mex` compiler is in your path, it's located in the `bin` subdirectory of your MATLAB install.  
+{{{
+% mex -v
+}}}
+shows current `mex` settings, 
+{{{
+% mex -help
+}}}
+shows various options, and 
+{{{
+% mex -setup
+}}}
+allows configuration.  On a `*`nix or MacOS system these settings are kept in the top-level hidden directory
+`~/.matlab`.
+
+== MEX file won't compile ==
+
+If you get errors like
+{{{
+>> make
+** building MEX files for MVTB
+closest.c: En la función ‘mexFunction’:
+closest.c:98:25: error: expected expression before ‘/’ token
+closest.c:102:13: error: expected expression before ‘/’ token
+closest.c:108:21: error: expected expression before ‘/’ token
+closest.c:159:25: error: expected expression before ‘/’ token
+closest.c:163:13: error: expected expression before ‘/’ token
+closest.c:169:21: error: expected expression before ‘/’ token
+}}}
+it's because your compiler isn't recognizing the C++ style // comments.  Change the line in the makefile from
+{{{
+CFLAGS="-std=gnu99"
+}}}
+to
+{{{
+CFLAGS=-std=c99
+}}}
+This tells the compiler to use C99 standard syntax which allows the C++ style comments.
+
+== ilabel.m is just comments ==
+
+There is no mechanism for a [#What_is_a_MEX-file? binary MEX file] to have documentation comments, these are the block of comments at the top of each MATLAB M-file that is given (without the % characters) in response to the `help` command.
+
+The MATLAB convention is that a MEX-file has a corresponding M-file which contains the help documentation for that file.  If you don't have the MEX-file for your platform then MATLAB will attempt to execute the documentation file (with the `.m` extension) which it thinks is a script not a function, and this leads to the error message.
+
+== The specifed superclass 'NNNNN' is invalid or contains a parse error ==
+
+where NNNNN is the name of some class.  The problem is that the file defining the superclass is not in fact a class definition.  Typically this occurs if you create a function with the same name as the superclass NNNNN.  The easiest way to test for this is
+
+{{{
+>> which NNNNN
+}}}
+
+which should show a file within the RVC install directory.  If not, you have a name clash, so remove that file or move it to some place not on your MATLAB search path.
+
+== Function not defined ==
+
+=== Undefined function 'vgg_rq' for input arguments of type 'double' ===
+
+Download the contributed code zip file from the MVTB download area.
+
+=== Undefined function 'Open Surf' for input arguments of type 'struct' ===
+
+Download the contributed code zip file from the MVTB download area.
+
+== Python version of the toolbox ==
+
+The Python version of the toolbox is currently not maintained and advice is that it's broken.  It implemented a subset of RTB, specifically those functions that deal with arm-type robots.
+
+Given the power of Python, it price (free) and great numeric ([http://numpy.scipy.org numpy, scipy]) support, and great 2D and 3D graphics ([http://matplotlib.org matplotlib]) and interactive environment ([http://ipython.org ipython]) it's a logical replacement for MATLAB.
+
+So Python makes a lot of sense but to get this moving again would require some tangible user interest and even better willingness to help.
+
+You can get the code as it stands from  [http://code.google.com/p/robotics-toolbox/python/trunk google.code the SVN repository].
+
+
+== Will the toolbox work with my version of MATLAB? ==
+
+The Toolbox should work with all version of MATLAB from 2010a onwards.  Currently no major problems with 2012b.
+
+== Will the toolboxes work with Octave? ==
+
+A subset of the RTB will work with Octave, specifically those functions that deal with arm-type robots.  To enable this functionality go into the folder `rvctools/Octave` and follow the instructions in the `README.txt` file.
+
+There are a lot of minor differences between MATLAB and Octave, though less than there used to be.  The big stumbling block right now is that Octave handles classes in a very different way (actually the way that MATLAB used to).  The Octave folk are working on adding MATLAB-style classes but it's not there yet.  Once that happens I suspect a broader port of RTB and MVTB will be possible.
+
+== rne() is really slow ==
+
+It might be that you are using the M-file rather than the MEX-file version.  
+To check use the `which` command
+{{{
+>> which rne
+.../rvc/robot/@SerialLink/rne.mexmaci64  % SerialLink method
+}}}
+which in this case suggests that the MEX-file is being used.  Sorry, this is as fast as you can go.
+
+However if the result is like
+{{{
+>> which rne
+.../rvc/robot/@SerialLink/rne.m  % SerialLink method
+}}}
+then you are currently using the m-file and there is scope to improve.  
+Change (`cd`) into the folder `rvctools/robot/mex` and follow the instructions in the `README.txt` file.
+If it's all working well, the *first time* you run `rne()` it will display a banner indicating the fast MEX-file version is being used, for example
+{{{
+>> p560.rne(qz,qz,qz)
+Fast RNE: (c) Peter Corke 2002-2012
+
+ans =
+
+         0   37.4837    0.2489         0         0         0
+}}}
+
+If you have a MEX-file in the `@SerialLink` folder but it's not being seen then try
+{{{
+>> clear functions
+}}}
+to clear MATLAB's cache.
+
+
+== My robot arm dynamics simulation in Simulink is really slow ==
+
+The most common cause of this is non-linear friction, specifically Coulomb friction.  This is a very _harsh_ non-linearity and the integrator in Simulink adopts very small step sizes to cope with it.
+
+The default Puma 560
+model includes Coulomb friction.  You can make a friction free version of that robot model by
+{{{
+>> p560_ff = p560.nofriction();
+}}}
+The viscous (linear) friction is retained.
+
+== How does the gear ratio work ==
+
+The torque model is perhaps not ideal, it's kind of evolved.  I can't vouch for whether the Scilab port is the same or not.
+
+The basis of all dynamics code is the RNE function which gives the torque required to achieve a particular qd and qdd for a certain q.  All quantities are referred to the link/load. This torque includes link dynamic effects (inertia, coriolis, gravity) as well as motor inertia, motor viscous and Coloumb friction (given in motor frame but transferred according to gear ratio).
+
+Bottom line:
+
+ * torques are always link/load referenced
+ * q and its derivatives are link/load referernced
+ * frictions and motor inertia are motor referenced.
+
+== Torque/force components ==
+
+The function rne() gives the torque required to achieve a particular qdd for a certain value of q and qd, ie. if you apply that torque at that joint angle and speed you will achieve the acceleration.
+
+The toolbox also allows you to compute torque components:
+ * inertial torque is
+{{{
+ I = robot.accel(q) * qdd
+}}}
+ * Coriolis/centripetal torque is
+{{{
+C = robot.coriolis(q, qd) * qd'
+}}}
+ * gravity torque is 
+{{{
+G = robot.gravload(q)
+}}}
+ * friction torque is
+{{{
+ F = robot.friction(qd)
+}}}
+
+The total torque balance is
+{{{
+ I+C+G-F = tau
+}}}
+and note the negative sign on friction.
+
+== I'm having problems with inverse kinematics  ==
+
+Inverse kinematics is probably one of the troublesome areas for those starting out with RTB.  It's really important to understand the fundamentals so check out a textbook if this topic is unfamiliar to you, for example [http://petercorke.com/RVC Robotics, Vision & Control] (chaps 7 and 8.4), Spong etal, or Siciliano etal.
+
+=== ikine6s() ===
+
+If your robot has 6 links and a spherical wrist then then the `ikine6s()` *might* be appropriate.  To test whether your robot has a spherical wrist
+{{{
+>> p560.isspherical
+
+ans =
+
+     1
+}}}
+which in this case is true, the Puma 560 does indeed have a spherical wrist.  The solution in `ikine6s()` is based on the paper by [http://ijr.sagepub.com/content/5/2/32 Paul & Zhang] and is quite specific to the Puma 560 kinematics.  Other solutions for an anthropomorphic arm manipulator are included in the books by Spong etal and Siciliano etal.  The Paul & Zhang solution assumes that the upper and lower arm lengths are given by the DH parameters a2 and d4, whereas Spong and Siciliano assume these are the parameters a2 and a3.  
+
+The Puma model is complicated because the shoulder and wrist are offset from the waist rotation axis (by different amounts) which means it can have the lefty and righty configurations.  This complexity is not included in the Spong or Siciliano solutions.
+
+*Bottom line* to use `ikine6s()` the kinematic model must be Puma-like, with the upper and lower arm lengths given by a2 and d4 and the elbow having a twist (alpha) of -90deg.
+
+=== ikine() ===
+
+This method provides a numerical solution and has several advantages:
+  * the robot can have an arbitrary number of axes, including under- and over-actuated
+  * the robot can be at a singularity
+
+The disadvantages are that it is an iterative algorithm which means that it can be slow and may not converge, and you cannot control which configuration.
+
+Some tips to make it work well:
+  * try to choose a good initial set of joint angles, that is, as close as possible to the desired solution
+  * if the initial joint angles result in a singularity the search will not converge quickly.  This is not catastrophic but something to be aware of.
+  * the option `'pinv'` often leads to faster convergence.  Without this option the operation is as described in [http://petercorke.com/RVC Robotics, Vision & Control] section 8.4, but the pseudo-inverse approach is faster.
+
+If your robot is Puma-like you are much better off using the `ikine6s()` method.
+
+== Can the Toolbox handle parallel manipulators? ==
+
+No, it cannot.
+
+
+== Can I perform symbolic calculations?  ==
+
+Yes.  For example:
+{{{
+>> syms r p y
+>> rpy2r(r, p, y)
+ 
+ans =
+ 
+[                        cos(p)*cos(y),                       -cos(p)*sin(y),         sin(p)]
+[ cos(r)*sin(y) + cos(y)*sin(p)*sin(r), cos(r)*cos(y) - sin(p)*sin(r)*sin(y), -cos(p)*sin(r)]
+[ sin(r)*sin(y) - cos(r)*cos(y)*sin(p), cos(y)*sin(r) + cos(r)*sin(p)*sin(y),  cos(p)*cos(r)]
+ 
+}}}
+
+For a robot manipulator
+{{{
+>> mdl_twolink
+>> syms q1 q2
+>> twolink.fkine([q1 q2])
+ 
+ans =
+ 
+[ cos(q1 + q2), -sin(q1 + q2), 0, cos(q1 + q2) + cos(q1)]
+[ sin(q1 + q2),  cos(q1 + q2), 0, sin(q1 + q2) + sin(q1)]
+[            0,             0, 1,                      0]
+[            0,             0, 0,                      1]
+}}}
+
+Other functions like `rne()`, `inertia()`, `gravload()` and`coriolis()` work as well however they require that you are using the MATLAB version of `rne()` not the MEX version.  
+To check use the `which` command
+{{{
+>> which rne
+.../rvc/robot/@SerialLink/rne.m  % SerialLink method
+}}}
+and if the return result is the m-file all is good. If the result is a MEX file, then remove it or temporarily move it aside.
+
+== How do I get started with the symbolics and code generation functionality? ==
+
+An example to get started with symbolics and generation of m-code as well as real-time capable Simulink blocks is given in rtsymcgendemo.m.
+To run the demo type the following on the command line:
+{{{
+>> rtsymcgendemo
+}}}
+or start it from the Robotics Toolbox demos in the help browser.
+
+== A robotics toolbox for MATLAB (1996) ==
+This paper was published in 1996  in the IEEE Robotics & Automation magazine.  It provided a tutorial approach to solving arm robot problems using v4 of the toolbox.  The names and syntax have changed dramatically since then, so if you try those examples with the current toolbox you will have problems. 
+
+Consider an historic curiosity not a reference.

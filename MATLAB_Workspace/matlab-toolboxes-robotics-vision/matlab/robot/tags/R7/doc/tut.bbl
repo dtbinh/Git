@@ -1,0 +1,139 @@
+\begin{thebibliography}{10}
+
+\bibitem{Paul81a}
+R.~P. Paul, {\em Robot Manipulators: Mathematics, Programming, and Control}.
+\newblock Cambridge, Massachusetts: MIT Press, 1981.
+
+\bibitem{Fu87}
+K.~S. Fu, R.~C. Gonzalez, and C.~S.~G. Lee, {\em Robotics. Control, Sensing,
+  Vision and Intelligence}.
+\newblock McGraw-Hill, 1987.
+
+\bibitem{Spong89}
+M.~Spong and M.~Vidyasagar, {\em Robot Dynamics and Control}.
+\newblock John Wiley and Sons, 1989.
+
+\bibitem{Craig86}
+J.~J. Craig, {\em Introduction to Robotics}.
+\newblock Addison Wesley, 1986.
+
+\bibitem{Hutchinson96}
+S.~Hutchinson, G.~Hager, and P.~Corke, ``A tutorial on visual servo control,''
+  {\em IEEE Transactions on Robotics and Automation}, vol.~12, pp.~651--670,
+  Oct. 1996.
+
+\bibitem{Hartenberg55}
+R.~S. Hartenberg and J.~Denavit, ``A kinematic notation for lower pair
+  mechanisms based on matrices,'' {\em Journal of Applied Mechanics}, vol.~77,
+  pp.~215--221, June 1955.
+
+\bibitem{Lee82a}
+C.~S.~G. Lee, ``Robot arm kinematics, dynamics and control,'' {\em IEEE
+  Computer}, vol.~15, pp.~62--80, Dec. 1982.
+
+\bibitem{Craig89}
+J.~J. Craig, {\em Introduction to Robotics}.
+\newblock Addison Wesley, second~ed., 1989.
+
+\bibitem{Whitney72}
+D.~Whitney, ``The mathematics of coordinated control of prosthetic arms and
+  manipulators,'' {\em ASME Journal of Dynamic Systems, Measurement and
+  Control}, vol.~20, no.~4, pp.~303--309, 1972.
+
+\bibitem{Paul81b}
+R.~P. Paul, B.~Shimano, and G.~E. Mayer, ``Kinematic control equations for
+  simple manipulators,'' {\em IEEE Trans. Syst. Man Cybern.}, vol.~11,
+  pp.~449--455, June 1981.
+
+\bibitem{Hollerbach82}
+J.~M. Hollerbach, ``Dynamics,'' in {\em Robot Motion - Planning and Control}
+  (M.~Brady, J.~M. Hollerbach, T.~L. Johnson, T.~Lozano-Perez, and M.~T. Mason,
+  eds.), pp.~51--71, MIT, 1982.
+
+\bibitem{Lee83}
+C.~S.~G. Lee, B.~Lee, and R.~Nigham, ``Development of the generalized
+  {D'Alembert} equations of motion for mechanical manipulators,'' in {\em Proc.
+  22nd CDC}, (San Antonio, Texas), pp.~1205--1210, 1983.
+
+\bibitem{Kane83}
+T.~Kane and D.~Levinson, ``The use of {Kane}'s dynamical equations in
+  robotics,'' {\em Int. J. Robot. Res.}, vol.~2, pp.~3--21, Fall 1983.
+
+\bibitem{Uicker65}
+J.~Uicker, {\em On the Dynamic Analysis of Spatial Linkages Using 4 by 4
+  Matrices}.
+\newblock PhD thesis, Dept. Mechanical Engineering and Astronautical Sciences,
+  NorthWestern University, 1965.
+
+\bibitem{Kahn69}
+M.~Kahn, ``The near-minimum time control of open-loop articulated kinematic
+  linkages,'' Tech. Rep. AIM-106, Stanford University, 1969.
+
+\bibitem{Raibert78}
+M.~H. Raibert and B.~K.~P. Horn, ``Manipulator control using the configuration
+  space method,'' {\em The Industrial Robot}, pp.~69--73, June 1978.
+
+\bibitem{Bejczy74}
+A.~Bejczy, ``Robot arm dynamics and control,'' Tech. Rep. NASA-CR-136935, NASA
+  JPL, Feb. 1974.
+
+\bibitem{Paul72}
+R.~Paul, ``Modelling, trajectory calculation and servoing of a computer
+  controlled arm,'' Tech. Rep. {AIM}-177, Stanford University, Artificial
+  Intelligence Laboratory, 1972.
+
+\bibitem{Orin79}
+D.~Orin, R.~McGhee, M.~Vukobratovic, and G.~Hartoch, ``Kinematics and kinetic
+  analysis of open-chain linkages utilizing {Newton-Euler} methods,'' {\em
+  Mathematical Biosciences. An International Journal}, vol.~43, pp.~107--130,
+  Feb. 1979.
+
+\bibitem{Armstrong79}
+W.~Armstrong, ``Recursive solution to the equations of motion of an n-link
+  manipulator,'' in {\em Proc. 5th World Congress on Theory of Machines and
+  Mechanisms}, (Montreal), pp.~1343--1346, July 1979.
+
+\bibitem{Luh80a}
+J.~Y.~S. Luh, M.~W. Walker, and R.~P.~C. Paul, ``On-line computational scheme
+  for mechanical manipulators,'' {\em ASME Journal of Dynamic Systems,
+  Measurement and Control}, vol.~102, pp.~69--76, 1980.
+
+\bibitem{Hollerbach80}
+J.~Hollerbach, ``A recursive {Lagrangian} formulation of manipulator dynamics
+  and a comparative study of dynamics formulation complexity,'' {\em IEEE
+  Trans. Syst. Man Cybern.}, vol.~SMC-10, pp.~730--736, Nov. 1980.
+
+\bibitem{Silver82}
+W.~M. Silver, ``On the equivalance of {Lagrangian} and {Newton-Euler} dynamics
+  for manipulators,'' {\em Int. J. Robot. Res.}, vol.~1, pp.~60--70, Summer
+  1982.
+
+\bibitem{Wampler85}
+C.~Wampler, {\em Computer Methods in Manipulator Kinematics, Dynamics, and
+  Control: a Comparative Study.}
+\newblock PhD thesis, Stanford University, 1985.
+
+\bibitem{Murray84}
+J.~J. Murray, {\em Computational Robot Dynamics}.
+\newblock PhD thesis, Carnegie-Mellon University, 1984.
+
+\bibitem{Walker82}
+M.~W. Walker and D.~E. Orin, ``Efficient dynamic computer simulation of robotic
+  mechanisms,'' {\em ASME Journal of Dynamic Systems, Measurement and Control},
+  vol.~104, pp.~205--211, 1982.
+
+\bibitem{Featherstone87}
+R.~Featherstone, {\em Robot Dynamics Algorithms}.
+\newblock Kluwer Academic Publishers, 1987.
+
+\bibitem{Lathrop86}
+R.~Lathrop, ``Constrained (closed-loop) robot simulation by local constraint
+  propogation.,'' in {\em Proc. IEEE Int. Conf. Robotics and Automation},
+  pp.~689--694, 1986.
+
+\bibitem{Armstrong86}
+B.~Armstrong, O.~Khatib, and J.~Burdick, ``The explicit dynamic model and
+  inertial parameters of the {Puma} 560 arm,'' in {\em Proc. IEEE Int. Conf.
+  Robotics and Automation}, vol.~1, (Washington, USA), pp.~510--18, 1986.
+
+\end{thebibliography}

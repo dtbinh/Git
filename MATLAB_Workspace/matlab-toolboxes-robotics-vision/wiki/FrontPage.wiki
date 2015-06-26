@@ -1,0 +1,10 @@
+#summary About the toolbox
+
+= Robotics and Machine-Vision Toolboxes for MATLAB =
+
+  * The book [http://petercorke.com/RVC Robotics, Vision & Control]
+  * The [https://groups.google.com/forum/?hl=en&fromgroups#!forum/robotics-tool-box Google group] for discussion about the toolboxes
+  * The [http://code.google.com/p/matlab-toolboxes-robotics-vision/source/checkout SVN repository]
+  * [http://code.google.com/p/matlab-toolboxes-robotics-vision/source/list SVN change history]
+
+<wiki:gadget url="http://www.ohloh.net/p/617027/widgets/project_factoids_stats.xml" height="270" border="1"/>

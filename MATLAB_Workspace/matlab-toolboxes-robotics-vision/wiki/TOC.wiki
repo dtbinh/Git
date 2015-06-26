@@ -1,0 +1,8 @@
+#summary Table of contents for sidebar.
+
+  * [FrontPage Top]
+    * [FAQ Frequently asked questions] (FAQ)
+    * [Reporting Reporting bugs]
+    * [http://petercorke.com/RVC Robotics, Vision & Control (the book)]
+    * [History Toolbox History]
+    * [WishList]
