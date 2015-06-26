@@ -14,6 +14,7 @@ struct MotorParameters {
   unsigned port_direction;
   unsigned port_step;
   unsigned steps_per_revolution;
+  double gear_ratio;
 } ;
 
 class StepperMotor
@@ -27,6 +28,11 @@ class StepperMotor
 
   // Motor resolution configured through the DIP Switch in the STR2 driver
   unsigned steps_per_revolution_;
+
+  // Mechanical constant that converts the motor revolutions into revolutions of
+  // the end effector connected to the motor.
+  // OBS: This parameter depends on the mechanical assembly of the device
+  double gear_ratio_;
 
   // State variables
   bool configured_;
@@ -42,6 +48,7 @@ class StepperMotor
   unsigned port_direction();
   unsigned port_step();
   unsigned steps_per_revolution();
+  double gear_ratio();
 
   // Configuration functions
   void configureParameters(MotorParameters parameters);

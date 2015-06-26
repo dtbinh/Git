@@ -12,8 +12,9 @@
 #include <stdio.h>
 
 // Enable/Disable debug prints
-#define DEBUG_PRINT_ENABLED 1
-#define ERROR_PRINT_ENABLED 1
+#define DEBUG_PRINT_ENABLED   1
+#define WARNING_PRINT_ENABLED 1
+#define ERROR_PRINT_ENABLED   1
 
 // Debug print function
 #if DEBUG_PRINT_ENABLED
@@ -22,7 +23,14 @@
 #define Debug(format, args...) ((void)0)
 #endif
 
-// Debug print function
+// Warning print function
+#if WARNING_PRINT_ENABLED
+#define Warn printf
+#else
+#define Warn(format, args...) ((void)0)
+#endif
+
+// Error print function
 #if ERROR_PRINT_ENABLED
 #define Error printf
 #else
@@ -33,11 +41,14 @@
 #define ERR_MALLOC                  -1
 #define ERR_MOTOR_NOT_CONFIGURED    -11
 #define ERR_DEVICE_NOT_INITIALIZED  -12
-#define ERR_TIME_CALC_INVALID       -13
-#define ERR_INVALID_ROTATION_RAMP   -14
+#define ERR_DEVICE_NOT_CALIBRATED   -13
+#define ERR_TIME_CALC_INVALID       -14
+#define ERR_INVALID_ROTATION_RAMP   -15
 #define ERR_INVALID_MOTOR_SPEED     -21
 #define ERR_SPEED_TOO_SMALL         -22
 #define ERR_SPEED_TOO_HIGH          -23
+#define ERR_INSERT_POS_TOO_HIGH     -24
+#define ERR_INSERT_POS_TOO_LOW      -25
 #define ERR_INVALID_MOTOR_CODE      -31
 #define ERR_GPIO_INIT_FAIL          -101
 #define ERR_GPIO_WAVE_CREATE_FAIL   -102

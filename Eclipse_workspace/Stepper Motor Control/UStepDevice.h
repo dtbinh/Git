@@ -19,32 +19,45 @@ class UStepDevice
    * DEVICE PARAMETERS
    */
 
-  // Sensors
-  unsigned emergency_button_;
-  unsigned front_switch_;
-  unsigned back_switch_;
-
   // Actuators
   StepperMotor insertion_;
   StepperMotor rotation_;
   StepperMotor front_gripper_;
   StepperMotor back_gripper_;
 
-  // Physical parameters of the rotation motor
+  // Sensors
+  unsigned emergency_button_;
+  unsigned front_switch_;
+  unsigned back_switch_;
+
+  // Speed and acceleration parameters of the motors
   double min_base_speed_;
   double max_base_speed_;
   double max_final_speed_;
   double max_acceleration_;
 
-  // Mechanical parameters
-  double insertion_revolutions_per_mm_;   // (6/5)*(1/1) motor revolutions / displacement mm
-  double motor_per_needle_revolutions_;   // (32/28)*(5/2) motor revolutions / needle revolution
-  double gripper_default_displacement_;
+  // Standard speed for opening/closing the gripper
   double gripper_default_speed_;
+
+  // The default displacement of the front gripper (in revolutions) necessary to
+  // move the gripper from the open position to the firmly grasping position
+  double front_gripper_default_displacement_;
+
+  // The default displacement of the back gripper (in revolutions) necessary to
+  // move the gripper from the open position to the firmly grasping position
+  double back_gripper_default_displacement_;
+
+  // Insertion length position limits in millimeters
+  // These positions correspond to the distance from the gripper box to the front limit switch
+  double max_insertion_position_;
+  double min_insertion_position_;
 
   // Duty cycle threshold parameters
   double dc_max_threshold_;
   double dc_min_threshold_;
+
+//  double insertion_motor_revolutions_per_mm_;   // (6/5)*(1/1) motor revolutions / displacement mm
+//  double rotation_motor_per_needle_revolutions_;   // (32/28)*(5/2) motor revolutions / needle revolution
 
   /*
    * INTERNAL VARIABLES
@@ -53,8 +66,12 @@ class UStepDevice
   // State variables
   bool configured_;
   bool initialized_;
+  bool calibrated_;
+
+  // Internal position estimation
   bool front_gripper_closed_;
   bool back_gripper_closed_;
+  double insertion_position_;
 
   // Waves
   int wave_insertion_with_rotation_;
@@ -76,17 +93,21 @@ class UStepDevice
   unsigned seconds_pure_insertion_;
 
   // Feed back variables
-  unsigned micros_real_rotation_duration_;
+  double calculated_insertion_depth_;
   double calculated_insertion_speed_;
   double calculated_rotation_speed_;
   double calculated_duty_cycle_;
+  unsigned micros_real_rotation_duration_;
   double rotation_ramp_step_percentage_;
 
   /*
    * AUXILIARY FUNCTIONS
    */
 
-  // Clear the wave variables, unset the wave flags and clear all the duty cycle parameters
+  // DESCRIPTION PENDING
+  void displayParameters();
+
+  // Clear the wave variables, clear the wave flags and clear all the duty cycle parameters
   void clearWaves();
 
   // Combine all the wave flags in a single variable
@@ -138,9 +159,6 @@ class UStepDevice
   // This function returns the number of pulses used in the ramp
   unsigned generatePulsesRampUp(unsigned port_number, double frequency_initial, double frequency_final, double step_acceleration, gpioPulse_t* pulses, unsigned max_steps);
 
-  // DESCRIPTION PENDING
-  int setDirection(unsigned motor, unsigned direction);
-
  public:
 
   // Empty constructor
@@ -154,6 +172,9 @@ class UStepDevice
 
   // Terminate the Raspberry Pi GPIO
   void terminateGPIO();
+
+  // DESCRIPTION PENDING
+  int calibrateMotorsStartingPosition();
 
   // Calculate the duty cycle motion parameters and create the motion waves
   int setInsertionWithDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
@@ -177,19 +198,11 @@ class UStepDevice
   int closeBackGripper();
 
   // DESCRIPTION PENDING
+  // OBS: This should be a private function, but I will leave it public for debugging purposes
   int moveMotorConstantSpeed(unsigned motor, double displacement, double speed);
 
-  void testFunction();
-
-  /*void openFrontGripper();
-  void closeFrontGripper();
-  void openBackGripper();
-  void closeBackGripper();
-  void insert();
-  void retreat();
-  CALLIBRATE
-  DISPLAY PARAMETERS
-  void spin();*/
+  // DESCRIPTION PENDING
+  int setDirection(unsigned motor, unsigned direction);
 
 };
 

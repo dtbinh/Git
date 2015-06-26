@@ -17,6 +17,7 @@ StepperMotor::StepperMotor()
   port_step_ = 0;
 
   steps_per_revolution_ = 0;
+  gear_ratio_ = 1.0;
 
   initialized_ = false;
   configured_ = false;
@@ -46,6 +47,11 @@ unsigned StepperMotor::steps_per_revolution()
   return steps_per_revolution_;
 }
 
+double StepperMotor::gear_ratio()
+{
+  return gear_ratio_;
+}
+
 // Copy the provided parameters into the corresponding member variables
 void StepperMotor::configureParameters(MotorParameters parameters)
 {
@@ -54,6 +60,8 @@ void StepperMotor::configureParameters(MotorParameters parameters)
   port_step_ = parameters.port_step;
 
   steps_per_revolution_ = parameters.steps_per_revolution;
+
+  gear_ratio_ = parameters.gear_ratio;
 
   configured_ = true;
 }
