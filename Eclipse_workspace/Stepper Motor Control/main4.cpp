@@ -21,8 +21,9 @@
 
 // Commands exchanged with the Matlab client
 #define CMD_MOVE_MOTOR              1
-#define CMD_SET_DIRECTION           2
-#define CMD_MOVE_MOTOR_STEPS        3
+#define CMD_MOVE_MOTOR_STEPS        2
+#define CMD_SET_DIRECTION           3
+#define CMD_SET_ENABLE              4
 #define CMD_SHUT_DOWN               255
 
 
@@ -173,6 +174,21 @@ int decodeReceivedMessage(ssize_t bytes_received)
       }
 
       break;
+
+    case CMD_SET_ENABLE:
+       if(bytes_received == 3)
+       {
+         unsigned motor = input_data_buffer[1];
+         unsigned enable = input_data_buffer[2];
+         Debug("Received command SET_ENABLE with parameters: motor = %u, enable = %u\n", motor, enable);
+         device.setEnable(motor, enable);
+       }
+       else
+       {
+         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command SET_ENABLE \n");
+       }
+
+       break;
 
 
     // Shut down the UStep Device control software

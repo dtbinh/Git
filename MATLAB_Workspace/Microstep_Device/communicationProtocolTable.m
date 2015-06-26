@@ -3,6 +3,7 @@
 global CMD_MOVE_MOTOR;
 global CMD_MOVE_MOTOR_STEPS;
 global CMD_SET_DIRECTION;
+global CMD_SET_ENABLE;
 global CMD_SHUT_DOWN;
 
 global MOTOR_INSERTION;
@@ -17,11 +18,15 @@ global DIRECTION_COUNTER_CLOCKWISE;
 global DIRECTION_OPENING;
 global DIRECTION_CLOSING;
 
+global ENABLE_MOTOR;
+global DISABLE_MOTOR;
+
 % Commands exchanged with the Matlab client
-CMD_MOVE_MOTOR    = 1;
-CMD_SET_DIRECTION = 2;
-CMD_MOVE_MOTOR_STEPS = 3;
-CMD_SHUT_DOWN     = 255;
+CMD_MOVE_MOTOR       = 1;
+CMD_MOVE_MOTOR_STEPS = 2;
+CMD_SET_DIRECTION    = 3;
+CMD_SET_ENABLE       = 4;
+CMD_SHUT_DOWN        = 255;
 
 % Numeric code for referring to each of the motors
 MOTOR_INSERTION     = 1;
@@ -36,3 +41,7 @@ DIRECTION_CLOCKWISE         = 0;
 DIRECTION_COUNTER_CLOCKWISE = 1;
 DIRECTION_OPENING           = 1;
 DIRECTION_CLOSING           = 0;
+
+% Values that must be set to the enable ports for enabling/disabling the motors
+ENABLE_MOTOR  = 0;
+DISABLE_MOTOR = 1;

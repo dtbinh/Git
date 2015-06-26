@@ -42,6 +42,10 @@
 #define DIRECTION_OPENING             1
 #define DIRECTION_CLOSING             0
 
+// Values that must be set to the enable ports for enabling/disabling the motors
+#define ENABLE_MOTOR                  0
+#define DISABLE_MOTOR                 1
+
 UStepDevice::UStepDevice()
 {
   emergency_button_ = 0;
@@ -171,41 +175,39 @@ int UStepDevice::calibrateMotorsStartingPosition()
 {
   if(initialized_)
   {
-    // TODO - Insert calibration routine here
-
-    // all motors are enabled by default
-    // print something like "STARTING CALIBRATION"
     printf("\n\n\n\n\n");
     printf(" ----------------------------------------------------- \n");
     printf(" -           Starting calibration function           - \n");
     printf(" ----------------------------------------------------- \n");
     printf("\n");
-
+/*
     printf("STEP 1 - Calibrating the initial position of Motor 1:\n");
     printf("   - Please wait for the front gripper to hit the front limit switch\n");
     moveGripperToFrontSwitch(max_base_speed_*0.7);
-    //moveMotorConstantSpeed(MOTOR_INSERTION, max_insertion_position_*1.1, max_base_speed_*0.7);
     printf("   - Moving motor 1 to its initial position: %.2f mm\n", min_insertion_position_);
     setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
     moveMotorConstantSpeed(MOTOR_INSERTION, min_insertion_position_, max_base_speed_*0.7);
-    printf("   - Motor 1 calibrated \n");
+    printf("   - Motor 1 calibrated \n\n");
 
-    // disable back gripper
-    // ask user to move it to completely open position and hit enter
-    // enable back gripper
+    printf("STEP 2 - Calibrating the initial position of Motor 2:\n");
+    printf("   - Disabling motor 2\n");
+    printf("   - Please move the back gripper to the completely open position\n");
+    printf("   - Hit ENTER when you are done\n");
+    gpioWrite(back_gripper_.port_enable(), 1);
+    getchar();
+    gpioWrite(back_gripper_.port_enable(), 0);
+    printf("   - Motor 2 calibrated \n\n");
+*/
+    printf("STEP 3 - Calibrating the initial position of Motor 4:\n");
+    printf("   - Disabling motor 4\n");
+    printf("   - Please move the front gripper to the completely open position\n");
+    printf("   - Hit ENTER when you are done\n");
+    gpioWrite(front_gripper_.port_enable(), 1);
+    getchar();
+    gpioWrite(front_gripper_.port_enable(), 0);
+    printf("   - Motor 4 calibrated \n\n");
 
-    // disable front gripper
-    // ask user to move it to completely open position and hit enter
-    // enable front gripper
-
-    // move the insertion motor for 200 mm forward (it will surely hit the limit switch)
-
-
-
-
-
-    // move the insertion motor to min_insertion_position
-    // update the insertion_position_variable
+    printf("Calibration function finished! \n\n");
 
     calibrated_ = true;
   }
@@ -854,6 +856,43 @@ int UStepDevice::moveGripperToFrontSwitch(double speed)
   }
 
   return 0;
+}
+
+int UStepDevice::setEnable(unsigned motor, unsigned enable)
+{
+  if(initialized_)
+  {
+    switch(motor)
+    {
+      case MOTOR_INSERTION:
+        gpioWrite(insertion_.port_enable(), enable);
+        break;
+
+      case MOTOR_ROTATION:
+        gpioWrite(rotation_.port_enable(), enable);
+        break;
+
+      case MOTOR_FRONT_GRIPPER:
+        gpioWrite(front_gripper_.port_enable(), enable);
+        break;
+
+      case MOTOR_BACK_GRIPPER:
+        gpioWrite(back_gripper_.port_enable(), enable);
+        break;
+
+      default:
+        Error("ERROR UStepDevice::motorSetEnable - Invalid motor code \n");
+        return ERR_INVALID_MOTOR_CODE;
+      }
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::motorSetEnable - Device not initialized. You must call initGPIO() before \n");
+      return ERR_DEVICE_NOT_INITIALIZED;
+    }
+
+    return 0;
 }
 
 void UStepDevice::displayParameters()

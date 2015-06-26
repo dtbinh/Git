@@ -21,7 +21,7 @@ global DIRECTION_CLOSING;
 
 communicationProtocolTable
 
-speed = 3 * 20000;
+speed = 2 * 20000;
 
 %% Start communication with the Raspberry Pi TCP/IP server
 

@@ -207,6 +207,9 @@ class UStepDevice
   // DESCRIPTION PENDING
   int moveGripperToFrontSwitch(double speed);
 
+  // DESCRIPTION PENDING
+  int setEnable(unsigned motor, unsigned enable);
+
 };
 
 #endif /* USTEPDEVICE_H_ */

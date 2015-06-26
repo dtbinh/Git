@@ -47,27 +47,27 @@
 // Step size of the motors, configured through the DIP Switch of each STR2 driver
    // These values must ALWAYS match the DIP switches of the STR2 drivers
 #define STEP_SIZE_INSERTION     5000
-#define STEP_SIZE_ROTATION      400
-#define STEP_SIZE_BACK_GRIPPER  400
+#define STEP_SIZE_ROTATION      2000
+#define STEP_SIZE_BACK_GRIPPER  2000
 
 // Gear ratio - conversion constant between the motors and the end effectors
    // These values must be verified with the rotation transmissions in the device
-#define INSERTION_MOTOR_REVS_PER_MM               (41.0/51)
-#define ROTATION_MOTOR_REVS_PER_NEEDLE_REVS       (20.0/7)
-#define BACK_GRIPPER_MOTOR_REVS_PER_GEAR_REVS     (20.0/7)
+#define INSERTION_MOTOR_REVS_PER_MM               (0.8067) // Precision error of 15 nm
+#define ROTATION_MOTOR_REVS_PER_NEEDLE_REVS       (1.9040) // Rounded from 1.9038
+#define BACK_GRIPPER_MOTOR_REVS_PER_GEAR_REVS     (1.9040) // Rounded from 1.9038
 
 // Speed and acceleration parameters of the motors
    // These values are all given in motor revolutions (not end effector)
-#define MIN_SPEED            0.025
-#define MAX_SPEED            4.5
-#define MAX_FINAL_SPEED     30.0
-#define ACC                200.0
+#define MIN_SPEED            0.05
+#define MAX_SPEED            4.50
+#define MAX_FINAL_SPEED     30.00
+#define ACC                200.00
 
 // Gripper default speed and displacements
 // These values are given in end effector perspective (not actual motor speeds)
 
    // The default speed the 'Engrenagem Guia's will spin - about 0.5 rev/s
-#define GRIPPER_SPEED         0.5
+#define GRIPPER_SPEED         0.25
 
    // The default angle the front gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 #define FRONT_GRIPPER_DISP    0.25
@@ -76,7 +76,8 @@
 #define BACK_GRIPPER_DISP     0.25
 
 // Insertion length position limits in millimeters
-#define MAX_INSERT_POS    140.0
+// !!!!!!!!!!!! ATENTION: These parameter change, every time the back limit switch is moved !!!!!!!!!!!!!!
+#define MAX_INSERT_POS    100.0
 #define MIN_INSERT_POS      5.0
 
 // Threshold values for the duty cycle

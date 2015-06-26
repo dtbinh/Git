@@ -39,16 +39,16 @@ set(tcpip_client,'Timeout',30);
 
 %% Initialize the motor position
 
-% closing_angles = [13300 13350 13375 13400 13425 13450 13475 13500];
-closing_angles = 13450;
+closing_angles = [13100 13200 13300 13400 13500];
+% closing_angles = 13450;
 n_angles = length(closing_angles);
 grasp_results = zeros(1, n_angles);
 
 for i_angle = 1:n_angles
     
-    fprintf('Disabling the motor 4\n');
+    fprintf('Disabling the motor 2\n');
     fopen(tcpip_client);
-    fwrite(tcpip_client, [CMD_SET_ENABLE MOTOR_FRONT_GRIPPER DISABLE_MOTOR]);
+    fwrite(tcpip_client, [CMD_SET_ENABLE MOTOR_BACK_GRIPPER DISABLE_MOTOR]);
     fclose(tcpip_client);
     
     fprintf('Please move the front gripper to the completely open position\n');
@@ -56,12 +56,12 @@ for i_angle = 1:n_angles
     
     fprintf('Closing the gripper with %d steps\n', closing_angles(i_angle));
     fopen(tcpip_client);
-    fwrite(tcpip_client, [CMD_SET_ENABLE MOTOR_FRONT_GRIPPER ENABLE_MOTOR]);
+    fwrite(tcpip_client, [CMD_SET_ENABLE MOTOR_BACK_GRIPPER ENABLE_MOTOR]);
     pause(0.5);
-    fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_FRONT_GRIPPER DIRECTION_CLOSING]);
+    fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_BACK_GRIPPER DIRECTION_CLOSING]);
     pause(0.5);
     displacement = closing_angles(i_angle);
-    fwrite(tcpip_client, [CMD_MOVE_MOTOR_STEPS MOTOR_FRONT_GRIPPER typecast(displacement, 'uint8') typecast(speed, 'uint8')]);
+    fwrite(tcpip_client, [CMD_MOVE_MOTOR_STEPS MOTOR_BACK_GRIPPER typecast(displacement, 'uint8') typecast(speed, 'uint8')]);
     fclose(tcpip_client);
     
     fprintf('Preparing to insert the needle into the gelatin for testing the grasp\n');
