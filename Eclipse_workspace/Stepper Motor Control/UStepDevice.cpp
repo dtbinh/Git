@@ -9,6 +9,7 @@
 #include "UStepDevice.h"
 #include "debug.h"
 #include <iostream>
+#include <stdio.h>
 #include <stdlib.h>
 #include <pigpio.h>
 #include <math.h>
@@ -180,7 +181,7 @@ int UStepDevice::calibrateMotorsStartingPosition()
     printf(" -           Starting calibration function           - \n");
     printf(" ----------------------------------------------------- \n");
     printf("\n");
-/*
+
     printf("STEP 1 - Calibrating the initial position of Motor 1:\n");
     printf("   - Please wait for the front gripper to hit the front limit switch\n");
     moveGripperToFrontSwitch(max_base_speed_*0.7);
@@ -197,7 +198,7 @@ int UStepDevice::calibrateMotorsStartingPosition()
     getchar();
     gpioWrite(back_gripper_.port_enable(), 0);
     printf("   - Motor 2 calibrated \n\n");
-*/
+
     printf("STEP 3 - Calibrating the initial position of Motor 4:\n");
     printf("   - Disabling motor 4\n");
     printf("   - Please move the front gripper to the completely open position\n");
@@ -614,6 +615,8 @@ int UStepDevice::moveMotorConstantSpeed(unsigned motor, double displacement, dou
       Error("ERROR UStepDevice::moveMotor - Invalid motor code \n");
       return ERR_INVALID_MOTOR_CODE;
   }
+
+  Debug("DEBUG UStepDevice::moveMotor - Moving the motor %u for a displacement of %u steps \n", motor, motor_displacement_step);
 
   if(verifyMotorSpeedLimits(motor_speed, 0))
   {

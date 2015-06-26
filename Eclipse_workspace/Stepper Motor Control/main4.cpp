@@ -24,6 +24,10 @@
 #define CMD_MOVE_MOTOR_STEPS        2
 #define CMD_SET_DIRECTION           3
 #define CMD_SET_ENABLE              4
+#define CMD_OPEN_FRONT_GRIPPER		5
+#define CMD_CLOSE_FRONT_GRIPPER		6
+#define CMD_OPEN_BACK_GRIPPER		7
+#define CMD_CLOSE_BACK_GRIPPER		8
 #define CMD_SHUT_DOWN               255
 
 
@@ -190,6 +194,54 @@ int decodeReceivedMessage(ssize_t bytes_received)
 
        break;
 
+    case CMD_OPEN_FRONT_GRIPPER:
+       if(bytes_received == 1)
+       {
+         device.openFrontGripper();
+       }
+       else
+       {
+         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command OPEN_FRONT_GRIPPER \n");
+       }
+
+       break;
+
+    case CMD_CLOSE_FRONT_GRIPPER:
+       if(bytes_received == 1)
+       {
+         device.closeFrontGripper();
+       }
+       else
+       {
+         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command CLOSE_FRONT_GRIPPER \n");
+       }
+
+       break;
+
+    case CMD_OPEN_BACK_GRIPPER:
+       if(bytes_received == 1)
+       {
+         device.openBackGripper();
+       }
+       else
+       {
+         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command OPEN_BACK_GRIPPER \n");
+       }
+
+       break;
+
+    case CMD_CLOSE_BACK_GRIPPER:
+       if(bytes_received == 1)
+       {
+         device.closeBackGripper();
+       }
+       else
+       {
+         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command CLOSE_BACK_GRIPPER \n");
+       }
+
+       break;
+
 
     // Shut down the UStep Device control software
     case CMD_SHUT_DOWN:
@@ -267,7 +319,7 @@ int main(int argc, char *argv[])
     return ERR_GPIO_INIT_FAIL;
   }
 
-  //device.calibrateMotorsStartingPosition();
+  device.calibrateMotorsStartingPosition();
 
   // Connect to the Matlab client and answer to its commands
   communicateWithTheMatlabClient();

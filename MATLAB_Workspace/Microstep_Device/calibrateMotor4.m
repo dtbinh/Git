@@ -25,10 +25,11 @@ global DISABLE_MOTOR;
 
 communicationProtocolTable
 
-speed = 0.5 * 2000;
+% speed = 1904;
+speed = 400;
 
-insertion_speed = 2 * 20000;
-insertion_displacement = 30 * 20000;
+insertion_speed = 2 * 5000;
+insertion_displacement = 30 * 5000;
 
 %% Start communication with the Raspberry Pi TCP/IP server
 
@@ -39,8 +40,8 @@ set(tcpip_client,'Timeout',30);
 
 %% Initialize the motor position
 
-% closing_angles = [13300 13350 13375 13400 13425 13450 13475 13500];
-closing_angles = 13450;
+% closing_angles = [13300 13350 13400 13450 13500];
+closing_angles = 1345;
 n_angles = length(closing_angles);
 grasp_results = zeros(1, n_angles);
 
