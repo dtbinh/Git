@@ -183,8 +183,8 @@ int UStepDevice::calibrateMotorsStartingPosition()
 
     printf("STEP 1 - Calibrating the initial position of Motor 1:\n");
     printf("   - Please wait for the front gripper to hit the front limit switch\n");
-    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
-    moveMotorConstantSpeed(MOTOR_INSERTION, max_insertion_position_*1.1, max_base_speed_*0.7);
+    moveGripperToFrontSwitch(max_base_speed_*0.7);
+    //moveMotorConstantSpeed(MOTOR_INSERTION, max_insertion_position_*1.1, max_base_speed_*0.7);
     printf("   - Moving motor 1 to its initial position: %.2f mm\n", min_insertion_position_);
     setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
     moveMotorConstantSpeed(MOTOR_INSERTION, min_insertion_position_, max_base_speed_*0.7);
@@ -695,6 +695,80 @@ int UStepDevice::setDirection(unsigned motor, unsigned direction)
     }
 
     return 0;
+}
+
+int UStepDevice::moveGripperToFrontSwitch(double speed)
+{
+  setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+
+  //double motor_displacement;
+  double motor_speed;
+
+  unsigned motor_port_step;
+  //unsigned motor_displacement_step;
+
+  unsigned step_half_period;
+  //unsigned duration_seconds;
+  //unsigned duration_micros;
+
+
+
+      //motor_displacement = displacement * insertion_.gear_ratio();
+      motor_speed = speed * insertion_.gear_ratio();
+      motor_port_step = insertion_.port_step();
+      //motor_displacement_step = round();
+
+
+
+  if(verifyMotorSpeedLimits(motor_speed, 0))
+  {
+    Error("ERROR UStepDevice::moveMotor - Requested motor speeds is invalid \n");
+    return ERR_INVALID_MOTOR_SPEED;
+  }
+
+  //double exp_total_insert_time_us = () *;
+  //step_half_period = round((   (S_TO_US * / motor_speed) / (insertion_.steps_per_revolution())     ) / 2);
+
+  step_half_period = round((S_TO_US / (motor_speed * insertion_.steps_per_revolution())) / 2);
+
+
+  //duration_micros = motor_displacement_step * 2*step_half_period;
+  //duration_seconds = floor(duration_micros*US_TO_S);
+  //duration_micros = duration_micros - S_TO_US*duration_seconds;
+
+  gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
+
+  if(pulses >= 0)
+  {
+    gpioWaveClear();
+    gpioWaveAddGeneric(2, pulses);
+    int wave_id = gpioWaveCreate();
+
+    free(pulses);
+
+    if (wave_id >= 0)
+    {
+      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
+      while(gpioRead(front_switch_) == 0)
+        gpioSleep(PI_TIME_RELATIVE, 0, 100000);
+      gpioWaveTxStop();
+      gpioWrite(motor_port_step, 0);
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
+      return ERR_GPIO_WAVE_CREATE_FAIL;
+    }
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
+    return ERR_MALLOC;
+  }
+
+  return 0;
 }
 
 void UStepDevice::displayParameters()
