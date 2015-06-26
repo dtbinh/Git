@@ -175,6 +175,20 @@ int UStepDevice::calibrateMotorsStartingPosition()
 
     // all motors are enabled by default
     // print something like "STARTING CALIBRATION"
+    printf("\n\n\n\n\n");
+    printf(" ----------------------------------------------------- \n");
+    printf(" -           Starting calibration function           - \n");
+    printf(" ----------------------------------------------------- \n");
+    printf("\n");
+
+    printf("STEP 1 - Calibrating the initial position of Motor 1:\n");
+    printf("   - Please wait for the front gripper to hit the front limit switch\n");
+    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+    moveMotorConstantSpeed(MOTOR_INSERTION, max_insertion_position_*1.1, max_base_speed_*0.7);
+    printf("   - Moving motor 1 to its initial position: %.2f mm\n", min_insertion_position_);
+    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
+    moveMotorConstantSpeed(MOTOR_INSERTION, min_insertion_position_, max_base_speed_*0.7);
+    printf("   - Motor 1 calibrated \n");
 
     // disable back gripper
     // ask user to move it to completely open position and hit enter
@@ -185,6 +199,10 @@ int UStepDevice::calibrateMotorsStartingPosition()
     // enable front gripper
 
     // move the insertion motor for 200 mm forward (it will surely hit the limit switch)
+
+
+
+
 
     // move the insertion motor to min_insertion_position
     // update the insertion_position_variable
@@ -550,102 +568,92 @@ int UStepDevice::moveMotorConstantSpeed(unsigned motor, double displacement, dou
   //   - displacement : The requested displacement of the end effector in revs
   //   - speed        : The requested speed of the end effector in rev/s
 
-  if(calibrated_)
+  double motor_displacement;
+  double motor_speed;
+
+  unsigned motor_port_step;
+  unsigned motor_displacement_step;
+
+  unsigned step_half_period;
+  unsigned duration_seconds;
+  unsigned duration_micros;
+
+  switch(motor)
   {
-    double motor_displacement;
-    double motor_speed;
+    case MOTOR_INSERTION:
+      motor_displacement = displacement * insertion_.gear_ratio();
+      motor_speed = speed * insertion_.gear_ratio();
+      motor_port_step = insertion_.port_step();
+      motor_displacement_step = round(motor_displacement * insertion_.steps_per_revolution());
+      break;
 
-    unsigned motor_port_step;
-    unsigned motor_displacement_step;
+    case MOTOR_ROTATION:
+      motor_displacement = displacement * rotation_.gear_ratio();
+      motor_speed = speed * rotation_.gear_ratio();
+      motor_port_step = rotation_.port_step();
+      motor_displacement_step = round(motor_displacement * rotation_.steps_per_revolution());
+      break;
 
-    unsigned step_half_period;
-    unsigned duration_seconds;
-    unsigned duration_micros;
+    case MOTOR_FRONT_GRIPPER:
+      motor_displacement = displacement * front_gripper_.gear_ratio();
+      motor_speed = speed * front_gripper_.gear_ratio();
+      motor_port_step = front_gripper_.port_step();
+      motor_displacement_step = round(motor_displacement * front_gripper_.steps_per_revolution());
+      break;
 
-    switch(motor)
+    case MOTOR_BACK_GRIPPER:
+      motor_displacement = displacement * back_gripper_.gear_ratio();
+      motor_speed = speed * back_gripper_.gear_ratio();
+      motor_port_step = back_gripper_.port_step();
+      motor_displacement_step = round(motor_displacement * back_gripper_.steps_per_revolution());
+      break;
+
+    default:
+      Error("ERROR UStepDevice::moveMotor - Invalid motor code \n");
+      return ERR_INVALID_MOTOR_CODE;
+  }
+
+  if(verifyMotorSpeedLimits(motor_speed, 0))
+  {
+    Error("ERROR UStepDevice::moveMotor - Requested motor speeds is invalid \n");
+    return ERR_INVALID_MOTOR_SPEED;
+  }
+
+  double exp_total_insert_time_us = (motor_displacement / motor_speed) * S_TO_US;
+  step_half_period = round((exp_total_insert_time_us / motor_displacement_step) / 2);
+  duration_micros = motor_displacement_step * 2*step_half_period;
+  duration_seconds = floor(duration_micros*US_TO_S);
+  duration_micros = duration_micros - S_TO_US*duration_seconds;
+
+  gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
+
+  if(pulses >= 0)
+  {
+    gpioWaveClear();
+    gpioWaveAddGeneric(2, pulses);
+    int wave_id = gpioWaveCreate();
+
+    free(pulses);
+
+    if (wave_id >= 0)
     {
-      case MOTOR_INSERTION:
-        motor_displacement = displacement * insertion_.gear_ratio();
-        motor_speed = speed * insertion_.gear_ratio();
-        motor_port_step = insertion_.port_step();
-        motor_displacement_step = round(motor_displacement * insertion_.steps_per_revolution());
-        break;
-
-      case MOTOR_ROTATION:
-        motor_displacement = displacement * rotation_.gear_ratio();
-        motor_speed = speed * rotation_.gear_ratio();
-        motor_port_step = rotation_.port_step();
-        motor_displacement_step = round(motor_displacement * rotation_.steps_per_revolution());
-        break;
-
-      case MOTOR_FRONT_GRIPPER:
-        motor_displacement = displacement * front_gripper_.gear_ratio();
-        motor_speed = speed * front_gripper_.gear_ratio();
-        motor_port_step = front_gripper_.port_step();
-        motor_displacement_step = round(motor_displacement * front_gripper_.steps_per_revolution());
-        break;
-
-      case MOTOR_BACK_GRIPPER:
-        motor_displacement = displacement * back_gripper_.gear_ratio();
-        motor_speed = speed * back_gripper_.gear_ratio();
-        motor_port_step = back_gripper_.port_step();
-        motor_displacement_step = round(motor_displacement * back_gripper_.steps_per_revolution());
-        break;
-
-      default:
-        Error("ERROR UStepDevice::moveMotor - Invalid motor code \n");
-        return ERR_INVALID_MOTOR_CODE;
-    }
-
-    if(verifyMotorSpeedLimits(motor_speed, 0))
-    {
-      Error("ERROR UStepDevice::moveMotor - Requested motor speeds is invalid \n");
-      return ERR_INVALID_MOTOR_SPEED;
-    }
-
-    double exp_total_insert_time_us = (motor_displacement / motor_speed) * S_TO_US;
-    step_half_period = round((exp_total_insert_time_us / motor_displacement_step) / 2);
-    duration_micros = motor_displacement_step * 2*step_half_period;
-    duration_seconds = floor(duration_micros*US_TO_S);
-    duration_micros = duration_micros - S_TO_US*duration_seconds;
-
-    gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
-
-    if(pulses >= 0)
-    {
-      gpioWaveClear();
-      gpioWaveAddGeneric(2, pulses);
-      int wave_id = gpioWaveCreate();
-
-      free(pulses);
-
-      if (wave_id >= 0)
-      {
-        gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
-        gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
-        gpioWaveTxStop();
-        gpioWrite(motor_port_step, 0);
-      }
-
-      else
-      {
-        Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
-        return ERR_GPIO_WAVE_CREATE_FAIL;
-      }
+      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
+      gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
+      gpioWaveTxStop();
+      gpioWrite(motor_port_step, 0);
     }
 
     else
     {
-      Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
-      return ERR_MALLOC;
+      Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
+      return ERR_GPIO_WAVE_CREATE_FAIL;
     }
-
   }
 
   else
   {
-    Error("ERROR UStepDevice::moveMotorConstantSpeed - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
-    return ERR_DEVICE_NOT_CALIBRATED;
+    Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
+    return ERR_MALLOC;
   }
 
   return 0;
@@ -745,7 +753,8 @@ void UStepDevice::displayParameters()
   printf(" - Motor 4 : %u \n", front_gripper_.steps_per_revolution());
   printf("\n!!! ATTENTION: Please verify if the DIP switches of all STR2 Drivers match this configuration !!! \n");
 
-  printf("\n");
+  printf("\n---- Press any key to start running the program ----\n");
+  getchar();
 }
 
 void UStepDevice::clearWaves()

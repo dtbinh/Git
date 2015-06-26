@@ -21,6 +21,7 @@
 
 // Commands exchanged with the Matlab client
 #define CMD_MOVE_MOTOR              1
+#define CMD_SET_DIRECTION           2
 #define CMD_SHUT_DOWN               255
 
 
@@ -32,7 +33,7 @@ const int kInputBufferSize = 1000;
 UStepDevice device;                         // Object to represent the complete device
 int socket_fd ;                             // Socket for opening the TCP/IP communication
 int connection_socket_fd;                   // Socket for connecting to the Matlab client
-char input_data_buffer[kInputBufferSize];   // Input data buffer
+char input_data_buffer[kInputBufferSize]; // Input data buffer
 
 int startTCPServer(int *socket_fd, const char *port_number)
 {
@@ -103,15 +104,58 @@ void displayReceivedData(char *data_buffer, int bytes_received)
   printf("%d bytes received: ", bytes_received);
   for(int i = 0; i < bytes_received-1; i++)
   {
-    printf("%d, ", data_buffer[i]);
+    printf("%u, ", data_buffer[i]);
   }
-  printf("%d\n", data_buffer[bytes_received-1]);
+  printf("%u\n", data_buffer[bytes_received-1]);
 }
 
 int decodeReceivedMessage(ssize_t bytes_received)
 {
+  Debug("Received command %u\n", input_data_buffer[0]);
+
   switch(input_data_buffer[0])
   {
+    case CMD_MOVE_MOTOR:
+      if(bytes_received == 18)
+      {
+        unsigned motor = input_data_buffer[1];
+        double displacement;
+        double speed;
+        memcpy(&displacement, input_data_buffer+2, 8);
+        memcpy(&speed, input_data_buffer+10, 8);
+        Debug("Received command MOVE_MOTOR with parameters: motor = %u, displacement = %f, speed = %f\n", motor, displacement, speed);
+
+        if(speed < 4)
+        {
+          Debug("Moving the motor... \n");
+          device.moveMotorConstantSpeed(motor, displacement, speed);
+          Debug("Done, waiting for next command \n");
+        }
+        else
+          Warn("WARNING Main::decodeReceivedMessage - Not moving motor. Speed and displacement are too high! \n");
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_MOTOR \n");
+      }
+      break;
+
+    case CMD_SET_DIRECTION:
+      if(bytes_received == 3)
+      {
+        unsigned motor = input_data_buffer[1];
+        unsigned direction = input_data_buffer[2];
+        Debug("Received command SET_DIRECTION with parameters: motor = %u, direction = %u\n", motor, direction);
+        device.setDirection(motor, direction);
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command SET_DIRECTION \n");
+      }
+
+      break;
+
+
     // Shut down the UStep Device control software
     case CMD_SHUT_DOWN:
       return -1;
@@ -187,6 +231,8 @@ int main(int argc, char *argv[])
     Error("ERROR Main::main - Unable to call gpioInitialise() \n");
     return ERR_GPIO_INIT_FAIL;
   }
+
+  device.calibrateMotorsStartingPosition();
 
   // Connect to the Matlab client and answer to its commands
   communicateWithTheMatlabClient();

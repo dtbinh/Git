@@ -56,9 +56,6 @@ class UStepDevice
   double dc_max_threshold_;
   double dc_min_threshold_;
 
-//  double insertion_motor_revolutions_per_mm_;   // (6/5)*(1/1) motor revolutions / displacement mm
-//  double rotation_motor_per_needle_revolutions_;   // (32/28)*(5/2) motor revolutions / needle revolution
-
   /*
    * INTERNAL VARIABLES
    */

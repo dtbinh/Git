@@ -1,30 +1,27 @@
+% Numeric code for referring to each of the motors
+MOTOR_INSERTION     = 1;
+MOTOR_ROTATION      = 2;
+MOTOR_FRONT_GRIPPER = 3;
+MOTOR_BACK_GRIPPER  = 4;
+
+% Commands exchanged with the Matlab client
+CMD_MOVE_MOTOR = 1;
+CMD_SHUT_DOWN  = 255;
 
 
-tcpipClient = tcpip('169.254.0.2',5555,'NetworkRole','Client');
-set(tcpipClient,'InputBufferSize',7688);
-set(tcpipClient,'Timeout',30);
-fopen(tcpipClient);
 
 
-A = [1 2 3 4 5];
 
-fwrite(tcpipClient, 10*A);
+
+CMD = 1;
+motor = 1;
+displacement = 150;
+speed = 0.2;
+data_bytes = typecast(data, 'uint8')
+
+fwrite(tcpipClient, [CMD motor typecast(displacement, 'uint8') typecast(speed, 'uint8')]);
+
 pause(1);
-
-fwrite(tcpipClient, 20*A);
-pause(1);
-
-fwrite(tcpipClient, 30*A);
-pause(1);
-
-fwrite(tcpipClient, 40*A);
-pause(1);
-
-fwrite(tcpipClient, 50*A);
-pause(1);
-
 fwrite(tcpipClient, 255);
-
-
 
 fclose(tcpipClient);

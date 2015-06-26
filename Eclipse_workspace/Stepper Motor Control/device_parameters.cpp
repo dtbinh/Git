@@ -52,14 +52,15 @@
 
 // Gear ratio - conversion constant between the motors and the end effectors
    // These values must be verified with the rotation transmissions in the device
-#define INSERTION_MOTOR_REVS_PER_MM               (35.0/29)
+#define INSERTION_MOTOR_REVS_PER_MM               (41.0/51)
+//#define INSERTION_MOTOR_REVS_PER_MM               (35.0/29)
 #define ROTATION_MOTOR_REVS_PER_NEEDLE_REVS       (20.0/7)
 #define BACK_GRIPPER_MOTOR_REVS_PER_GEAR_REVS     (20.0/7)
 
 // Speed and acceleration parameters of the motors
    // These values are all given in motor revolutions (not end effector)
 #define MIN_SPEED            0.25
-#define MAX_SPEED            4.0
+#define MAX_SPEED            4.5
 #define MAX_FINAL_SPEED     30.0
 #define ACC                200.0
 
@@ -77,7 +78,7 @@
 
 // Insertion length position limits in millimeters
 #define MAX_INSERT_POS    140.0
-#define MIN_INSERT_POS      1.0
+#define MIN_INSERT_POS      5.0
 
 // Threshold values for the duty cycle
 #define MAX_DC  0.95
