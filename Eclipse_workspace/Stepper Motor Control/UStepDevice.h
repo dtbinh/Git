@@ -200,22 +200,22 @@ class UStepDevice
    */
 
   // DESCRIPTION PENDING
-  int moveMotorConstantSpeed(unsigned motor, double displacement, double speed);
+  int moveMotorConstantSpeed(unsigned char motor, double displacement, double speed);
 
   // DESCRIPTION PENDING
   int moveRotationMotorWithRamps(double revolutions, double rotation_speed);
 
   // DESCRIPTION PENDING
-  int debugMoveMotorSteps(unsigned motor, double motor_displacement_step, double motor_speed_step);
+  int debugMoveMotorSteps(unsigned char motor, double motor_displacement_step, double motor_speed_step);
 
   // DESCRIPTION PENDING
-  int setDirection(unsigned motor, unsigned direction);
+  int setDirection(unsigned char motor, unsigned direction);
 
   // DESCRIPTION PENDING
   int moveGripperToFrontSwitch(double speed);
 
   // DESCRIPTION PENDING
-  int setEnable(unsigned motor, unsigned enable);
+  int setEnable(unsigned char motor, unsigned enable);
 
 };
 

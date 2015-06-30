@@ -119,13 +119,17 @@ void displayReceivedData(char *data_buffer, int bytes_received)
 int decodeReceivedMessage(ssize_t bytes_received)
 {
   Debug("Received command %u with %u bytes\n", input_data_buffer[0], bytes_received);
+  Debug("Received bytes: ");
+  for(int i = 0; i < bytes_received; i++)
+    Debug("%X, ", input_data_buffer[i]);
+  Debug("\n");
 
   switch(input_data_buffer[0])
   {
     case CMD_MOVE_MOTOR:
       if(bytes_received == 18)
       {
-        unsigned motor;
+        unsigned char motor;
         double displacement;
         double speed;
         memcpy(&motor       , input_data_buffer + 1 , 1);
@@ -146,7 +150,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
     case CMD_MOVE_MOTOR_STEPS:
       if(bytes_received == 18)
       {
-        unsigned motor;
+        unsigned char motor;
         double displacement;
         double speed;
         memcpy(&motor       , input_data_buffer + 1 , 1);
@@ -209,7 +213,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
     case CMD_SET_DIRECTION:
       if(bytes_received == 3)
       {
-        unsigned motor = input_data_buffer[1];
+        unsigned char motor = input_data_buffer[1];
         unsigned direction = input_data_buffer[2];
         Debug("Received command SET_DIRECTION with parameters: motor = %u, direction = %u\n", motor, direction);
         device.setDirection(motor, direction);
@@ -224,7 +228,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
     case CMD_SET_ENABLE:
        if(bytes_received == 3)
        {
-         unsigned motor = input_data_buffer[1];
+         unsigned char motor = input_data_buffer[1];
          unsigned enable = input_data_buffer[2];
          Debug("Received command SET_ENABLE with parameters: motor = %u, enable = %u\n", motor, enable);
          device.setEnable(motor, enable);

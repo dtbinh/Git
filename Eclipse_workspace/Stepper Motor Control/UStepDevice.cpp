@@ -204,18 +204,22 @@ int UStepDevice::calibrateMotorsStartingPosition()
     printf("   - Disabling motor 2\n");
     printf("   - Please move the back gripper to the completely open position\n");
     printf("   - Hit ENTER when you are done\n");
-    gpioWrite(back_gripper_.port_enable(), DISABLE_MOTOR);
+    setEnable(MOTOR_BACK_GRIPPER, DISABLE_MOTOR);
+    //gpioWrite(back_gripper_.port_enable(), DISABLE_MOTOR);
     getchar();
-    gpioWrite(back_gripper_.port_enable(), ENABLE_MOTOR);
+    setEnable(MOTOR_BACK_GRIPPER, ENABLE_MOTOR);
+    //gpioWrite(back_gripper_.port_enable(), ENABLE_MOTOR);
     printf("   - Motor 2 calibrated \n\n");
 
     printf("STEP 3 - Calibrating the initial position of Motor 4:\n");
     printf("   - Disabling motor 4\n");
     printf("   - Please move the front gripper to the completely open position\n");
     printf("   - Hit ENTER when you are done\n");
-    gpioWrite(front_gripper_.port_enable(), DISABLE_MOTOR);
+    setEnable(MOTOR_FRONT_GRIPPER, DISABLE_MOTOR);
+    //gpioWrite(front_gripper_.port_enable(), DISABLE_MOTOR);
     getchar();
-    gpioWrite(front_gripper_.port_enable(), ENABLE_MOTOR);
+    setEnable(MOTOR_FRONT_GRIPPER, ENABLE_MOTOR);
+    //gpioWrite(front_gripper_.port_enable(), ENABLE_MOTOR);
     printf("   - Motor 4 calibrated \n\n");
 */
     printf("Calibration function finished! \n\n");
@@ -574,7 +578,7 @@ int UStepDevice::closeBackGripper()
   return 0;
 }
 
-int UStepDevice::moveMotorConstantSpeed(unsigned motor, double displacement, double speed)
+int UStepDevice::moveMotorConstantSpeed(unsigned char motor, double displacement, double speed)
 {
   // Input units
   //   - motor        : The code specifying the motor to move
@@ -754,7 +758,7 @@ int UStepDevice::moveRotationMotorWithRamps(double revolutions, double rotation_
   return 0;
 }
 
-int UStepDevice::debugMoveMotorSteps(unsigned motor, double motor_displacement_step, double motor_speed_step)
+int UStepDevice::debugMoveMotorSteps(unsigned char motor, double motor_displacement_step, double motor_speed_step)
 {
   // This function is analogous to the moveMotorConstantSpeed, but it must be used
   // only for debug purposes. Its parameters are already given in steps, so all
@@ -838,7 +842,7 @@ int UStepDevice::debugMoveMotorSteps(unsigned motor, double motor_displacement_s
   return 0;
 }
 
-int UStepDevice::setDirection(unsigned motor, unsigned direction)
+int UStepDevice::setDirection(unsigned char motor, unsigned direction)
 {
   if(initialized_)
   {
@@ -934,7 +938,7 @@ int UStepDevice::moveGripperToFrontSwitch(double speed)
   return 0;
 }
 
-int UStepDevice::setEnable(unsigned motor, unsigned enable)
+int UStepDevice::setEnable(unsigned char motor, unsigned enable)
 {
   if(initialized_)
   {

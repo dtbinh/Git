@@ -57,17 +57,24 @@
 #define BACK_GRIPPER_MOTOR_REVS_PER_GEAR_REVS     (1.9040) // Rounded from 1.9038
 
 // Speed and acceleration parameters of the motors
-   // These values are all given in motor revolutions (not end effector)
+// These values are all given in motor revolutions (not end effector)
+/*
 #define MIN_SPEED            0.05
-#define MAX_SPEED            1.00         // The correct value is 4.5
+#define MAX_SPEED            4.50
 #define MAX_FINAL_SPEED     30.00
-#define ACC                 50.00         // The correct value is 200.0
+#define ACC                200.00
+*/
+#define MIN_SPEED            0.05
+#define MAX_SPEED            2.00         // The correct value is 4.5
+#define MAX_FINAL_SPEED     30.00
+#define ACC                120.00         // The correct value is 200.0
+
 
 // Gripper default speed and displacements
 // These values are given in end effector perspective (not actual motor speeds)
 
-   // The default speed the 'Engrenagem Guia's will spin - about 0.5 rev/s
-#define GRIPPER_SPEED         0.10
+   // The default speed the 'Engrenagem Guia's will spin, in rev/s
+#define GRIPPER_SPEED         0.30
 
    // The default angle the front gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 #define FRONT_GRIPPER_DISP    0.3532
