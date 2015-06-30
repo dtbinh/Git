@@ -59,9 +59,9 @@
 // Speed and acceleration parameters of the motors
    // These values are all given in motor revolutions (not end effector)
 #define MIN_SPEED            0.05
-#define MAX_SPEED            4.50
+#define MAX_SPEED            1.00         // The correct value is 4.5
 #define MAX_FINAL_SPEED     30.00
-#define ACC                200.00
+#define ACC                 50.00         // The correct value is 200.0
 
 // Gripper default speed and displacements
 // These values are given in end effector perspective (not actual motor speeds)

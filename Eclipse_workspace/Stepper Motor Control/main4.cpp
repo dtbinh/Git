@@ -22,24 +22,24 @@
 // Commands exchanged with the Matlab client
 #define CMD_MOVE_MOTOR              1
 #define CMD_MOVE_MOTOR_STEPS        2
-#define CMD_MOVE_DC			        3
-#define CMD_SET_DIRECTION           4
-#define CMD_SET_ENABLE              5
-#define CMD_OPEN_FRONT_GRIPPER		6
-#define CMD_CLOSE_FRONT_GRIPPER		7
-#define CMD_OPEN_BACK_GRIPPER		8
-#define CMD_CLOSE_BACK_GRIPPER		9
+#define CMD_MOVE_DC			            3
+#define CMD_MOVE_SPIN               4
+#define CMD_SET_DIRECTION           5
+#define CMD_SET_ENABLE              6
+#define CMD_OPEN_FRONT_GRIPPER		  7
+#define CMD_CLOSE_FRONT_GRIPPER		  8
+#define CMD_OPEN_BACK_GRIPPER		    9
+#define CMD_CLOSE_BACK_GRIPPER		  10
 #define CMD_SHUT_DOWN               255
-
 
 // Global parameters
 const char kTCPPortNumber[] = "5555";
 const int kInputBufferSize = 1000;
 
 // Global Variables
-UStepDevice device;                         // Object to represent the complete device
-int socket_fd ;                             // Socket for opening the TCP/IP communication
-int connection_socket_fd;                   // Socket for connecting to the Matlab client
+UStepDevice device;                       // Object to represent the complete device
+int socket_fd ;                           // Socket for opening the TCP/IP communication
+int connection_socket_fd;                 // Socket for connecting to the Matlab client
 char input_data_buffer[kInputBufferSize]; // Input data buffer
 
 int startTCPServer(int *socket_fd, const char *port_number)
@@ -125,21 +125,17 @@ int decodeReceivedMessage(ssize_t bytes_received)
     case CMD_MOVE_MOTOR:
       if(bytes_received == 18)
       {
-        unsigned motor = input_data_buffer[1];
+        unsigned motor;
         double displacement;
         double speed;
-        memcpy(&displacement, input_data_buffer+2, 8);
-        memcpy(&speed, input_data_buffer+10, 8);
+        memcpy(&motor       , input_data_buffer + 1 , 1);
+        memcpy(&displacement, input_data_buffer + 2 , 8);
+        memcpy(&speed       , input_data_buffer + 10, 8);
         Debug("Received command MOVE_MOTOR with parameters: motor = %u, displacement = %f, speed = %f\n", motor, displacement, speed);
 
-        if(speed < 4)
-        {
-          Debug("Moving the motor... \n");
-          device.moveMotorConstantSpeed(motor, displacement, speed);
-          Debug("Done, waiting for next command \n");
-        }
-        else
-          Warn("WARNING Main::decodeReceivedMessage - Not moving motor. Speed and displacement are too high! \n");
+        Debug("Moving the motor... \n");
+        device.moveMotorConstantSpeed(motor, displacement, speed);
+        Debug("Done, waiting for next command \n");
       }
       else
       {
@@ -150,14 +146,17 @@ int decodeReceivedMessage(ssize_t bytes_received)
     case CMD_MOVE_MOTOR_STEPS:
       if(bytes_received == 18)
       {
-        unsigned motor = input_data_buffer[1];
+        unsigned motor;
         double displacement;
         double speed;
-        memcpy(&displacement, input_data_buffer+2, 8);
-        memcpy(&speed, input_data_buffer+10, 8);
+        memcpy(&motor       , input_data_buffer + 1 , 1);
+        memcpy(&displacement, input_data_buffer + 2 , 8);
+        memcpy(&speed       , input_data_buffer + 10, 8);
         Debug("Received command MOVE_MOTOR_STEPS with parameters: motor = %u, displacement = %f, speed = %f\n", motor, displacement, speed);
-        device.debugMoveMotorSteps(motor, displacement, speed);
 
+        Debug("Moving the motor... \n");
+        device.debugMoveMotorSteps(motor, displacement, speed);
+        Debug("Done, waiting for next command \n");
       }
       else
       {
@@ -172,16 +171,38 @@ int decodeReceivedMessage(ssize_t bytes_received)
         double insertion_speed;
         double rotation_speed;
         double duty_cycle;
-        memcpy(&insertion_depth, input_data_buffer+1, 8);
-        memcpy(&insertion_speed, input_data_buffer+9, 8);
-        memcpy(&rotation_speed, input_data_buffer+17, 8);
-        memcpy(&duty_cycle, input_data_buffer+25, 8);
+        memcpy(&insertion_depth, input_data_buffer + 1 , 8);
+        memcpy(&insertion_speed, input_data_buffer + 9 , 8);
+        memcpy(&rotation_speed , input_data_buffer + 17, 8);
+        memcpy(&duty_cycle     , input_data_buffer + 25, 8);
         Debug("Received command MOVE_DC with parameters: displacement = %f, insertion speed = %f, rotation speed = %f, DC = %f\n", insertion_depth, insertion_speed, rotation_speed, duty_cycle);
+
+        Debug("Performing a duty cycle motion... \n");
         device.performFullDutyCyleStep(insertion_depth, insertion_speed, rotation_speed, duty_cycle);
+        Debug("Done, waiting for next command \n");
       }
       else
       {
         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC \n");
+      }
+      break;
+
+    case CMD_MOVE_SPIN:
+      if(bytes_received == 17)
+      {
+        double revolutions;
+        double rotation_speed;
+        memcpy(&revolutions   , input_data_buffer + 1 , 8);
+        memcpy(&rotation_speed, input_data_buffer + 9 , 8);
+        Debug("Received command MOVE_SPIN with parameters: revolutions = %f, rotation speed = %f\n", revolutions, rotation_speed);
+
+        Debug("Performing a duty cycle motion... \n");
+        device.moveRotationMotorWithRamps(revolutions, rotation_speed);
+        Debug("Done, waiting for next command \n");
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_SPIN \n");
       }
       break;
 
@@ -262,7 +283,6 @@ int decodeReceivedMessage(ssize_t bytes_received)
        }
 
        break;
-
 
     // Shut down the UStep Device control software
     case CMD_SHUT_DOWN:

@@ -195,9 +195,15 @@ class UStepDevice
   // DESCRIPTION PENDING
   int closeBackGripper();
 
+  /*
+   * DEBUG FUNCTIONS - After debugging, these functions should be set as private
+   */
+
   // DESCRIPTION PENDING
-  // OBS: This should be a private function, but I will leave it public for debugging purposes
   int moveMotorConstantSpeed(unsigned motor, double displacement, double speed);
+
+  // DESCRIPTION PENDING
+  int moveRotationMotorWithRamps(double revolutions, double rotation_speed);
 
   // DESCRIPTION PENDING
   int debugMoveMotorSteps(unsigned motor, double motor_displacement_step, double motor_speed_step);

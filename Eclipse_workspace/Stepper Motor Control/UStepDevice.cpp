@@ -47,6 +47,13 @@
 #define ENABLE_MOTOR                  0
 #define DISABLE_MOTOR                 1
 
+// Flags for representing if ramps area allowed or not
+#define RAMP_ALLOWED                  1
+#define RAMP_NOT_ALLOWED              0
+
+// Default value that must be set to the step ports when not moving the motor
+#define PORT_STEP_OFF                 0
+
 UStepDevice::UStepDevice()
 {
   emergency_button_ = 0;
@@ -177,7 +184,7 @@ void UStepDevice::terminateGPIO()
 int UStepDevice::calibrateMotorsStartingPosition()
 {
   if(initialized_)
-  {
+  {/*
     printf("\n\n\n\n\n");
     printf(" ----------------------------------------------------- \n");
     printf(" -           Starting calibration function           - \n");
@@ -197,20 +204,20 @@ int UStepDevice::calibrateMotorsStartingPosition()
     printf("   - Disabling motor 2\n");
     printf("   - Please move the back gripper to the completely open position\n");
     printf("   - Hit ENTER when you are done\n");
-    gpioWrite(back_gripper_.port_enable(), 1);
+    gpioWrite(back_gripper_.port_enable(), DISABLE_MOTOR);
     getchar();
-    gpioWrite(back_gripper_.port_enable(), 0);
+    gpioWrite(back_gripper_.port_enable(), ENABLE_MOTOR);
     printf("   - Motor 2 calibrated \n\n");
 
     printf("STEP 3 - Calibrating the initial position of Motor 4:\n");
     printf("   - Disabling motor 4\n");
     printf("   - Please move the front gripper to the completely open position\n");
     printf("   - Hit ENTER when you are done\n");
-    gpioWrite(front_gripper_.port_enable(), 1);
+    gpioWrite(front_gripper_.port_enable(), DISABLE_MOTOR);
     getchar();
-    gpioWrite(front_gripper_.port_enable(), 0);
+    gpioWrite(front_gripper_.port_enable(), ENABLE_MOTOR);
     printf("   - Motor 4 calibrated \n\n");
-
+*/
     printf("Calibration function finished! \n\n");
 
     calibrated_ = true;
@@ -243,13 +250,13 @@ int UStepDevice::setInsertionWithDutyCycle(double needle_insertion_depth,  doubl
     int result;
 
     // Verify if the requested speeds are inside the allowed range
-    result = verifyMotorSpeedLimits(insertion_motor_speed, 0);
+    result = verifyMotorSpeedLimits(insertion_motor_speed, RAMP_NOT_ALLOWED);
     if(result)
     {
       Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested insertion motor speeds is invalid \n");
       return result;
     }
-    result = verifyMotorSpeedLimits(rotation_motor_speed, 1);
+    result = verifyMotorSpeedLimits(rotation_motor_speed, RAMP_ALLOWED);
     if(result)
     {
       Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested rotation motor speeds is invalid \n");
@@ -373,8 +380,8 @@ int UStepDevice::startInsertionWithDutyCycle()
     return ERR_DEVICE_NOT_CALIBRATED;
   }
 
-  gpioWrite(insertion_.port_step(), 0);
-  gpioWrite(rotation_.port_step(), 0);
+  gpioWrite(insertion_.port_step(), PORT_STEP_OFF);
+  gpioWrite(rotation_.port_step(), PORT_STEP_OFF);
 
   return 0;
 }
@@ -584,6 +591,7 @@ int UStepDevice::moveMotorConstantSpeed(unsigned motor, double displacement, dou
   unsigned duration_seconds;
   unsigned duration_micros;
 
+  // Convert the requested end effector variables to motor variables
   switch(motor)
   {
     case MOTOR_INSERTION:
@@ -619,36 +627,40 @@ int UStepDevice::moveMotorConstantSpeed(unsigned motor, double displacement, dou
       return ERR_INVALID_MOTOR_CODE;
   }
 
-  //Debug("DEBUG UStepDevice::moveMotor - Moving the motor %u for a displacement of %u steps \n", motor, motor_displacement_step);
-
-  if(verifyMotorSpeedLimits(motor_speed, 0))
+  // Verify if the motor speed is within the speed limits
+  if(verifyMotorSpeedLimits(motor_speed, RAMP_NOT_ALLOWED))
   {
     Error("ERROR UStepDevice::moveMotor - Requested motor speeds is invalid \n");
     return ERR_INVALID_MOTOR_SPEED;
   }
 
+  // Calculate the half period of each step and the total duration of the motion
   double exp_total_insert_time_us = (motor_displacement / motor_speed) * S_TO_US;
   step_half_period = round((exp_total_insert_time_us / motor_displacement_step) / 2);
   duration_micros = motor_displacement_step * 2*step_half_period;
   duration_seconds = floor(duration_micros*US_TO_S);
   duration_micros = duration_micros - S_TO_US*duration_seconds;
 
+  // Generate the motor pulses as constant speed
   gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
 
+  // If the pulses have been successfully generated, create the wave
   if(pulses >= 0)
   {
     gpioWaveClear();
     gpioWaveAddGeneric(2, pulses);
     int wave_id = gpioWaveCreate();
 
+    // Free the memory allocated for the pulses
     free(pulses);
 
     if (wave_id >= 0)
     {
+      // Perform the entire motion
       gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
       gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
       gpioWaveTxStop();
-      gpioWrite(motor_port_step, 0);
+      gpioWrite(motor_port_step, PORT_STEP_OFF);
     }
 
     else
@@ -661,6 +673,81 @@ int UStepDevice::moveMotorConstantSpeed(unsigned motor, double displacement, dou
   else
   {
     Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
+    return ERR_MALLOC;
+  }
+
+  return 0;
+}
+
+int UStepDevice::moveRotationMotorWithRamps(double revolutions, double rotation_speed)
+{
+  // Input units
+  //   - revolutions  : The requested displacement of the end effector in revs
+  //   - speed        : The requested speed of the end effector in rev/s
+
+  // Verify if ramping is really needed
+  if(rotation_speed * rotation_.gear_ratio() <= max_base_speed_)
+  {
+    Debug("UStepDevice::moveRotationMotorWithRamps - Slow speed request. Moving motor with constant speed\n");
+    return moveMotorConstantSpeed(MOTOR_ROTATION, revolutions, rotation_speed);
+  }
+  Debug("UStepDevice::moveRotationMotorWithRamps - High speed request. Moving motor with ramps\n");
+
+  // Convert the requested end effector variables to motor variables
+  double motor_revolutions = revolutions * rotation_.gear_ratio();
+  double motor_speed = rotation_speed * rotation_.gear_ratio();
+  unsigned port_step = rotation_.port_step();
+  unsigned motor_steps = round(motor_revolutions * rotation_.steps_per_revolution());
+
+  // Verify if the motor speed is within the speed limits
+  if(verifyMotorSpeedLimits(motor_speed, RAMP_ALLOWED))
+  {
+    Error("ERROR UStepDevice::moveRotationMotorWithRamps - Requested motor speeds is invalid \n");
+    return ERR_INVALID_MOTOR_SPEED;
+  }
+
+  // Generate the rotation pulses as a ramp profile, starting at the maximum base speed and accelerating until the final speed
+  double frequency_initial = max_base_speed_ * rotation_.steps_per_revolution();
+  double frequency_final = motor_speed * rotation_.steps_per_revolution();
+  double step_acceleration = max_acceleration_ * rotation_.steps_per_revolution();
+  gpioPulse_t *pulses = generatePulsesRampUpDown(port_step, frequency_initial, frequency_final, step_acceleration, motor_steps, 0);
+
+  // If the pulses have been successfully generated, create the wave
+  if(pulses >= 0)
+  {
+    //Debug("UStepDevice::moveRotationMotorWithRamps - DEBUG - Attempting to create a wave with %u steps\n", motor_steps);
+    gpioWaveClear();
+    gpioWaveAddGeneric(2*motor_steps, pulses);
+    int wave_id = gpioWaveCreate();
+    //Debug("UStepDevice::moveRotationMotorWithRamps - DEBUG - The ID of the created wave is %d\n", wave_id);
+
+    // Free the memory allocated for the pulses
+    free(pulses);
+
+    if (wave_id >= 0)
+    {
+      // If the wave has been successfully created, parse its
+      // duration into the seconds and micros components
+      unsigned duration_seconds = floor(micros_real_rotation_duration_*US_TO_S);
+      unsigned duration_micros = micros_real_rotation_duration_ - S_TO_US*duration_seconds;
+
+      // Perform the entire motion
+      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
+      gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
+      gpioWaveTxStop();
+      gpioWrite(port_step, PORT_STEP_OFF);
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::moveRotationMotorWithRamps - Unable to call gpioWaveCreate() \n");
+      return ERR_GPIO_WAVE_CREATE_FAIL;
+    }
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::moveRotationMotorWithRamps - Malloc error \n");
     return ERR_MALLOC;
   }
 
@@ -732,7 +819,7 @@ int UStepDevice::debugMoveMotorSteps(unsigned motor, double motor_displacement_s
       gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
       gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
       gpioWaveTxStop();
-      gpioWrite(motor_port_step, 0);
+      gpioWrite(motor_port_step, PORT_STEP_OFF);
     }
 
     else
@@ -750,7 +837,6 @@ int UStepDevice::debugMoveMotorSteps(unsigned motor, double motor_displacement_s
 
   return 0;
 }
-
 
 int UStepDevice::setDirection(unsigned motor, unsigned direction)
 {
@@ -792,60 +878,44 @@ int UStepDevice::setDirection(unsigned motor, unsigned direction)
 
 int UStepDevice::moveGripperToFrontSwitch(double speed)
 {
+  // Set the gripper direction to moving forward
   setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
 
-  //double motor_displacement;
-  double motor_speed;
+  // Convert the requested end effector variables to motor variables
+  double motor_speed = speed * insertion_.gear_ratio();
+  unsigned motor_port_step = insertion_.port_step();
 
-  unsigned motor_port_step;
-  //unsigned motor_displacement_step;
-
-  unsigned step_half_period;
-  //unsigned duration_seconds;
-  //unsigned duration_micros;
-
-
-
-      //motor_displacement = displacement * insertion_.gear_ratio();
-      motor_speed = speed * insertion_.gear_ratio();
-      motor_port_step = insertion_.port_step();
-      //motor_displacement_step = round();
-
-
-
-  if(verifyMotorSpeedLimits(motor_speed, 0))
+  // Verify if the motor speed is within the speed limits
+  if(verifyMotorSpeedLimits(motor_speed, RAMP_NOT_ALLOWED))
   {
     Error("ERROR UStepDevice::moveMotor - Requested motor speeds is invalid \n");
     return ERR_INVALID_MOTOR_SPEED;
   }
 
-  //double exp_total_insert_time_us = () *;
-  //step_half_period = round((   (S_TO_US * / motor_speed) / (insertion_.steps_per_revolution())     ) / 2);
+  // Calculate the half period of each step, according to the requested speed
+  unsigned step_half_period = round((S_TO_US / (motor_speed * insertion_.steps_per_revolution())) / 2);
 
-  step_half_period = round((S_TO_US / (motor_speed * insertion_.steps_per_revolution())) / 2);
-
-
-  //duration_micros = motor_displacement_step * 2*step_half_period;
-  //duration_seconds = floor(duration_micros*US_TO_S);
-  //duration_micros = duration_micros - S_TO_US*duration_seconds;
-
+  // Generate the motor pulses as constant speed
   gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
 
+  // If the pulses have been successfully generated, create a wave
   if(pulses >= 0)
   {
     gpioWaveClear();
     gpioWaveAddGeneric(2, pulses);
     int wave_id = gpioWaveCreate();
 
+    // Free the memory allocated for the pulses
     free(pulses);
 
     if (wave_id >= 0)
     {
+      // Send the wave until the front switch is hit
       gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
       while(gpioRead(front_switch_) == 0)
         gpioSleep(PI_TIME_RELATIVE, 0, 100000);
       gpioWaveTxStop();
-      gpioWrite(motor_port_step, 0);
+      gpioWrite(motor_port_step, PORT_STEP_OFF);
     }
 
     else
@@ -1278,7 +1348,7 @@ int UStepDevice::generateWaveInsertionWithRotation()
   // Calculate the amount of rotation steps that fit within 'micros_rotation_' micros
   // This value should always correspond to one complete rotation of the needle,
   // because this condition was assumed inside the 'calculateDutyCycleMotionParameters' function
-  num_rotation_steps = 1.0 * rotation_.gear_ratio() * rotation_.steps_per_revolution();
+  num_rotation_steps = round(1.0 * rotation_.gear_ratio() * rotation_.steps_per_revolution());
 
   // Calculate the final speed of the rotation motor, based on the previously calculated rotation_step_half_period_
   rot_single_rev_time_us = rotation_.steps_per_revolution() * 2 * rotation_step_half_period_;
@@ -1423,19 +1493,24 @@ gpioPulse_t* UStepDevice::generatePulsesConstantSpeed(unsigned port_number, unsi
     // Calculate the accumulated time of the generated steps
     unsigned accumulated_time = num_steps * 2 * half_period;
 
-    // If the accumulated time is greater than the total time, something went wrong
-    if(accumulated_time > total_time)
-    {
-      Error("ERROR UStepDevice::generatePulsesConstantSpeed - Invalid calculated time \n");
-      return (gpioPulse_t*)ERR_TIME_CALC_INVALID;
-    }
 
-    // Pad the last step of the sequence so that the accumulated time of the sequence
-    // matches the total time exactly
-    unsigned remaining_time = total_time - accumulated_time;
-    if(remaining_time > 0)
+    // The following verifications should only be performed if a total_time has been specified
+    if(total_time > 0)
     {
-      pulses[2*num_steps-1].usDelay += remaining_time;
+      // If the accumulated time is greater than the total time, something went wrong
+      if(accumulated_time > total_time)
+      {
+        Error("ERROR UStepDevice::generatePulsesConstantSpeed - Invalid calculated time \n");
+        return (gpioPulse_t*)ERR_TIME_CALC_INVALID;
+      }
+
+      // Pad the last step of the sequence so that the accumulated time of the sequence
+      // matches the total time exactly
+      unsigned remaining_time = total_time - accumulated_time;
+      if(remaining_time > 0)
+      {
+        pulses[2*num_steps-1].usDelay += remaining_time;
+      }
     }
 
     // Save the original wave duration to the member variable (this is used for feedback purposes)
@@ -1510,15 +1585,25 @@ gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double 
       // DEBUG
       Debug("\nRAMP UP: Initial ht = %u, final ht = %u \n", pulses[0].usDelay,  pulses[2*num_steps_ramp-1].usDelay);
       Debug("Each ramp has %u steps, so both ramps have %u steps and take %u micros\n", num_steps_ramp, 2*num_steps_ramp, accumulated_time);
-      Debug("There are %u steps and %u micros left for the constant speed\n", num_steps-2*num_steps_ramp, total_time-accumulated_time);
+      //Debug("There are %u steps and %u micros left for the constant speed\n", num_steps-2*num_steps_ramp, total_time-accumulated_time);
       // END DEBUG
 
 
       // If there are remaining steps to be generated
       if(num_steps_constant > 0)
       {
+        if(total_time > 0)
+        {
+          // Calculate the best half period for the reamining steps in order to fit the specified total_time
+          current_delay = floor(((double)(total_time-accumulated_time))/(2*num_steps_constant));
+        }
+        else
+        {
+          // Total time non specified - keep the fastest half period achieved
+          current_delay = pulses[(2*num_steps_ramp)-1].usDelay = current_delay;
+        }
+
         // Complete the motion profile by filling the remaining steps with constant speed
-        current_delay = floor(((double)(total_time-accumulated_time))/(2*num_steps_constant));
         for(unsigned i_step = num_steps_ramp; i_step < num_steps_ramp+num_steps_constant; i_step++)
         {
           pulses[2*i_step].gpioOn = (1<<port_number);
@@ -1532,20 +1617,24 @@ gpioPulse_t* UStepDevice::generatePulsesRampUpDown(unsigned port_number, double 
         }
       }
 
-      // If the accumulated time is greater than the total time, something went wrong
-      if(accumulated_time > total_time)
+      // The following verifications should only be performed if a total_time has been specified
+      if(total_time > 0)
       {
-        Debug("T_ACC = %u, T_TOT = %u\n", accumulated_time, total_time);
-        Error("ERROR UStepDevice::generatePulsesRampUpDown - Invalid calculated time \n");
-        return (gpioPulse_t*)ERR_TIME_CALC_INVALID;
-      }
+        // If the accumulated time is greater than the total time, something went wrong
+        if(accumulated_time > total_time)
+        {
+          Debug("T_ACC = %u, T_TOT = %u\n", accumulated_time, total_time);
+          Error("ERROR UStepDevice::generatePulsesRampUpDown - Invalid calculated time \n");
+          return (gpioPulse_t*)ERR_TIME_CALC_INVALID;
+        }
 
-      // Pad the last step of the sequence so that the accumulated time of the sequence
-      // matches the total time exactly
-      unsigned remaining_time = total_time - accumulated_time;
-      if(remaining_time > 0)
-      {
-        pulses[2*num_steps-1].usDelay += remaining_time;
+        // Pad the last step of the sequence so that the accumulated time of the sequence
+        // matches the total time exactly
+        unsigned remaining_time = total_time - accumulated_time;
+        if(remaining_time > 0)
+        {
+          pulses[2*num_steps-1].usDelay += remaining_time;
+        }
       }
 
       // Save the original wave duration to the member variable (this is used for feedback purposes)
