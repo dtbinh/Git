@@ -63,6 +63,7 @@ UStepDevice::UStepDevice()
   back_gripper_default_displacement_ = 1.0;
   max_insertion_position_ = 0.0;
   min_insertion_position_ = 0.0;
+  initial_insertion_position_ = 0.0;
 
   dc_max_threshold_ = 1.0;
   dc_min_threshold_ = 0.0;
@@ -107,6 +108,7 @@ void UStepDevice::configureMotorParameters()
   back_gripper_default_displacement_ = BACK_GRIPPER_DISP;
   max_insertion_position_ = MAX_INSERT_POS;
   min_insertion_position_ = MIN_INSERT_POS;
+  initial_insertion_position_ = START_INSERT_POS;
 
   // Duty cycle parameters
   dc_max_threshold_ = MAX_DC;
@@ -187,7 +189,8 @@ int UStepDevice::calibrateMotorsStartingPosition()
     moveGripperToFrontSwitch(max_base_speed_*0.7);
     printf("   - Moving motor 1 to its initial position: %.2f mm\n", min_insertion_position_);
     setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    moveMotorConstantSpeed(MOTOR_INSERTION, min_insertion_position_, max_base_speed_*0.7);
+    moveMotorConstantSpeed(MOTOR_INSERTION, initial_insertion_position_, max_base_speed_*0.7);
+    insertion_position_ = initial_insertion_position_;
     printf("   - Motor 1 calibrated \n\n");
 
     printf("STEP 2 - Calibrating the initial position of Motor 2:\n");
@@ -616,7 +619,7 @@ int UStepDevice::moveMotorConstantSpeed(unsigned motor, double displacement, dou
       return ERR_INVALID_MOTOR_CODE;
   }
 
-  Debug("DEBUG UStepDevice::moveMotor - Moving the motor %u for a displacement of %u steps \n", motor, motor_displacement_step);
+  //Debug("DEBUG UStepDevice::moveMotor - Moving the motor %u for a displacement of %u steps \n", motor, motor_displacement_step);
 
   if(verifyMotorSpeedLimits(motor_speed, 0))
   {
@@ -1250,7 +1253,7 @@ int UStepDevice::calculateFeedbackInformation()
     calculated_duty_cycle_ = ((double)(micros_real_rotation_duration_ * num_dc_periods_)) / total_insert_time_us;
   }
 
-  Debug("\nFEEDBACK: Real insert speed = %f, Real rot speed = %f\n", calculated_insertion_speed_, calculated_rotation_speed_);
+  Debug("\nFEEDBACK: Real insertion depth = %f, Real insert speed = %f, Real rot speed = %f\n", calculated_insertion_depth_, calculated_insertion_speed_, calculated_rotation_speed_);
   Debug("FEEDBACK: Real DC = %f%%, Ramp percentage = %f%%\n", 100*calculated_duty_cycle_, 100*rotation_ramp_step_percentage_);
 
   return 0;

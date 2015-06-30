@@ -51,6 +51,7 @@ class UStepDevice
   // These positions correspond to the distance from the gripper box to the front limit switch
   double max_insertion_position_;
   double min_insertion_position_;
+  double initial_insertion_position_;
 
   // Duty cycle threshold parameters
   double dc_max_threshold_;

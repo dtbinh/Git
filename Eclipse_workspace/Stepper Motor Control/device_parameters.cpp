@@ -52,7 +52,7 @@
 
 // Gear ratio - conversion constant between the motors and the end effectors
    // These values must be verified with the rotation transmissions in the device
-#define INSERTION_MOTOR_REVS_PER_MM               (0.8067) // Precision error of 15 nm
+#define INSERTION_MOTOR_REVS_PER_MM               (0.8068) // Precision error of 15 nm
 #define ROTATION_MOTOR_REVS_PER_NEEDLE_REVS       (1.9040) // Rounded from 1.9038
 #define BACK_GRIPPER_MOTOR_REVS_PER_GEAR_REVS     (1.9040) // Rounded from 1.9038
 
@@ -78,7 +78,8 @@
 // Insertion length position limits in millimeters
 // !!!!!!!!!!!! ATENTION: These parameter change, every time the back limit switch is moved !!!!!!!!!!!!!!
 #define MAX_INSERT_POS    100.0
-#define MIN_INSERT_POS      5.0
+#define MIN_INSERT_POS      1.0
+#define START_INSERT_POS    5.0
 
 // Threshold values for the duty cycle
 #define MAX_DC  0.95

@@ -2,6 +2,7 @@
 
 global CMD_MOVE_MOTOR;
 global CMD_MOVE_MOTOR_STEPS;
+global CMD_MOVE_DC;
 global CMD_SET_DIRECTION;
 global CMD_SET_ENABLE;
 global CMD_OPEN_FRONT_GRIPPER;		
@@ -28,12 +29,13 @@ global DISABLE_MOTOR;
 % Commands exchanged with the Matlab client
 CMD_MOVE_MOTOR          = 1;
 CMD_MOVE_MOTOR_STEPS    = 2;
-CMD_SET_DIRECTION       = 3;
-CMD_SET_ENABLE          = 4;
-CMD_OPEN_FRONT_GRIPPER 	= 5;	
-CMD_CLOSE_FRONT_GRIPPER = 6;	
-CMD_OPEN_BACK_GRIPPER	= 7;	
-CMD_CLOSE_BACK_GRIPPER  = 8;
+CMD_MOVE_DC             = 3;
+CMD_SET_DIRECTION       = 4;
+CMD_SET_ENABLE          = 5;
+CMD_OPEN_FRONT_GRIPPER 	= 6;	
+CMD_CLOSE_FRONT_GRIPPER = 7;	
+CMD_OPEN_BACK_GRIPPER	= 8;	
+CMD_CLOSE_BACK_GRIPPER  = 9;
 CMD_SHUT_DOWN           = 255;
 
 % Numeric code for referring to each of the motors

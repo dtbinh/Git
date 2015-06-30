@@ -22,12 +22,13 @@
 // Commands exchanged with the Matlab client
 #define CMD_MOVE_MOTOR              1
 #define CMD_MOVE_MOTOR_STEPS        2
-#define CMD_SET_DIRECTION           3
-#define CMD_SET_ENABLE              4
-#define CMD_OPEN_FRONT_GRIPPER		5
-#define CMD_CLOSE_FRONT_GRIPPER		6
-#define CMD_OPEN_BACK_GRIPPER		7
-#define CMD_CLOSE_BACK_GRIPPER		8
+#define CMD_MOVE_DC			        3
+#define CMD_SET_DIRECTION           4
+#define CMD_SET_ENABLE              5
+#define CMD_OPEN_FRONT_GRIPPER		6
+#define CMD_CLOSE_FRONT_GRIPPER		7
+#define CMD_OPEN_BACK_GRIPPER		8
+#define CMD_CLOSE_BACK_GRIPPER		9
 #define CMD_SHUT_DOWN               255
 
 
@@ -161,6 +162,26 @@ int decodeReceivedMessage(ssize_t bytes_received)
       else
       {
         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_MOTOR_STEPS \n");
+      }
+      break;
+
+    case CMD_MOVE_DC:
+      if(bytes_received == 33)
+      {
+        double insertion_depth;
+        double insertion_speed;
+        double rotation_speed;
+        double duty_cycle;
+        memcpy(&insertion_depth, input_data_buffer+1, 8);
+        memcpy(&insertion_speed, input_data_buffer+9, 8);
+        memcpy(&rotation_speed, input_data_buffer+17, 8);
+        memcpy(&duty_cycle, input_data_buffer+25, 8);
+        Debug("Received command MOVE_DC with parameters: displacement = %f, insertion speed = %f, rotation speed = %f, DC = %f\n", insertion_depth, insertion_speed, rotation_speed, duty_cycle);
+        device.performFullDutyCyleStep(insertion_depth, insertion_speed, rotation_speed, duty_cycle);
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC \n");
       }
       break;
 
