@@ -78,6 +78,7 @@ UStepDevice::UStepDevice()
   front_gripper_closed_ = false;
   back_gripper_closed_ = false;
   insertion_position_ = 0.0;
+  default_retreating_speed_ = 1.0;
 
   configured_ = false;
   initialized_ = false;
@@ -116,6 +117,7 @@ void UStepDevice::configureMotorParameters()
   max_insertion_position_ = MAX_INSERT_POS;
   min_insertion_position_ = MIN_INSERT_POS;
   initial_insertion_position_ = START_INSERT_POS;
+  default_retreating_speed_ = RETREAT_SPEED;
 
   // Duty cycle parameters
   dc_max_threshold_ = MAX_DC;
@@ -184,7 +186,7 @@ void UStepDevice::terminateGPIO()
 int UStepDevice::calibrateMotorsStartingPosition()
 {
   if(initialized_)
-  {/*
+  {
     printf("\n\n\n\n\n");
     printf(" ----------------------------------------------------- \n");
     printf(" -           Starting calibration function           - \n");
@@ -194,7 +196,7 @@ int UStepDevice::calibrateMotorsStartingPosition()
     printf("STEP 1 - Calibrating the initial position of Motor 1:\n");
     printf("   - Please wait for the front gripper to hit the front limit switch\n");
     moveGripperToFrontSwitch(max_base_speed_*0.7);
-    printf("   - Moving motor 1 to its initial position: %.2f mm\n", min_insertion_position_);
+    printf("   - Moving motor 1 to its initial position: %.2f mm\n", initial_insertion_position_);
     setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
     moveMotorConstantSpeed(MOTOR_INSERTION, initial_insertion_position_, max_base_speed_*0.7);
     insertion_position_ = initial_insertion_position_;
@@ -221,7 +223,7 @@ int UStepDevice::calibrateMotorsStartingPosition()
     setEnable(MOTOR_FRONT_GRIPPER, ENABLE_MOTOR);
     //gpioWrite(front_gripper_.port_enable(), ENABLE_MOTOR);
     printf("   - Motor 4 calibrated \n\n");
-*/
+
     printf("Calibration function finished! \n\n");
 
     calibrated_ = true;
@@ -396,18 +398,21 @@ int UStepDevice::performFullDutyCyleStep(double needle_insertion_depth,  double 
   {
     int result;
 
-    // PART 3 - RELEASE THE NEEDLE
+    // PART 1 - RELEASE THE NEEDLE
+    Debug("UStepDevice::performFullDutyCyleStep - Closing the back gripper\n");
     if((result = closeBackGripper()))
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the back gripper\n"); return result; }
 
+    Debug("UStepDevice::performFullDutyCyleStep - Opening the front gripper\n");
     if((result = openFrontGripper()))
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the front gripper\n"); return result; }
 
-    // PART 4 - RETREAT THE MOVING GRIPPER BOX
+    // PART 2 - RETREAT THE MOVING GRIPPER BOX
     if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
         return ERR_INSERT_POS_TOO_HIGH; }
 
+    /*
     if((result = setInsertionWithDutyCycle(needle_insertion_depth, needle_insertion_speed, needle_rotation_speed, 0.0)))
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to set the retreat parameters\n"); return result; }
 
@@ -416,16 +421,25 @@ int UStepDevice::performFullDutyCyleStep(double needle_insertion_depth,  double 
     if((result = startInsertionWithDutyCycle()))
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to retreat the device\n"); return result; }
     insertion_position_ += calculated_insertion_depth_;
+    */
+
+    Debug("UStepDevice::performFullDutyCyleStep - Moving the gripper box backward\n");
+    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
+    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to retreat the device\n"); return result; }
+    insertion_position_ += performed_displacement_;
 
 
-    // PART 1 - GRASP THE NEEDLE
+    // PART 3 - GRASP THE NEEDLE
+    Debug("UStepDevice::performFullDutyCyleStep - Closing the front gripper\n");
     if((result = closeFrontGripper()))
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the front gripper\n"); return result; }
 
+    Debug("UStepDevice::performFullDutyCyleStep - Opening the back gripper\n");
     if((result = openBackGripper()))
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the back gripper\n"); return result; }
 
-    // PART 2 - INSERT THE NEEDLE
+    // PART 4 - INSERT THE NEEDLE
     if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
       return ERR_INSERT_POS_TOO_LOW; }
@@ -433,8 +447,8 @@ int UStepDevice::performFullDutyCyleStep(double needle_insertion_depth,  double 
     if((result = setInsertionWithDutyCycle(needle_insertion_depth, needle_insertion_speed, needle_rotation_speed, duty_cycle)))
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
 
+    Debug("UStepDevice::performFullDutyCyleStep - Moving the gripper box forward\n");
     setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
-
     if((result = startInsertionWithDutyCycle()))
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to insert the needle\n"); return result; }
     insertion_position_ -= calculated_insertion_depth_;
@@ -665,6 +679,26 @@ int UStepDevice::moveMotorConstantSpeed(unsigned char motor, double displacement
       gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
       gpioWaveTxStop();
       gpioWrite(motor_port_step, PORT_STEP_OFF);
+
+      // Generate feedback information
+      switch(motor)
+      {
+        case MOTOR_INSERTION:
+          performed_displacement_ = ((double)(motor_displacement_step)) / (insertion_.steps_per_revolution() * insertion_.gear_ratio());
+          break;
+
+        case MOTOR_ROTATION:
+          performed_displacement_ = ((double)(motor_displacement_step)) / (rotation_.steps_per_revolution() * rotation_.gear_ratio());
+          break;
+
+        case MOTOR_FRONT_GRIPPER:
+          performed_displacement_ = ((double)(motor_displacement_step)) / (front_gripper_.steps_per_revolution() * front_gripper_.gear_ratio());
+          break;
+
+        case MOTOR_BACK_GRIPPER:
+          performed_displacement_ = ((double)(motor_displacement_step)) / (back_gripper_.steps_per_revolution() * back_gripper_.gear_ratio());
+          break;
+      }
     }
 
     else

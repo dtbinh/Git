@@ -65,9 +65,9 @@
 #define ACC                200.00
 */
 #define MIN_SPEED            0.05
-#define MAX_SPEED            2.00         // The correct value is 4.5
+#define MAX_SPEED            4.00         // The correct value is 4.5
 #define MAX_FINAL_SPEED     30.00
-#define ACC                120.00         // The correct value is 200.0
+#define ACC                150.00         // The correct value is 200.0
 
 
 // Gripper default speed and displacements
@@ -87,6 +87,7 @@
 #define MAX_INSERT_POS    100.0
 #define MIN_INSERT_POS      1.0
 #define START_INSERT_POS    5.0
+#define RETREAT_SPEED       4.0
 
 // Threshold values for the duty cycle
 #define MAX_DC  0.95

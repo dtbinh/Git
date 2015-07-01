@@ -31,7 +31,7 @@ global DISABLE_MOTOR;
 
 communicationProtocolTable
 
-rotation_speed = 0.1;
+rotation_speed = 4.0;
 
 %% Start communication with the Raspberry Pi TCP/IP server
 
@@ -43,16 +43,16 @@ set(tcpip_client,'Timeout',30);
 
 while 1
     fprintf('Testing the needle rotation \t--\t speed = %f rev/s\n', rotation_speed);
-    angle = input('Type the rotation angle in degrees. If you want to change the speed, type 0\n');
+    n_revs = input('Type the number of revolutions in CW direction. If you want to change the speed, type 0\n');
     
-    if(angle == 0)
+    if(n_revs == 0)
         rotation_speed = input('Type the requested speed in rev/s\n');
     
-    elseif(angle > 0)
+    elseif(n_revs > 0)
         fopen(tcpip_client);
         fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_CLOCKWISE]);
         pause(0.5);
-        revolutions = angle / 360.0;
+        revolutions = n_revs;
         fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(rotation_speed, 'uint8')]);
         fclose(tcpip_client);
     
@@ -60,7 +60,7 @@ while 1
         fopen(tcpip_client);
         fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_COUNTER_CLOCKWISE]);
         pause(0.5);
-        revolutions = -angle / 360.0;
+        revolutions = -n_revs;
         fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(rotation_speed, 'uint8')]);
         fclose(tcpip_client);
     end

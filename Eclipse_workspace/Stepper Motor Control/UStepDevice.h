@@ -51,7 +51,12 @@ class UStepDevice
   // These positions correspond to the distance from the gripper box to the front limit switch
   double max_insertion_position_;
   double min_insertion_position_;
+
+  // Starting position of the gripper box
   double initial_insertion_position_;
+
+  // Standard speed for retreating the gripper box during the duty cycle step
+  double default_retreating_speed_;
 
   // Duty cycle threshold parameters
   double dc_max_threshold_;
@@ -97,6 +102,8 @@ class UStepDevice
   double calculated_duty_cycle_;
   unsigned micros_real_rotation_duration_;
   double rotation_ramp_step_percentage_;
+
+  double performed_displacement_;                   // Used for the moveMotorConstantSpeed function
 
   /*
    * AUXILIARY FUNCTIONS

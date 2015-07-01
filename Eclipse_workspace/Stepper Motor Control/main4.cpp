@@ -183,7 +183,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
 
         Debug("Performing a duty cycle motion... \n");
         device.performFullDutyCyleStep(insertion_depth, insertion_speed, rotation_speed, duty_cycle);
-        Debug("Done, waiting for next command \n");
+        Debug("Done, waiting for next command \n\n");
       }
       else
       {
