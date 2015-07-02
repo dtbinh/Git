@@ -1,4 +1,4 @@
-classdef AuroraDriver
+classdef AuroraDriver < handle
     
     %
     %   CLASS DESCRIPTION
@@ -10,20 +10,47 @@ classdef AuroraDriver
     
     
     % PENDING LIST
+        % Add error checking and return values to all functions
+        % Check CRC from read messages
+        % Convert format 2 commands to format 1 with CRC
     
-    % Add other parameters to the serial port
-    % Convert format 2 commands to format 1 with CRC
-    % Check CRC from read messages
+        % Function startTracking()
+        % Function stopTracking()
+        % Function readStuff() - using the command BX
     
-    % Implement public methods for wraping the API functions
-    % These methods must set the parameters correctly and treat the
-    % obtained reply.
-    % These methods should comprise: init, start, stop, read, etc
+    % Constants
+    properties (Constant)
+        
+        % Baud rate options (source: Aurora_API_Guide page 16)
+        BAUD_9600   = '0';
+        BAUD_14400  = '1';
+        BAUD_19200  = '2';
+        BAUD_38400  = '3';
+        BAUD_57600  = '4';
+        BAUD_115200 = '5';
+        BAUD_921600 = '6';
+        BAUD_230400 = 'A';
+        
+        % PHSR Reply options (source: Aurora_API_Guide page 33)
+        PHSR_HANDLES_ALL                      = '00';
+        PHSR_HANDLES_TO_BE_FREED              = '01';
+        PHSR_HANDLES_OCCUPIED                 = '02';
+        PHSR_HANDLES_OCCUPIED_AND_INITIALIZED = '03';
+        PHSR_HANDLES_ENABLED                  = '04';
+        
+        % Tool tracking priority codes (source: Aurora_API_Guide page 26)
+        TT_PRIORITY_STATIC  = 'S';
+        TT_PRIORITY_DYNAMIC = 'D';
+        TT_PRIORITY_BUTTON  = 'B';
+        
+    end
     
     
-    % Read-only member variables
+    % Member variables
     properties (GetAccess = public, SetAccess = private)
-        serial_port;        % Serial port object  
+        serial_port;        % Serial port object
+        n_port_handles;     % Number of existing port handles
+        port_handles;       % Array of port handle objects
     end
     
     
@@ -36,6 +63,7 @@ classdef AuroraDriver
         function obj = AuroraDriver(serial_port)
             obj.serial_port = serial(serial_port);
             obj.serial_port.Terminator = 'CR';
+            obj.n_port_handles = 0;
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -53,12 +81,102 @@ classdef AuroraDriver
             end
         end
         
+        function setBaudRate(obj, baud_rate)
+            switch baud_rate
+                case 9600
+                    baud_rate_code = obj.BAUD_9600;
+                case 14400
+                    baud_rate_code = obj.BAUD_14400;
+                case 19200
+                    baud_rate_code = obj.BAUD_19200;
+                case 38400
+                    baud_rate_code = obj.BAUD_38400;
+                case 57600
+                    baud_rate_code = obj.BAUD_57600;
+                case 115200
+                    baud_rate_code = obj.BAUD_115200;
+                case 921600
+                    baud_rate_code = obj.BAUD_921600;
+                case 230400
+                    baud_rate_code = obj.BAUD_230400;
+                otherwise
+                    fprintf('ERROR AuroraDriver::setBaudRate - Invalid baud rate %d\n', baud_rate);
+                    return
+            end
+            
+            obj.COMM(baud_rate_code,'0','0','0','0');
+            pause(1);
+            set(obj.serial_port, 'BaudRate', baud_rate);
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %         DEVICE CONFIGURATION         %
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function init(obj)
+            obj.INIT();
+        end
+        
+        function detectAndAssignPortHandles(obj)
+            reply = obj.PHSR(obj.PHSR_HANDLES_ALL);
+            obj.n_port_handles = hex2dec(reply(1:2));
+            for i_port_handle = 1:obj.n_port_handles
+                s = 3 + 5*(i_port_handle - 1);
+                id = reply(s:s+1);
+                status = reply(s+2:s+4);
+                if(i_port_handle == 1)
+                    obj.port_handles = PortHandle(id, status);
+                else
+                    obj.port_handles(1,i_port_handle) = PortHandle(id, status);
+                end
+            end
+            
+        end
+        
+        function updatePortHandleStatusAll(obj)
+            reply = obj.PHSR(obj.PHSR_HANDLES_ALL);
+            n_found_port_handles = hex2dec(reply(1:2));
+            for i_found_port_handle = 1:n_found_port_handles
+                s = 3 + 5*(i_found_port_handle - 1);
+                id = reply(s:s+1);
+                status = reply(s+2:s+4);
+                
+                for i_port_handle = 1:obj.n_port_handles
+                    if(strcmp(obj.port_handles(1,i_port_handle).id, id))
+                        obj.port_handles(1,i_port_handle).updateStatus(status);
+                        break;
+                    end
+                end
+            end
+        end
+        
+        function initPortHandle(obj, port_handle_id)
+            obj.PINIT(port_handle_id);
+        end
+        
+        function initPortHandleAll(obj)
+            for i_port_handle = 1:obj.n_port_handles
+                obj.initPortHandle(obj.port_handles(1,i_port_handle).id);
+            end
+            obj.updatePortHandleStatusAll();
+        end
+        
+        function enablePortHandleDynamic(obj, port_handle_id)
+            obj.PENA(port_handle_id, obj.TT_PRIORITY_DYNAMIC);
+        end
+        
+        function enablePortHandleDynamicAll(obj)
+            for i_port_handle = 1:obj.n_port_handles
+                obj.enablePortHandleDynamic(obj.port_handles(1,i_port_handle).id);
+            end
+            obj.updatePortHandleStatusAll();
+        end
+        
     end
     
     
     % Private methods
-    methods (Access = private)
-
+    methods (Access = public)
+        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %    SERIAL COMM AUXILIAR FUNCTIONS    %
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -69,6 +187,7 @@ classdef AuroraDriver
         function sendCommand(obj, command)
             % Format 1 - Add CRC
             % PENDING
+            
             % Format 2 - Send without CRC
             fprintf(obj.serial_port, command);
         end
@@ -76,7 +195,7 @@ classdef AuroraDriver
         function reply = sendCommandAndGetReply(obj, command)
             sendCommand(obj, command)
             reply = fgetl(obj.serial_port);
-        end           
+        end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %            API COMMANDS              %
@@ -226,10 +345,10 @@ classdef AuroraDriver
         function reply = VSEL(obj, volume_number)
             reply = sendCommandAndGetReply(obj, sprintf('VSEL %s', volume_number));
         end
-         
+        
     end
     
-  
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %             DESTRUCTOR               %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -90,7 +90,7 @@
 #define RETREAT_SPEED       4.0
 
 // Threshold values for the duty cycle
-#define MAX_DC  0.95
+#define MAX_DC  0.95baud
 #define MIN_DC  0.10
 
 // Empty structs to be filled with the motor parameters
