@@ -13,9 +13,9 @@ classdef PortHandle < handle
     properties (Constant)
         
         % Handle Status (source: Aurora_API_Guide page 13)
-        HANDLE_STATUS_VALID    = '01';
-        HANDLE_STATUS_MISSING  = '02';
-        HANDLE_STATUS_DISABLED = '04';
+        SENSOR_STATUS_VALID    = '01';
+        SENSOR_STATUS_MISSING  = '02';
+        SENSOR_STATUS_DISABLED = '04';
     end
         
     % Member variables
@@ -30,9 +30,12 @@ classdef PortHandle < handle
         gpio_line1_closed;
         gpio_line2_closed;
         gpio_line3_closed;
+        out_of_volume;
+        partial_out_of_volume;
+        sensor_broken;        
         
         % Handle Status (source: Aurora_API_Guide page 13)
-        handle_status;
+        sensor_status;
         
         % Last registered tool data
         trans;
@@ -54,7 +57,10 @@ classdef PortHandle < handle
             
             obj.id = id;
             obj.updateStatus(status);
-            obj.handle_status = obj.HANDLE_STATUS_DISABLED;
+            obj.out_of_volume         = 0;
+            obj.partial_out_of_volume = 0;
+            obj.sensor_broken         = 0;
+            obj.sensor_status = obj.SENSOR_STATUS_DISABLED;
             
             % Last registered tool data
             obj.trans = [0.0 0.0 0.0];
@@ -71,6 +77,23 @@ classdef PortHandle < handle
             obj.gpio_line3_closed = bitget(status_value, 4);
             obj.initialized       = bitget(status_value, 5);
             obj.enabled           = bitget(status_value, 6);            
+        end
+        
+        function updateStatusComplete(obj, status)
+            status_value = hex2dec(status);
+            obj.occupied              = bitget(status_value, 1);
+            obj.gpio_line1_closed     = bitget(status_value, 2);
+            obj.gpio_line2_closed     = bitget(status_value, 3);
+            obj.gpio_line3_closed     = bitget(status_value, 4);
+            obj.initialized           = bitget(status_value, 5);
+            obj.enabled               = bitget(status_value, 6);
+            obj.out_of_volume         = bitget(status_value, 7);
+            obj.partial_out_of_volume = bitget(status_value, 8);
+            obj.sensor_broken         = bitget(status_value, 9);
+        end
+        
+        function updateSensorStatus(obj, sensor_status)
+            obj.sensor_status = sensor_status;
         end
         
         function updateTrans(obj, trans)
