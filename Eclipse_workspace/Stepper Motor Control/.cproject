@@ -81,8 +81,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.cross.exe.debug.65184223.720589414" name="main.cpp" rcbsApplicability="disable" resourcePath="main.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1690953476">
+						<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090.1690953476" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler.343940090"/>
+					</fileInfo>
 					<sourceEntries>
-						<entry excluding="device_parameters.cpp|OldstepperMotor.h|OldstepperMotor.cpp|main2.cpp|main3.cpp|main.cpp|.settings" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="device_parameters.cpp|OldstepperMotor.h|OldstepperMotor.cpp|main2.cpp|main3.cpp|.settings" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
