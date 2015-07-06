@@ -242,7 +242,7 @@ classdef AuroraDriver < handle
         function updateSensorDataAll(obj)
             
             % Send a BX command for reading all sensors
-            obj.sendCommand(sprintf('BX %s', obj.READ_OUT_OF_VOLUME_NOT_ALLOWED));
+            obj.sendCommand(sprintf('BX %s', obj.READ_OUT_OF_VOLUME_ALLOWED));
             
             % Error checking information
             start_sequence = fread(obj.serial_port, 1, 'uint16');
