@@ -77,16 +77,18 @@
 #define GRIPPER_SPEED         0.30
 
    // The default angle the front gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
-#define FRONT_GRIPPER_DISP    0.3532
+//#define FRONT_GRIPPER_DISP    0.3532
+#define FRONT_GRIPPER_DISP    0.35189
 
    // The default angle the back gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
-#define BACK_GRIPPER_DISP     0.3532
+//#define BACK_GRIPPER_DISP     0.3532
+#define BACK_GRIPPER_DISP    0.35189
 
 // Insertion length position limits in millimeters
 // !!!!!!!!!!!! ATENTION: These parameter change, every time the back limit switch is moved !!!!!!!!!!!!!!
 #define MAX_INSERT_POS    100.0
 #define MIN_INSERT_POS      1.0
-#define START_INSERT_POS    5.0
+#define START_INSERT_POS    2.0
 #define RETREAT_SPEED       4.0
 
 // Threshold values for the duty cycle

@@ -456,7 +456,65 @@ int UStepDevice::performFullDutyCyleStep(double needle_insertion_depth,  double 
 
   else
   {
-    Error("ERROR UStepDevice::startInsertionWithDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    Error("ERROR UStepDevice::performFullDutyCyleStep - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  return 0;
+}
+
+int UStepDevice::performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed)
+{
+  if(calibrated_)
+  {
+    int result;
+
+    // PART 1 - RETREAT THE MOVING GRIPPER BOX
+    if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
+      { Error("ERROR UStepDevice::performBackwardStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
+        return ERR_INSERT_POS_TOO_HIGH; }
+
+    Debug("UStepDevice::performBackwardStep - Moving the gripper box backward\n");
+    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
+    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to retreat the device\n"); return result; }
+    insertion_position_ += performed_displacement_;
+
+
+    // PART 2 - RELEASE THE NEEDLE
+    Debug("UStepDevice::performBackwardStep - Closing the back gripper\n");
+    if((result = closeBackGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to close the back gripper\n"); return result; }
+
+    Debug("UStepDevice::performBackwardStep - Opening the front gripper\n");
+    if((result = openFrontGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to open the front gripper\n"); return result; }
+
+    // PART 3 - MOVE THE MOVING GRIPPER BOX FORWARD AGAIN
+    if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
+      { Error("ERROR UStepDevice::performBackwardStep - Insertion position lower limit reached. Try choosing a smaller step size\n");
+        return ERR_INSERT_POS_TOO_LOW; }
+
+    Debug("UStepDevice::performBackwardStep - Moving the gripper box forward\n");
+    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to retreat the device\n"); return result; }
+    insertion_position_ -= performed_displacement_;
+
+    // PART 4 - GRASP THE NEEDLE
+    Debug("UStepDevice::performBackwardStep - Closing the front gripper\n");
+    if((result = closeFrontGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to close the front gripper\n"); return result; }
+
+    Debug("UStepDevice::performBackwardStep - Opening the back gripper\n");
+    if((result = openBackGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to open the back gripper\n"); return result; }
+
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::performBackwardStep - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
     return ERR_DEVICE_NOT_CALIBRATED;
   }
 

@@ -3,6 +3,7 @@
 global CMD_MOVE_MOTOR;
 global CMD_MOVE_MOTOR_STEPS;
 global CMD_MOVE_DC;
+global CMD_MOVE_BACK;
 global CMD_MOVE_SPIN;
 global CMD_SET_DIRECTION;
 global CMD_SET_ENABLE;
@@ -31,13 +32,14 @@ global DISABLE_MOTOR;
 CMD_MOVE_MOTOR          = 1;
 CMD_MOVE_MOTOR_STEPS    = 2;
 CMD_MOVE_DC             = 3;
-CMD_MOVE_SPIN           = 4;
-CMD_SET_DIRECTION       = 5;
-CMD_SET_ENABLE          = 6;
-CMD_OPEN_FRONT_GRIPPER 	= 7;	
-CMD_CLOSE_FRONT_GRIPPER = 8;	
-CMD_OPEN_BACK_GRIPPER	= 9;	
-CMD_CLOSE_BACK_GRIPPER  = 10;
+CMD_MOVE_BACK           = 4;
+CMD_MOVE_SPIN           = 5;
+CMD_SET_DIRECTION       = 6;
+CMD_SET_ENABLE          = 7;
+CMD_OPEN_FRONT_GRIPPER 	= 8;	
+CMD_CLOSE_FRONT_GRIPPER = 9;	
+CMD_OPEN_BACK_GRIPPER	= 10;	
+CMD_CLOSE_BACK_GRIPPER  = 11;
 CMD_SHUT_DOWN           = 255;
 
 % Numeric code for referring to each of the motors

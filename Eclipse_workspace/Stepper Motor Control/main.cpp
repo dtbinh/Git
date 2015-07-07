@@ -23,13 +23,14 @@
 #define CMD_MOVE_MOTOR              1
 #define CMD_MOVE_MOTOR_STEPS        2
 #define CMD_MOVE_DC			            3
-#define CMD_MOVE_SPIN               4
-#define CMD_SET_DIRECTION           5
-#define CMD_SET_ENABLE              6
-#define CMD_OPEN_FRONT_GRIPPER		  7
-#define CMD_CLOSE_FRONT_GRIPPER		  8
-#define CMD_OPEN_BACK_GRIPPER		    9
-#define CMD_CLOSE_BACK_GRIPPER		  10
+#define CMD_MOVE_BACK               4
+#define CMD_MOVE_SPIN               5
+#define CMD_SET_DIRECTION           6
+#define CMD_SET_ENABLE              7
+#define CMD_OPEN_FRONT_GRIPPER		  8
+#define CMD_CLOSE_FRONT_GRIPPER		  9
+#define CMD_OPEN_BACK_GRIPPER		    10
+#define CMD_CLOSE_BACK_GRIPPER		  11
 #define CMD_SHUT_DOWN               255
 
 // Global parameters
@@ -188,6 +189,25 @@ int decodeReceivedMessage(ssize_t bytes_received)
       else
       {
         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC \n");
+      }
+      break;
+
+    case CMD_MOVE_BACK:
+      if(bytes_received == 17)
+      {
+        double insertion_depth;
+        double insertion_speed;
+        memcpy(&insertion_depth, input_data_buffer + 1 , 8);
+        memcpy(&insertion_speed, input_data_buffer + 9 , 8);
+        Debug("Received command MOVE_BACK with parameters: displacement = %f, insertion speed = %f\n", insertion_depth, insertion_speed);
+
+        Debug("Moving the needle backward... \n");
+        device.performBackwardStep(insertion_depth, insertion_speed);
+        Debug("Done, waiting for next command \n\n");
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_BACK \n");
       }
       break;
 

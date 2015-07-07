@@ -190,6 +190,8 @@ class UStepDevice
   // DESCRIPTION PENDING
   int performFullDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
 
+  int performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed);
+
   // DESCRIPTION PENDING
   int openFrontGripper();
 
