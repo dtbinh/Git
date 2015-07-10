@@ -68,7 +68,7 @@
 #define MIN_SPEED            0.05
 #define MAX_SPEED            2.50         // The correct value is 4.5
 #define MAX_FINAL_SPEED     30.00
-#define ACC                100.00         // The correct value is 200.0
+#define ACC                 70.00         // The correct value is 200.0
 #define RETREAT_SPEED        3.0
 
 
@@ -80,11 +80,11 @@
 
 // The default angle the front gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 //#define FRONT_GRIPPER_DISP    0.3532
-#define FRONT_GRIPPER_DISP    0.3598
+#define FRONT_GRIPPER_DISP    (129.0 / 360)
 
 // The default angle the back gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 //#define BACK_GRIPPER_DISP     0.3532
-#define BACK_GRIPPER_DISP    0.3598
+#define BACK_GRIPPER_DISP    (129.0 / 360)
 
 // Time delay for sleeping afte each gripper function in micros
 #define GRIPPER_DELAY        250000           // 250 ms
@@ -98,7 +98,7 @@
 
 // Threshold values for the duty cycle
 #define MAX_DC  0.95
-#define MIN_DC  0.10
+#define MIN_DC  0.05
 
 // Empty structs to be filled with the motor parameters
 MotorParameters insertion_parameters;

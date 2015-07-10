@@ -36,19 +36,19 @@ communicationProtocolTable
 
 preparation_step_size = 15;
 preparation_insertion_speed = 3.0;
-preparation_rotation_speed = 0.2;
+preparation_rotation_speed = 0.1;
 
 
 %% Open Loop Trajectory
 
 % Trajectory 1 - 15 cm divided in 30 steps, V = 1, no spin
 
-constant_step_size = 6.0;
-constant_insertion_speed = 1.0;
-constant_rotation_speed = 2.0;
-constant_duty_cycle = 0.25;
+constant_step_size = 9.0;
+constant_insertion_speed = 1.5;
+constant_rotation_speed = 3.0;
+constant_duty_cycle = 0.1;
 
-n_step = 25;
+n_step = 15;
 
 step_size       = constant_step_size        *  ones(1, n_step);
 insertion_speed = constant_insertion_speed  *  ones(1, n_step);
@@ -70,7 +70,7 @@ fprintf('Open Loop Insertion Test\n');
 fprintf('Initializing device\n');
 fprintf('\n!!! Please verify that the device has been calibrated and both grippers are OPEN !!! \n\n');
 
-pause(5);
+pause(3);
 
 output_file_name = input('Type the name of the file for saving the results\n','s');
 

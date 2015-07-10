@@ -331,8 +331,8 @@ int UStepDevice::startInsertionWithDutyCycle()
       case WAVES_ALL:
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
-          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
           gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
           gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
@@ -345,8 +345,8 @@ int UStepDevice::startInsertionWithDutyCycle()
       case WAVES_INSERT_ROT:
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
-          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
           gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
           gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
@@ -358,8 +358,8 @@ int UStepDevice::startInsertionWithDutyCycle()
       case WAVES_ROT_REMAIN:
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
-          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
           gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
         }
@@ -370,8 +370,8 @@ int UStepDevice::startInsertionWithDutyCycle()
       case WAVES_ROT:
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
-          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
           gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
         }
