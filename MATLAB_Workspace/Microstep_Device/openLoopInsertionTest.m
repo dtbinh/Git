@@ -43,12 +43,12 @@ preparation_rotation_speed = 0.2;
 
 % Trajectory 1 - 15 cm divided in 30 steps, V = 1, no spin
 
-constant_step_size = 5.0;
+constant_step_size = 6.0;
 constant_insertion_speed = 1.0;
 constant_rotation_speed = 2.0;
-constant_duty_cycle = 0.5;
+constant_duty_cycle = 0.25;
 
-n_step = 30;
+n_step = 25;
 
 step_size       = constant_step_size        *  ones(1, n_step);
 insertion_speed = constant_insertion_speed  *  ones(1, n_step);
@@ -129,7 +129,12 @@ for i_step = 1:n_step
     fclose(tcpip_client);
     
     while 1
-        angle = input('Needle orientation correction - Type required angle, in CW direction\n');
+        angle = input('Needle orientation correction - Type required anle, in CW direction\n');
+        
+        % Checking if ENTER was hit without typing any number
+        if(isempty(angle))
+            continue
+        end
         
         correction_angles(i_step) = correction_angles(i_step) + angle;
         

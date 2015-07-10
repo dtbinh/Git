@@ -68,9 +68,13 @@ UStepDevice::UStepDevice()
   gripper_default_speed_ = 1.0;
   front_gripper_default_displacement_ = 1.0;
   back_gripper_default_displacement_ = 1.0;
+  micros_gripper_delay_ = 0;
+
   max_insertion_position_ = 0.0;
   min_insertion_position_ = 0.0;
   initial_insertion_position_ = 0.0;
+
+  duty_cycle_rotation_direction_ = 0.0;
 
   dc_max_threshold_ = 1.0;
   dc_min_threshold_ = 0.0;
@@ -114,6 +118,8 @@ void UStepDevice::configureMotorParameters()
   gripper_default_speed_ = GRIPPER_SPEED;
   front_gripper_default_displacement_ = FRONT_GRIPPER_DISP;
   back_gripper_default_displacement_ = BACK_GRIPPER_DISP;
+  micros_gripper_delay_ = GRIPPER_DELAY;
+
   max_insertion_position_ = MAX_INSERT_POS;
   min_insertion_position_ = MIN_INSERT_POS;
   initial_insertion_position_ = START_INSERT_POS;
@@ -325,6 +331,8 @@ int UStepDevice::startInsertionWithDutyCycle()
       case WAVES_ALL:
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
+          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
           gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
           gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
@@ -337,6 +345,8 @@ int UStepDevice::startInsertionWithDutyCycle()
       case WAVES_INSERT_ROT:
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
+          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
           gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
           gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
@@ -348,6 +358,8 @@ int UStepDevice::startInsertionWithDutyCycle()
       case WAVES_ROT_REMAIN:
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
+          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
           gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
         }
@@ -358,6 +370,8 @@ int UStepDevice::startInsertionWithDutyCycle()
       case WAVES_ROT:
         for(unsigned n = 0; n < num_dc_periods_; n++)
         {
+          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
           gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
           gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
         }
@@ -536,6 +550,7 @@ int UStepDevice::openFrontGripper()
       }
 
       front_gripper_closed_ = false;
+      gpioSleep(PI_TIME_RELATIVE, 0, micros_gripper_delay_);
     }
 
     else
@@ -569,6 +584,7 @@ int UStepDevice::closeFrontGripper()
       }
 
       front_gripper_closed_ = true;
+      gpioSleep(PI_TIME_RELATIVE, 0, micros_gripper_delay_);
     }
 
     else
@@ -601,6 +617,7 @@ int UStepDevice::openBackGripper()
       }
 
       back_gripper_closed_ = false;
+      gpioSleep(PI_TIME_RELATIVE, 0, micros_gripper_delay_);
     }
 
     else
@@ -633,6 +650,7 @@ int UStepDevice::closeBackGripper()
       }
 
       back_gripper_closed_ = true;
+      gpioSleep(PI_TIME_RELATIVE, 0, micros_gripper_delay_);
     }
 
     else

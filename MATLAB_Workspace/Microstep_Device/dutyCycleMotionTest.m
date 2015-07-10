@@ -31,9 +31,9 @@ global DISABLE_MOTOR;
 
 communicationProtocolTable
 
-step_size = 20.0;
-insertion_speed = 2.0;
-rotation_speed = 3.0;
+step_size = 5.0;
+insertion_speed = 1.0;
+rotation_speed = 2.0;
 dc_value = 0.0;
 
 %% Start communication with the Raspberry Pi TCP/IP server

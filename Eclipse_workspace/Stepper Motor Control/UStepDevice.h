@@ -47,6 +47,10 @@ class UStepDevice
   // move the gripper from the open position to the firmly grasping position
   double back_gripper_default_displacement_;
 
+  // The time delay, the program should sleep for after performing any of the
+  // gripper functions
+  unsigned micros_gripper_delay_;
+
   // Insertion length position limits in millimeters
   // These positions correspond to the distance from the gripper box to the front limit switch
   double max_insertion_position_;
@@ -76,6 +80,8 @@ class UStepDevice
   bool back_gripper_closed_;
   double insertion_position_;
 
+  unsigned duty_cycle_rotation_direction_;
+
   // Waves
   int wave_insertion_with_rotation_;
   int wave_pure_insertion_;
@@ -96,6 +102,7 @@ class UStepDevice
   unsigned seconds_pure_insertion_;
 
   // Feed back variables
+  double performed_displacement_;                   // Analogous to calculated_insertion_depth_, but set inside the moveMotorConstantSpeed function
   double calculated_insertion_depth_;
   double calculated_insertion_speed_;
   double calculated_rotation_speed_;
@@ -103,7 +110,7 @@ class UStepDevice
   unsigned micros_real_rotation_duration_;
   double rotation_ramp_step_percentage_;
 
-  double performed_displacement_;                   // Used for the moveMotorConstantSpeed function
+
 
   /*
    * AUXILIARY FUNCTIONS
