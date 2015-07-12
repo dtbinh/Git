@@ -47,8 +47,8 @@
 // Step size of the motors, configured through the DIP Switch of each STR2 driver
    // These values must ALWAYS match the DIP switches of the STR2 drivers
 #define STEP_SIZE_INSERTION     5000
-#define STEP_SIZE_ROTATION      2000
-#define STEP_SIZE_BACK_GRIPPER  2000
+#define STEP_SIZE_ROTATION      400
+#define STEP_SIZE_BACK_GRIPPER  400
 
 // Gear ratio - conversion constant between the motors and the end effectors
    // These values must be verified with the rotation transmissions in the device

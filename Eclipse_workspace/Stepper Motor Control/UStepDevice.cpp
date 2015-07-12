@@ -333,10 +333,10 @@ int UStepDevice::startInsertionWithDutyCycle()
         {
           //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
           //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
           gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
           gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
         }
         gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
         gpioWaveTxStop();
@@ -347,10 +347,10 @@ int UStepDevice::startInsertionWithDutyCycle()
         {
           //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
           //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
           gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
           gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
         }
         gpioWaveTxStop();
         break;
