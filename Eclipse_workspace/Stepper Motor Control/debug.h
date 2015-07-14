@@ -11,6 +11,11 @@
 // Includes
 #include <stdio.h>
 
+// Color changing special characters
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 // Enable/Disable debug prints
 #define DEBUG_PRINT_ENABLED   1
 #define WARNING_PRINT_ENABLED 1
@@ -25,16 +30,16 @@
 
 // Warning print function
 #if WARNING_PRINT_ENABLED
-#define Warn printf
+#define Warn(format, ...) printf(ANSI_COLOR_YELLOW format ANSI_COLOR_RESET, ##__VA_ARGS__)
 #else
 #define Warn(format, args...) ((void)0)
 #endif
 
 // Error print function
 #if ERROR_PRINT_ENABLED
-#define Error printf
+#define Error(format, ...) printf(ANSI_COLOR_RED format ANSI_COLOR_RESET, ##__VA_ARGS__)
 #else
-#define Error(format, args...) ((void)0)
+#define Error(format, ...) ((void)0)
 #endif
 
 // Error codes

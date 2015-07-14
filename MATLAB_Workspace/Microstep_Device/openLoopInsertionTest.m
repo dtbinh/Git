@@ -43,12 +43,11 @@ preparation_rotation_speed = 0.1;
 
 % Trajectory 1 - 15 cm divided in 30 steps, V = 1, no spin
 
-constant_step_size = 9.0;
-constant_insertion_speed = 1.5;
-constant_rotation_speed = 3.0;
-constant_duty_cycle = 0.1;
-
-n_step = 15;
+n_step = 8;
+constant_step_size = 20.0;
+constant_insertion_speed = 1.0;
+constant_rotation_speed = 0.4;
+constant_duty_cycle = 0.25;
 
 step_size       = constant_step_size        *  ones(1, n_step);
 insertion_speed = constant_insertion_speed  *  ones(1, n_step);

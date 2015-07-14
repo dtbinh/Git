@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <pigpio.h>
 #include <math.h>
 
@@ -1139,7 +1140,8 @@ void UStepDevice::displayParameters()
   printf(" - Motor 2 : %u \n", back_gripper_.steps_per_revolution());
   printf(" - Motor 3 : %u \n", rotation_.steps_per_revolution());
   printf(" - Motor 4 : %u \n", front_gripper_.steps_per_revolution());
-  printf("\n!!! ATTENTION: Please verify if the DIP switches of all STR2 Drivers match this configuration !!! \n");
+  printf(ANSI_COLOR_YELLOW "\n!!! ATTENTION: Please verify if the DIP switches of all STR2 Drivers match this configuration !!! \n" ANSI_COLOR_RESET);
+  sleep(3);
 
   printf("\n---- Press any key to start running the program ----\n");
   getchar();
@@ -1462,7 +1464,7 @@ int UStepDevice::generateWaveInsertionWithRotation()
   // Calculate the amount of rotation steps that fit within 'micros_rotation_' micros
   // This value should always correspond to one complete rotation of the needle,
   // because this condition was assumed inside the 'calculateDutyCycleMotionParameters' function
-  num_rotation_steps = round(1.0 * rotation_.gear_ratio() * rotation_.steps_per_revolution());
+  num_rotation_steps = floor(1.0 * rotation_.gear_ratio() * rotation_.steps_per_revolution());
 
   // Calculate the final speed of the rotation motor, based on the previously calculated rotation_step_half_period_
   rot_single_rev_time_us = rotation_.steps_per_revolution() * 2 * rotation_step_half_period_;
