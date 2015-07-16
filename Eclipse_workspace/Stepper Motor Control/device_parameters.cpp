@@ -46,15 +46,9 @@
 
 // Step size of the motors, configured through the DIP Switch of each STR2 driver
    // These values must ALWAYS match the DIP switches of the STR2 drivers
-#define STEP_SIZE_INSERTION     400
-#define STEP_SIZE_ROTATION      2000
-#define STEP_SIZE_BACK_GRIPPER  2000
-
-/*
 #define STEP_SIZE_INSERTION     5000
 #define STEP_SIZE_ROTATION      2000
 #define STEP_SIZE_BACK_GRIPPER  2000
-*/
 
 // Gear ratio - conversion constant between the motors and the end effectors
    // These values must be verified with the rotation transmissions in the device
@@ -85,12 +79,13 @@
 #define GRIPPER_SPEED         0.20
 
 // The default angle the front gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
+// Possible values range from 126.5 to 132
 //#define FRONT_GRIPPER_DISP    0.3532
-#define FRONT_GRIPPER_DISP    (128.0 / 360)
+#define FRONT_GRIPPER_DISP    (127.0 / 360)
 
 // The default angle the back gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 //#define BACK_GRIPPER_DISP     0.3532
-#define BACK_GRIPPER_DISP    (128.0 / 360)
+#define BACK_GRIPPER_DISP    (127.0 / 360)
 
 // Time delay for sleeping afte each gripper function in micros
 #define GRIPPER_DELAY        250000           // 250 ms

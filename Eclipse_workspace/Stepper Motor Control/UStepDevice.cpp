@@ -205,7 +205,7 @@ int UStepDevice::calibrateMotorsStartingPosition()
     moveGripperToFrontSwitch(max_base_speed_*0.7);
     printf("   - Moving motor 1 to its initial position: %.2f mm\n", initial_insertion_position_);
     setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    moveMotorConstantSpeed(MOTOR_INSERTION, initial_insertion_position_, max_base_speed_*0.7);
+    moveMotorConstantSpeed(MOTOR_INSERTION, initial_insertion_position_, default_retreating_speed_);
     insertion_position_ = initial_insertion_position_;
     printf("   - Motor 1 calibrated \n\n");
 
