@@ -2,16 +2,18 @@ close all;
 clear all;
 clc;
 
-global CMD_MOVE_MOTOR;
-global CMD_MOVE_MOTOR_STEPS;
-global CMD_MOVE_DC;
-global CMD_MOVE_SPIN;
-global CMD_SET_DIRECTION;
 global CMD_SET_ENABLE;
 global CMD_OPEN_FRONT_GRIPPER;		
 global CMD_CLOSE_FRONT_GRIPPER;		
 global CMD_OPEN_BACK_GRIPPER;		
 global CMD_CLOSE_BACK_GRIPPER;
+global CMD_ROTATE;
+global CMD_TRANSLATE;
+global CMD_MOVE_DC;
+global CMD_MOVE_BACK;
+global CMD_MOVE_MOTOR;
+global CMD_MOVE_MOTOR_STEPS;
+global CMD_SET_DIRECTION;
 global CMD_SHUT_DOWN;
 
 global MOTOR_INSERTION;

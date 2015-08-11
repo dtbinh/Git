@@ -20,17 +20,18 @@
 #include <netdb.h>      // Needed for the socket functions
 
 // Commands exchanged with the Matlab client
-#define CMD_MOVE_MOTOR              1
-#define CMD_MOVE_MOTOR_STEPS        2
-#define CMD_MOVE_DC			            3
-#define CMD_MOVE_BACK               4
-#define CMD_MOVE_SPIN               5
-#define CMD_SET_DIRECTION           6
-#define CMD_SET_ENABLE              7
-#define CMD_OPEN_FRONT_GRIPPER		  8
-#define CMD_CLOSE_FRONT_GRIPPER		  9
-#define CMD_OPEN_BACK_GRIPPER		    10
-#define CMD_CLOSE_BACK_GRIPPER		  11
+#define CMD_SET_ENABLE              1
+#define CMD_OPEN_FRONT_GRIPPER		  2
+#define CMD_CLOSE_FRONT_GRIPPER		  3
+#define CMD_OPEN_BACK_GRIPPER		    4
+#define CMD_CLOSE_BACK_GRIPPER		  5
+#define CMD_ROTATE                  6
+#define CMD_TRANSLATE               7
+#define CMD_MOVE_DC                 8
+#define CMD_MOVE_BACK               9
+#define CMD_MOVE_MOTOR              101           // DISABLED
+#define CMD_MOVE_MOTOR_STEPS        102           // DISABLED
+#define CMD_SET_DIRECTION           103           // DISABLED
 #define CMD_SHUT_DOWN               255
 
 // Global parameters
@@ -127,45 +128,104 @@ int decodeReceivedMessage(ssize_t bytes_received)
 
   switch(input_data_buffer[0])
   {
-    case CMD_MOVE_MOTOR:
-      if(bytes_received == 18)
+    case CMD_SET_ENABLE:
+      if(bytes_received == 3)
       {
-        unsigned char motor;
+        unsigned char motor = input_data_buffer[1];
+        unsigned enable = input_data_buffer[2];
+        Debug("Received command SET_ENABLE with parameters: motor = %u, enable = %u\n", motor, enable);
+        device.setEnable(motor, enable);
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command SET_ENABLE \n");
+      }
+
+      break;
+
+    case CMD_OPEN_FRONT_GRIPPER:
+      if(bytes_received == 1)
+      {
+        device.openFrontGripper();
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command OPEN_FRONT_GRIPPER \n");
+      }
+
+      break;
+
+    case CMD_CLOSE_FRONT_GRIPPER:
+      if(bytes_received == 1)
+      {
+        device.closeFrontGripper();
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command CLOSE_FRONT_GRIPPER \n");
+      }
+
+      break;
+
+    case CMD_OPEN_BACK_GRIPPER:
+      if(bytes_received == 1)
+      {
+        device.openBackGripper();
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command OPEN_BACK_GRIPPER \n");
+      }
+
+      break;
+
+    case CMD_CLOSE_BACK_GRIPPER:
+      if(bytes_received == 1)
+      {
+        device.closeBackGripper();
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command CLOSE_BACK_GRIPPER \n");
+      }
+
+      break;
+
+    case CMD_ROTATE:
+      if(bytes_received == 17)
+      {
+        double revolutions;
+        double rotation_speed;
+        memcpy(&revolutions   , input_data_buffer + 1 , 8);
+        memcpy(&rotation_speed, input_data_buffer + 9 , 8);
+        Debug("Received command ROTATE with parameters: revolutions = %f, rotation speed = %f\n", revolutions, rotation_speed);
+
+        Debug("Performing a duty cycle motion... \n");
+        device.rotateNeedle(revolutions, rotation_speed);
+        Debug("Done, waiting for next command \n");
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_SPIN \n");
+      }
+      break;
+
+    case CMD_TRANSLATE:
+      if(bytes_received == 17)
+      {
         double displacement;
         double speed;
-        memcpy(&motor       , input_data_buffer + 1 , 1);
-        memcpy(&displacement, input_data_buffer + 2 , 8);
-        memcpy(&speed       , input_data_buffer + 10, 8);
-        Debug("Received command MOVE_MOTOR with parameters: motor = %u, displacement = %f, speed = %f\n", motor, displacement, speed);
+        memcpy(&displacement, input_data_buffer + 1 , 8);
+        memcpy(&speed       , input_data_buffer + 9, 8);
+        Debug("Received command TRANSLATE with parameters: displacement = %f, speed = %f\n", displacement, speed);
 
         Debug("Moving the motor... \n");
-        device.moveMotorConstantSpeed(motor, displacement, speed);
+        device.translateFrontGripper(displacement, speed);
         Debug("Done, waiting for next command \n");
       }
       else
       {
         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_MOTOR \n");
-      }
-      break;
-
-    case CMD_MOVE_MOTOR_STEPS:
-      if(bytes_received == 18)
-      {
-        unsigned char motor;
-        double displacement;
-        double speed;
-        memcpy(&motor       , input_data_buffer + 1 , 1);
-        memcpy(&displacement, input_data_buffer + 2 , 8);
-        memcpy(&speed       , input_data_buffer + 10, 8);
-        Debug("Received command MOVE_MOTOR_STEPS with parameters: motor = %u, displacement = %f, speed = %f\n", motor, displacement, speed);
-
-        Debug("Moving the motor... \n");
-        device.debugMoveMotorSteps(motor, displacement, speed);
-        Debug("Done, waiting for next command \n");
-      }
-      else
-      {
-        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_MOTOR_STEPS \n");
       }
       break;
 
@@ -210,103 +270,6 @@ int decodeReceivedMessage(ssize_t bytes_received)
         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_BACK \n");
       }
       break;
-
-    case CMD_MOVE_SPIN:
-      if(bytes_received == 17)
-      {
-        double revolutions;
-        double rotation_speed;
-        memcpy(&revolutions   , input_data_buffer + 1 , 8);
-        memcpy(&rotation_speed, input_data_buffer + 9 , 8);
-        Debug("Received command MOVE_SPIN with parameters: revolutions = %f, rotation speed = %f\n", revolutions, rotation_speed);
-
-        Debug("Performing a duty cycle motion... \n");
-        device.moveRotationMotorWithRamps(revolutions, rotation_speed);
-        Debug("Done, waiting for next command \n");
-      }
-      else
-      {
-        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_SPIN \n");
-      }
-      break;
-
-    case CMD_SET_DIRECTION:
-      if(bytes_received == 3)
-      {
-        unsigned char motor = input_data_buffer[1];
-        unsigned direction = input_data_buffer[2];
-        Debug("Received command SET_DIRECTION with parameters: motor = %u, direction = %u\n", motor, direction);
-        device.setDirection(motor, direction);
-      }
-      else
-      {
-        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command SET_DIRECTION \n");
-      }
-
-      break;
-
-    case CMD_SET_ENABLE:
-       if(bytes_received == 3)
-       {
-         unsigned char motor = input_data_buffer[1];
-         unsigned enable = input_data_buffer[2];
-         Debug("Received command SET_ENABLE with parameters: motor = %u, enable = %u\n", motor, enable);
-         device.setEnable(motor, enable);
-       }
-       else
-       {
-         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command SET_ENABLE \n");
-       }
-
-       break;
-
-    case CMD_OPEN_FRONT_GRIPPER:
-       if(bytes_received == 1)
-       {
-         device.openFrontGripper();
-       }
-       else
-       {
-         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command OPEN_FRONT_GRIPPER \n");
-       }
-
-       break;
-
-    case CMD_CLOSE_FRONT_GRIPPER:
-       if(bytes_received == 1)
-       {
-         device.closeFrontGripper();
-       }
-       else
-       {
-         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command CLOSE_FRONT_GRIPPER \n");
-       }
-
-       break;
-
-    case CMD_OPEN_BACK_GRIPPER:
-       if(bytes_received == 1)
-       {
-         device.openBackGripper();
-       }
-       else
-       {
-         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command OPEN_BACK_GRIPPER \n");
-       }
-
-       break;
-
-    case CMD_CLOSE_BACK_GRIPPER:
-       if(bytes_received == 1)
-       {
-         device.closeBackGripper();
-       }
-       else
-       {
-         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command CLOSE_BACK_GRIPPER \n");
-       }
-
-       break;
 
     // Shut down the UStep Device control software
     case CMD_SHUT_DOWN:

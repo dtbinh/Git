@@ -74,13 +74,12 @@ class UStepDevice
   bool configured_;
   bool initialized_;
   bool calibrated_;
+  unsigned duty_cycle_rotation_direction_;
 
   // Internal position estimation
   bool front_gripper_closed_;
   bool back_gripper_closed_;
   double insertion_position_;
-
-  unsigned duty_cycle_rotation_direction_;
 
   // Waves
   int wave_insertion_with_rotation_;
@@ -109,8 +108,6 @@ class UStepDevice
   double calculated_duty_cycle_;
   unsigned micros_real_rotation_duration_;
   double rotation_ramp_step_percentage_;
-
-
 
   /*
    * AUXILIARY FUNCTIONS
@@ -145,6 +142,10 @@ class UStepDevice
   // DESCRIPTION PENDING
   int calculateFeedbackInformation();
 
+  /*
+   * WAVE GENERATION FUNCTIONS
+   */
+
   // Generate a wave containing pulses for both the insertion and the rotation motor
   // In case of success the wave is saved to the member variable and the
   // corresponding flag is set.
@@ -171,10 +172,30 @@ class UStepDevice
   // This function returns the number of pulses used in the ramp
   unsigned generatePulsesRampUp(unsigned port_number, double frequency_initial, double frequency_final, double step_acceleration, gpioPulse_t* pulses, unsigned max_steps);
 
+  /*
+   * PRIVATE MOTION FUNCTIONS
+   */
+
+  // DESCRIPTION PENDING
+  int setDirection(unsigned char motor, unsigned direction);
+
+  // DESCRIPTION PENDING
+  int moveMotorConstantSpeed(unsigned char motor, double displacement, double speed);
+
+  // DESCRIPTION PENDING
+  int moveGripperToFrontSwitch(double speed);
+
+  // DESCRIPTION PENDING
+  int debugMoveMotorSteps(unsigned char motor, double motor_displacement_step, double motor_speed_step);
+
  public:
 
   // Empty constructor
   UStepDevice();
+
+  /*
+   * CONFIGURATION FUNCTIONS
+   */
 
   // Read device parameters from file and set the member variables
   void configureMotorParameters();
@@ -188,16 +209,12 @@ class UStepDevice
   // DESCRIPTION PENDING
   int calibrateMotorsStartingPosition();
 
-  // Calculate the duty cycle motion parameters and create the motion waves
-  int setInsertionWithDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
-
-  // Send the duty cycle motion waves
-  int startInsertionWithDutyCycle();
+  /*
+   * BASIC MOTION FUNCTIONS
+   */
 
   // DESCRIPTION PENDING
-  int performFullDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
-
-  int performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed);
+  int setEnable(unsigned char motor, unsigned enable);
 
   // DESCRIPTION PENDING
   int openFrontGripper();
@@ -211,28 +228,29 @@ class UStepDevice
   // DESCRIPTION PENDING
   int closeBackGripper();
 
+  // DESCRIPTION PENDING
+  int rotateNeedle(double needle_revolutions, double needle_rotation_speed);
+
+  // DESCRIPTION PENDING
+  int translateFrontGripper(double front_gripper_displacement, double front_gripper_speed);
+
   /*
-   * DEBUG FUNCTIONS - After debugging, these functions should be set as private
+   * DUTY CYCLE STEP FUNCTIONS
    */
 
-  // DESCRIPTION PENDING
-  int moveMotorConstantSpeed(unsigned char motor, double displacement, double speed);
+  // Calculate the duty cycle motion parameters and create the motion waves
+  // OBS: This function should be set as PRIVATE
+  int setInsertionWithDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
+
+  // Send the duty cycle motion waves
+  // OBS: This function should be set as PRIVATE
+  int startInsertionWithDutyCycle();
 
   // DESCRIPTION PENDING
-  int moveRotationMotorWithRamps(double revolutions, double rotation_speed);
+  int performFullDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
 
   // DESCRIPTION PENDING
-  int debugMoveMotorSteps(unsigned char motor, double motor_displacement_step, double motor_speed_step);
-
-  // DESCRIPTION PENDING
-  int setDirection(unsigned char motor, unsigned direction);
-
-  // DESCRIPTION PENDING
-  int moveGripperToFrontSwitch(double speed);
-
-  // DESCRIPTION PENDING
-  int setEnable(unsigned char motor, unsigned enable);
-
+  int performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed);
 };
 
 #endif /* USTEPDEVICE_H_ */

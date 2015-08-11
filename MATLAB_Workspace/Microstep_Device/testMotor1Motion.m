@@ -2,25 +2,27 @@ close all;
 clear all;
 clc;
 
-global CMD_MOVE_MOTOR;
-global CMD_MOVE_MOTOR_STEPS;
-global CMD_MOVE_DC;
-global CMD_MOVE_SPIN;
-global CMD_SET_DIRECTION;
 global CMD_SET_ENABLE;
 global CMD_OPEN_FRONT_GRIPPER;		
 global CMD_CLOSE_FRONT_GRIPPER;		
 global CMD_OPEN_BACK_GRIPPER;		
 global CMD_CLOSE_BACK_GRIPPER;
+global CMD_ROTATE;
+global CMD_TRANSLATE;
+global CMD_MOVE_DC;
+global CMD_MOVE_BACK;
+global CMD_MOVE_MOTOR;
+global CMD_MOVE_MOTOR_STEPS;
+global CMD_SET_DIRECTION;
 global CMD_SHUT_DOWN;
 
 global MOTOR_INSERTION;
-global MOTOR_ROTATION; 
+global MOTOR_ROTATION;
 global MOTOR_FRONT_GRIPPER;
 global MOTOR_BACK_GRIPPER;
 
 global DIRECTION_FORWARD;
-global DIRECTION_BACKWARD;    
+global DIRECTION_BACKWARD;
 global DIRECTION_CLOCKWISE;
 global DIRECTION_COUNTER_CLOCKWISE;
 global DIRECTION_OPENING;
@@ -48,23 +50,30 @@ while 1
     
     if(displacement == 0)
         speed = input('Type the requested speed in mm/s\n');
-    
-    elseif(displacement > 0)
-        fopen(tcpip_client);
-        fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_INSERTION DIRECTION_FORWARD]);
-        pause(0.5);
-        displacement_value = displacement;
-        fwrite(tcpip_client, [CMD_MOVE_MOTOR MOTOR_INSERTION typecast(displacement_value, 'uint8') typecast(speed, 'uint8')]);
-        fclose(tcpip_client);
-    
+        
+%     elseif(displacement > 0)
+%         fopen(tcpip_client);
+%         fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_INSERTION DIRECTION_FORWARD]);
+%         pause(0.5);
+%         displacement_value = displacement;
+%         fwrite(tcpip_client, [CMD_MOVE_MOTOR MOTOR_INSERTION typecast(displacement_value, 'uint8') typecast(speed, 'uint8')]);
+%         fclose(tcpip_client);
+%         
+%     else
+%         fopen(tcpip_client);
+%         fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_INSERTION DIRECTION_BACKWARD]);
+%         pause(0.5);
+%         displacement_value = -displacement;
+%         fwrite(tcpip_client, [CMD_MOVE_MOTOR MOTOR_INSERTION typecast(displacement_value, 'uint8') typecast(speed, 'uint8')]);
+%         fclose(tcpip_client);
+%     end
+        
     else
         fopen(tcpip_client);
-        fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_INSERTION DIRECTION_BACKWARD]);
-        pause(0.5);
-        displacement_value = -displacement;
-        fwrite(tcpip_client, [CMD_MOVE_MOTOR MOTOR_INSERTION typecast(displacement_value, 'uint8') typecast(speed, 'uint8')]);
+        fwrite(tcpip_client, [CMD_TRANSLATE typecast(displacement, 'uint8') typecast(speed, 'uint8')]);
         fclose(tcpip_client);
     end
+    
     
     fprintf('\n');
     pause(1);

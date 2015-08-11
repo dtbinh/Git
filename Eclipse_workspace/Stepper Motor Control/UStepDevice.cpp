@@ -55,6 +55,12 @@
 // Default value that must be set to the step ports when not moving the motor
 #define PORT_STEP_OFF                 0
 
+/*
+ *
+ *  PUBLIC FUNCTIONS
+ *
+ */
+
 UStepDevice::UStepDevice()
 {
   emergency_button_ = 0;
@@ -204,8 +210,9 @@ int UStepDevice::calibrateMotorsStartingPosition()
     printf("   - Please wait for the front gripper to hit the front limit switch\n");
     moveGripperToFrontSwitch(max_base_speed_*0.7);
     printf("   - Moving motor 1 to its initial position: %.2f mm\n", initial_insertion_position_);
-    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    moveMotorConstantSpeed(MOTOR_INSERTION, initial_insertion_position_, default_retreating_speed_);
+    translateFrontGripper(-initial_insertion_position_, default_retreating_speed_);
+    //setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
+    //moveMotorConstantSpeed(MOTOR_INSERTION, initial_insertion_position_, default_retreating_speed_);
     insertion_position_ = initial_insertion_position_;
     printf("   - Motor 1 calibrated \n\n");
 
@@ -214,10 +221,8 @@ int UStepDevice::calibrateMotorsStartingPosition()
     printf("   - Please move the back gripper to the completely open position\n");
     printf("   - Hit ENTER when you are done\n");
     setEnable(MOTOR_BACK_GRIPPER, DISABLE_MOTOR);
-    //gpioWrite(back_gripper_.port_enable(), DISABLE_MOTOR);
     getchar();
     setEnable(MOTOR_BACK_GRIPPER, ENABLE_MOTOR);
-    //gpioWrite(back_gripper_.port_enable(), ENABLE_MOTOR);
     printf("   - Motor 2 calibrated \n\n");
 
     printf("STEP 3 - Calibrating the initial position of Motor 4:\n");
@@ -225,10 +230,8 @@ int UStepDevice::calibrateMotorsStartingPosition()
     printf("   - Please move the front gripper to the completely open position\n");
     printf("   - Hit ENTER when you are done\n");
     setEnable(MOTOR_FRONT_GRIPPER, DISABLE_MOTOR);
-    //gpioWrite(front_gripper_.port_enable(), DISABLE_MOTOR);
     getchar();
     setEnable(MOTOR_FRONT_GRIPPER, ENABLE_MOTOR);
-    //gpioWrite(front_gripper_.port_enable(), ENABLE_MOTOR);
     printf("   - Motor 4 calibrated \n\n");
 
     printf("Calibration function finished! \n\n");
@@ -240,297 +243,6 @@ int UStepDevice::calibrateMotorsStartingPosition()
   {
     Error("ERROR UStepDevice::calibrateMotorsStartingPosition - Device not initialized. You must call initGPIO() before \n");
     return ERR_DEVICE_NOT_INITIALIZED;
-  }
-
-  return 0;
-}
-
-int UStepDevice::setInsertionWithDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
-{
-  // Input units
-  //   - insert_depth : The requested insertion distance in millimeters
-  //   - insert_speed : The requested insertion speed in millimeters/second
-  //   - rot_speed    : The requested rotation speed in revolutions/second
-  //   - duty_cycle   : The requested duty cycle
-
-  if(calibrated_)
-  {
-    // Convert the insertion quantities from millimeters to revolutions
-    double insertion_motor_distance = needle_insertion_depth * insertion_.gear_ratio();
-    double insertion_motor_speed = needle_insertion_speed * insertion_.gear_ratio();
-    double rotation_motor_speed = needle_rotation_speed * rotation_.gear_ratio();
-
-    int result;
-
-    // Verify if the requested speeds are inside the allowed range
-    result = verifyMotorSpeedLimits(insertion_motor_speed, RAMP_NOT_ALLOWED);
-    if(result)
-    {
-      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested insertion motor speeds is invalid \n");
-      return result;
-    }
-    result = verifyMotorSpeedLimits(rotation_motor_speed, RAMP_ALLOWED);
-    if(result)
-    {
-      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested rotation motor speeds is invalid \n");
-      return result;
-    }
-
-    // Before generating new waves, clear all wave variables
-    clearWaves();
-
-    // Calculate all necessary parameters for generating the duty cycle motion
-    if((result = calculateDutyCycleMotionParameters(insertion_motor_distance, insertion_motor_speed, rotation_motor_speed, duty_cycle)))
-    {
-      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Bad parameters \n");
-      return result;
-    }
-
-    // If the duty cycle is smaller than 1 or there are remaining steps to be
-    // performed after all duty cycle periods, generate a wave with insertion only
-    if(micros_pure_insertion_ > 0 || micros_remaining_ > 0)
-    {
-      if((result = generateWavePureInsertion()))
-      {
-        Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave pure insertion \n");
-        return result;
-      }
-    }
-
-    // If the duty cycle is greater than 0 generate a wave containing insertion and rotation
-    if(micros_rotation_ > 0)
-    {
-      if((result = generateWaveInsertionWithRotation()))
-      {
-        Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave insertion with rotation \n");
-        return result;
-      }
-    }
-
-    calculateFeedbackInformation();
-  }
-
-  else
-  {
-    Error("ERROR UStepDevice::setInsertionWithDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
-    return ERR_DEVICE_NOT_CALIBRATED;
-  }
-
-  return 0;
-}
-
-int UStepDevice::startInsertionWithDutyCycle()
-{
-  if(calibrated_)
-  {
-    Debug("\nDEBUG 0\n");
-    Debug("Wave rot = %d, during %u(s) and %u(us)\n", wave_insertion_with_rotation_, seconds_rotation_, micros_rotation_);
-    Debug("Wave insert = %d, during %u(s) and %u(us)\n", wave_pure_insertion_, seconds_pure_insertion_, micros_pure_insertion_);
-    Debug("Number of DC periods = %u, remaining micros = %u\n", num_dc_periods_, micros_remaining_);
-    switch (checkExistingWaves())
-    {
-      case WAVES_ALL:
-        for(unsigned n = 0; n < num_dc_periods_; n++)
-        {
-          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
-        gpioWaveTxStop();
-        break;
-
-      case WAVES_INSERT_ROT:
-        for(unsigned n = 0; n < num_dc_periods_; n++)
-        {
-          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioWaveTxStop();
-        break;
-
-      case WAVES_ROT_REMAIN:
-        for(unsigned n = 0; n < num_dc_periods_; n++)
-        {
-          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
-        gpioWaveTxStop();
-        break;
-
-      case WAVES_ROT:
-        for(unsigned n = 0; n < num_dc_periods_; n++)
-        {
-          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioWaveTxStop();
-        break;
-
-      case WAVES_INSERT:
-        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
-        gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
-        gpioWaveTxStop();
-        break;
-
-      // Error: the waves have not been set
-      case WAVES_NONE:
-        Error("ERROR UStepDevice::startInsertion - Waves not set \n");
-        return ERR_WAVES_NOT_PRESENT;
-
-      default:
-        break;
-    }
-  }
-
-  else
-  {
-    Error("ERROR UStepDevice::startInsertionWithDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
-    return ERR_DEVICE_NOT_CALIBRATED;
-  }
-
-  gpioWrite(insertion_.port_step(), PORT_STEP_OFF);
-  gpioWrite(rotation_.port_step(), PORT_STEP_OFF);
-
-  return 0;
-}
-
-int UStepDevice::performFullDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
-{
-  if(calibrated_)
-  {
-    int result;
-
-    // PART 1 - RELEASE THE NEEDLE
-    Debug("UStepDevice::performFullDutyCyleStep - Closing the back gripper\n");
-    if((result = closeBackGripper()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the back gripper\n"); return result; }
-
-    Debug("UStepDevice::performFullDutyCyleStep - Opening the front gripper\n");
-    if((result = openFrontGripper()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the front gripper\n"); return result; }
-
-    // PART 2 - RETREAT THE MOVING GRIPPER BOX
-    if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
-        return ERR_INSERT_POS_TOO_HIGH; }
-
-    /*
-    if((result = setInsertionWithDutyCycle(needle_insertion_depth, needle_insertion_speed, needle_rotation_speed, 0.0)))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to set the retreat parameters\n"); return result; }
-
-    result = setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-
-    if((result = startInsertionWithDutyCycle()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to retreat the device\n"); return result; }
-    insertion_position_ += calculated_insertion_depth_;
-    */
-
-    Debug("UStepDevice::performFullDutyCyleStep - Moving the gripper box backward\n");
-    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to retreat the device\n"); return result; }
-    insertion_position_ += performed_displacement_;
-
-
-    // PART 3 - GRASP THE NEEDLE
-    Debug("UStepDevice::performFullDutyCyleStep - Closing the front gripper\n");
-    if((result = closeFrontGripper()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the front gripper\n"); return result; }
-
-    Debug("UStepDevice::performFullDutyCyleStep - Opening the back gripper\n");
-    if((result = openBackGripper()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the back gripper\n"); return result; }
-
-    // PART 4 - INSERT THE NEEDLE
-    if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
-      return ERR_INSERT_POS_TOO_LOW; }
-
-    if((result = setInsertionWithDutyCycle(needle_insertion_depth, needle_insertion_speed, needle_rotation_speed, duty_cycle)))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
-
-    Debug("UStepDevice::performFullDutyCyleStep - Moving the gripper box forward\n");
-    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
-    if((result = startInsertionWithDutyCycle()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to insert the needle\n"); return result; }
-    insertion_position_ -= calculated_insertion_depth_;
-  }
-
-  else
-  {
-    Error("ERROR UStepDevice::performFullDutyCyleStep - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
-    return ERR_DEVICE_NOT_CALIBRATED;
-  }
-
-  return 0;
-}
-
-int UStepDevice::performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed)
-{
-  if(calibrated_)
-  {
-    int result;
-
-    // PART 1 - RETREAT THE MOVING GRIPPER BOX
-    if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
-      { Error("ERROR UStepDevice::performBackwardStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
-        return ERR_INSERT_POS_TOO_HIGH; }
-
-    Debug("UStepDevice::performBackwardStep - Moving the gripper box backward\n");
-    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
-      { Error("ERROR UStepDevice::performBackwardStep - Unable to retreat the device\n"); return result; }
-    insertion_position_ += performed_displacement_;
-
-
-    // PART 2 - RELEASE THE NEEDLE
-    Debug("UStepDevice::performBackwardStep - Closing the back gripper\n");
-    if((result = closeBackGripper()))
-      { Error("ERROR UStepDevice::performBackwardStep - Unable to close the back gripper\n"); return result; }
-
-    Debug("UStepDevice::performBackwardStep - Opening the front gripper\n");
-    if((result = openFrontGripper()))
-      { Error("ERROR UStepDevice::performBackwardStep - Unable to open the front gripper\n"); return result; }
-
-    // PART 3 - MOVE THE MOVING GRIPPER BOX FORWARD AGAIN
-    if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
-      { Error("ERROR UStepDevice::performBackwardStep - Insertion position lower limit reached. Try choosing a smaller step size\n");
-        return ERR_INSERT_POS_TOO_LOW; }
-
-    Debug("UStepDevice::performBackwardStep - Moving the gripper box forward\n");
-    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
-    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
-      { Error("ERROR UStepDevice::performBackwardStep - Unable to retreat the device\n"); return result; }
-    insertion_position_ -= performed_displacement_;
-
-    // PART 4 - GRASP THE NEEDLE
-    Debug("UStepDevice::performBackwardStep - Closing the front gripper\n");
-    if((result = closeFrontGripper()))
-      { Error("ERROR UStepDevice::performBackwardStep - Unable to close the front gripper\n"); return result; }
-
-    Debug("UStepDevice::performBackwardStep - Opening the back gripper\n");
-    if((result = openBackGripper()))
-      { Error("ERROR UStepDevice::performBackwardStep - Unable to open the back gripper\n"); return result; }
-
-  }
-
-  else
-  {
-    Error("ERROR UStepDevice::performBackwardStep - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
-    return ERR_DEVICE_NOT_CALIBRATED;
   }
 
   return 0;
@@ -669,155 +381,43 @@ int UStepDevice::closeBackGripper()
   return 0;
 }
 
-int UStepDevice::moveMotorConstantSpeed(unsigned char motor, double displacement, double speed)
+int UStepDevice::rotateNeedle(double needle_revolutions, double needle_rotation_speed)
 {
   // Input units
-  //   - motor        : The code specifying the motor to move
-  //   - displacement : The requested displacement of the end effector in revs
-  //   - speed        : The requested speed of the end effector in rev/s
+  //   - needle_revolutions    : The requested displacement of the needle in revs
+  //   - needle_rotation_speed : The requested speed of the needle in rev/s
 
-  double motor_displacement;
-  double motor_speed;
-
-  unsigned motor_port_step;
-  unsigned motor_displacement_step;
-
-  unsigned step_half_period;
-  unsigned duration_seconds;
-  unsigned duration_micros;
-
-  // Convert the requested end effector variables to motor variables
-  switch(motor)
+  // Set the rotation motor direction
+  double needle_revolutions_absolute;
+  if(needle_revolutions > 0)
   {
-    case MOTOR_INSERTION:
-      motor_displacement = displacement * insertion_.gear_ratio();
-      motor_speed = speed * insertion_.gear_ratio();
-      motor_port_step = insertion_.port_step();
-      motor_displacement_step = round(motor_displacement * insertion_.steps_per_revolution());
-      break;
-
-    case MOTOR_ROTATION:
-      motor_displacement = displacement * rotation_.gear_ratio();
-      motor_speed = speed * rotation_.gear_ratio();
-      motor_port_step = rotation_.port_step();
-      motor_displacement_step = round(motor_displacement * rotation_.steps_per_revolution());
-      break;
-
-    case MOTOR_FRONT_GRIPPER:
-      motor_displacement = displacement * front_gripper_.gear_ratio();
-      motor_speed = speed * front_gripper_.gear_ratio();
-      motor_port_step = front_gripper_.port_step();
-      motor_displacement_step = round(motor_displacement * front_gripper_.steps_per_revolution());
-      break;
-
-    case MOTOR_BACK_GRIPPER:
-      motor_displacement = displacement * back_gripper_.gear_ratio();
-      motor_speed = speed * back_gripper_.gear_ratio();
-      motor_port_step = back_gripper_.port_step();
-      motor_displacement_step = round(motor_displacement * back_gripper_.steps_per_revolution());
-      break;
-
-    default:
-      Error("ERROR UStepDevice::moveMotor - Invalid motor code \n");
-      return ERR_INVALID_MOTOR_CODE;
+    setDirection(MOTOR_ROTATION, DIRECTION_CLOCKWISE);
+    needle_revolutions_absolute = needle_revolutions;
   }
-
-  // Verify if the motor speed is within the speed limits
-  if(verifyMotorSpeedLimits(motor_speed, RAMP_NOT_ALLOWED))
-  {
-    Error("ERROR UStepDevice::moveMotor - Requested motor speeds is invalid \n");
-    return ERR_INVALID_MOTOR_SPEED;
-  }
-
-  // Calculate the half period of each step and the total duration of the motion
-  double exp_total_insert_time_us = (motor_displacement / motor_speed) * S_TO_US;
-  step_half_period = round((exp_total_insert_time_us / motor_displacement_step) / 2);
-  duration_micros = motor_displacement_step * 2*step_half_period;
-  duration_seconds = floor(duration_micros*US_TO_S);
-  duration_micros = duration_micros - S_TO_US*duration_seconds;
-
-  // Generate the motor pulses as constant speed
-  gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
-
-  // If the pulses have been successfully generated, create the wave
-  if(pulses >= 0)
-  {
-    gpioWaveClear();
-    gpioWaveAddGeneric(2, pulses);
-    int wave_id = gpioWaveCreate();
-
-    // Free the memory allocated for the pulses
-    free(pulses);
-
-    if (wave_id >= 0)
-    {
-      // Perform the entire motion
-      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
-      gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
-      gpioWaveTxStop();
-      gpioWrite(motor_port_step, PORT_STEP_OFF);
-
-      // Generate feedback information
-      switch(motor)
-      {
-        case MOTOR_INSERTION:
-          performed_displacement_ = ((double)(motor_displacement_step)) / (insertion_.steps_per_revolution() * insertion_.gear_ratio());
-          break;
-
-        case MOTOR_ROTATION:
-          performed_displacement_ = ((double)(motor_displacement_step)) / (rotation_.steps_per_revolution() * rotation_.gear_ratio());
-          break;
-
-        case MOTOR_FRONT_GRIPPER:
-          performed_displacement_ = ((double)(motor_displacement_step)) / (front_gripper_.steps_per_revolution() * front_gripper_.gear_ratio());
-          break;
-
-        case MOTOR_BACK_GRIPPER:
-          performed_displacement_ = ((double)(motor_displacement_step)) / (back_gripper_.steps_per_revolution() * back_gripper_.gear_ratio());
-          break;
-      }
-    }
-
-    else
-    {
-      Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
-      return ERR_GPIO_WAVE_CREATE_FAIL;
-    }
-  }
-
   else
   {
-    Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
-    return ERR_MALLOC;
+    setDirection(MOTOR_ROTATION, DIRECTION_COUNTER_CLOCKWISE);
+    needle_revolutions_absolute = -needle_revolutions;
   }
-
-  return 0;
-}
-
-int UStepDevice::moveRotationMotorWithRamps(double revolutions, double rotation_speed)
-{
-  // Input units
-  //   - revolutions  : The requested displacement of the end effector in revs
-  //   - speed        : The requested speed of the end effector in rev/s
 
   // Verify if ramping is really needed
-  if(rotation_speed * rotation_.gear_ratio() <= max_base_speed_)
+  if(needle_rotation_speed * rotation_.gear_ratio() <= max_base_speed_)
   {
-    Debug("UStepDevice::moveRotationMotorWithRamps - Slow speed request. Moving motor with constant speed\n");
-    return moveMotorConstantSpeed(MOTOR_ROTATION, revolutions, rotation_speed);
+    Debug("UStepDevice::rotateNeedle - Slow speed request. Moving motor with constant speed\n");
+    return moveMotorConstantSpeed(MOTOR_ROTATION, needle_revolutions_absolute, needle_rotation_speed);
   }
-  Debug("UStepDevice::moveRotationMotorWithRamps - High speed request. Moving motor with ramps\n");
+  Debug("UStepDevice::rotateNeedle - High speed request. Moving motor with ramps\n");
 
   // Convert the requested end effector variables to motor variables
-  double motor_revolutions = revolutions * rotation_.gear_ratio();
-  double motor_speed = rotation_speed * rotation_.gear_ratio();
+  double motor_revolutions = needle_revolutions_absolute * rotation_.gear_ratio();
+  double motor_speed = needle_rotation_speed * rotation_.gear_ratio();
   unsigned port_step = rotation_.port_step();
   unsigned motor_steps = round(motor_revolutions * rotation_.steps_per_revolution());
 
   // Verify if the motor speed is within the speed limits
   if(verifyMotorSpeedLimits(motor_speed, RAMP_ALLOWED))
   {
-    Error("ERROR UStepDevice::moveRotationMotorWithRamps - Requested motor speeds is invalid \n");
+    Error("ERROR UStepDevice::rotateNeedle - Requested motor speeds is invalid \n");
     return ERR_INVALID_MOTOR_SPEED;
   }
 
@@ -830,11 +430,11 @@ int UStepDevice::moveRotationMotorWithRamps(double revolutions, double rotation_
   // If the pulses have been successfully generated, create the wave
   if(pulses >= 0)
   {
-    //Debug("UStepDevice::moveRotationMotorWithRamps - DEBUG - Attempting to create a wave with %u steps\n", motor_steps);
+    //Debug("UStepDevice::rotateNeedle - DEBUG - Attempting to create a wave with %u steps\n", motor_steps);
     gpioWaveClear();
     gpioWaveAddGeneric(2*motor_steps, pulses);
     int wave_id = gpioWaveCreate();
-    //Debug("UStepDevice::moveRotationMotorWithRamps - DEBUG - The ID of the created wave is %d\n", wave_id);
+    //Debug("UStepDevice::rotateNeedle - DEBUG - The ID of the created wave is %d\n", wave_id);
 
     // Free the memory allocated for the pulses
     free(pulses);
@@ -855,236 +455,330 @@ int UStepDevice::moveRotationMotorWithRamps(double revolutions, double rotation_
 
     else
     {
-      Error("ERROR UStepDevice::moveRotationMotorWithRamps - Unable to call gpioWaveCreate() \n");
+      Error("ERROR UStepDevice::rotateNeedle - Unable to call gpioWaveCreate() \n");
       return ERR_GPIO_WAVE_CREATE_FAIL;
     }
   }
 
   else
   {
-    Error("ERROR UStepDevice::moveRotationMotorWithRamps - Malloc error \n");
+    Error("ERROR UStepDevice::rotateNeedle - Malloc error \n");
     return ERR_MALLOC;
   }
 
   return 0;
 }
 
-int UStepDevice::debugMoveMotorSteps(unsigned char motor, double motor_displacement_step, double motor_speed_step)
+int UStepDevice::translateFrontGripper(double front_gripper_displacement, double front_gripper_speed)
 {
-  // This function is analogous to the moveMotorConstantSpeed, but it must be used
-  // only for debug purposes. Its parameters are already given in steps, so all
-  // gear ratio parameters are ignored.
-
-  // OBS: It assumes that all motors are in the 20000 steps/rev configuration
-  // DO NOT forget to verify that
-
   // Input units
-  //   - motor        : The code specifying the motor to move
-  //   - displacement : The requested displacement of the end effector in steps
-  //   - speed        : The requested speed of the end effector in steps/s
+  //   - front_gripper_displacement  : The requested displacement of the front gripper in mm
+  //   - front_gripper_speed         : The requested speed of the front gripper in mm/s
 
-
-  unsigned motor_port_step;
-  unsigned step_half_period;
-  unsigned duration_seconds;
-  unsigned duration_micros;
-
-  switch(motor)
+  // Set the insertion motor direction
+  double absolute_displacement;
+  if(front_gripper_displacement > 0)
   {
-    case MOTOR_INSERTION:
-      motor_port_step = insertion_.port_step();
-      break;
-
-    case MOTOR_ROTATION:
-      motor_port_step = rotation_.port_step();
-      break;
-
-    case MOTOR_FRONT_GRIPPER:
-      motor_port_step = front_gripper_.port_step();
-      break;
-
-    case MOTOR_BACK_GRIPPER:
-      motor_port_step = back_gripper_.port_step();
-      break;
-
-    default:
-      Error("ERROR UStepDevice::moveMotor - Invalid motor code \n");
-      return ERR_INVALID_MOTOR_CODE;
+    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+    absolute_displacement = front_gripper_displacement;
   }
-
-  step_half_period = round((S_TO_US / motor_speed_step) / 2);
-  duration_micros = motor_displacement_step * 2*step_half_period;
-  duration_seconds = floor(duration_micros*US_TO_S);
-  duration_micros = duration_micros - S_TO_US*duration_seconds;
-
-  Debug("UStepDevice::moveMotor - Preparing to send commands on port %u, with half step of %u, for a total of %u (s) and %u (us)\n", motor_port_step, step_half_period, duration_seconds, duration_micros);
-
-  gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
-
-  if(pulses >= 0)
+  else
   {
-    gpioWaveClear();
-    gpioWaveAddGeneric(2, pulses);
-    int wave_id = gpioWaveCreate();
+    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
+    absolute_displacement = -front_gripper_displacement;
+  }
+  return moveMotorConstantSpeed(MOTOR_INSERTION, absolute_displacement, front_gripper_speed);
+}
 
-    free(pulses);
+int UStepDevice::setInsertionWithDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
+{
+  // Input units
+  //   - insert_depth : The requested insertion distance in millimeters
+  //   - insert_speed : The requested insertion speed in millimeters/second
+  //   - rot_speed    : The requested rotation speed in revolutions/second
+  //   - duty_cycle   : The requested duty cycle
 
-    if (wave_id >= 0)
+  if(calibrated_)
+  {
+    // Convert the insertion quantities from millimeters to revolutions
+    double insertion_motor_distance = needle_insertion_depth * insertion_.gear_ratio();
+    double insertion_motor_speed = needle_insertion_speed * insertion_.gear_ratio();
+    double rotation_motor_speed = needle_rotation_speed * rotation_.gear_ratio();
+
+    int result;
+
+    // Verify if the requested speeds are inside the allowed range
+    result = verifyMotorSpeedLimits(insertion_motor_speed, RAMP_NOT_ALLOWED);
+    if(result)
     {
-      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
-      gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
-      gpioWaveTxStop();
-      gpioWrite(motor_port_step, PORT_STEP_OFF);
+      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested insertion motor speeds is invalid \n");
+      return result;
+    }
+    result = verifyMotorSpeedLimits(rotation_motor_speed, RAMP_ALLOWED);
+    if(result)
+    {
+      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested rotation motor speeds is invalid \n");
+      return result;
     }
 
-    else
+    // Before generating new waves, clear all wave variables
+    clearWaves();
+
+    // Calculate all necessary parameters for generating the duty cycle motion
+    if((result = calculateDutyCycleMotionParameters(insertion_motor_distance, insertion_motor_speed, rotation_motor_speed, duty_cycle)))
     {
-      Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
-      return ERR_GPIO_WAVE_CREATE_FAIL;
+      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Bad parameters \n");
+      return result;
     }
+
+    // If the duty cycle is smaller than 1 or there are remaining steps to be
+    // performed after all duty cycle periods, generate a wave with insertion only
+    if(micros_pure_insertion_ > 0 || micros_remaining_ > 0)
+    {
+      if((result = generateWavePureInsertion()))
+      {
+        Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave pure insertion \n");
+        return result;
+      }
+    }
+
+    // If the duty cycle is greater than 0 generate a wave containing insertion and rotation
+    if(micros_rotation_ > 0)
+    {
+      if((result = generateWaveInsertionWithRotation()))
+      {
+        Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave insertion with rotation \n");
+        return result;
+      }
+    }
+
+    calculateFeedbackInformation();
   }
 
   else
   {
-    Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
-    return ERR_MALLOC;
+    Error("ERROR UStepDevice::setInsertionWithDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
   }
 
   return 0;
 }
 
-int UStepDevice::setDirection(unsigned char motor, unsigned direction)
+int UStepDevice::startInsertionWithDutyCycle()
 {
-  if(initialized_)
+  if(calibrated_)
   {
-    switch(motor)
+    Debug("\nDEBUG 0\n");
+    Debug("Wave rot = %d, during %u(s) and %u(us)\n", wave_insertion_with_rotation_, seconds_rotation_, micros_rotation_);
+    Debug("Wave insert = %d, during %u(s) and %u(us)\n", wave_pure_insertion_, seconds_pure_insertion_, micros_pure_insertion_);
+    Debug("Number of DC periods = %u, remaining micros = %u\n", num_dc_periods_, micros_remaining_);
+
+    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+    setDirection(MOTOR_ROTATION, DIRECTION_COUNTER_CLOCKWISE);
+
+    switch (checkExistingWaves())
     {
-      case MOTOR_INSERTION:
-        gpioWrite(insertion_.port_direction(), direction);
+      case WAVES_ALL:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
+        gpioWaveTxStop();
         break;
 
-      case MOTOR_ROTATION:
-        gpioWrite(rotation_.port_direction(), direction);
-        gpioWrite(front_gripper_.port_direction(), direction);
+      case WAVES_INSERT_ROT:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioWaveTxStop();
         break;
 
-      case MOTOR_FRONT_GRIPPER:
-        gpioWrite(front_gripper_.port_direction(), direction);
+      case WAVES_ROT_REMAIN:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
+        gpioWaveTxStop();
         break;
 
-      case MOTOR_BACK_GRIPPER:
-        gpioWrite(back_gripper_.port_direction(), direction);
+      case WAVES_ROT:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          //setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          //duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioWaveTxStop();
         break;
+
+      case WAVES_INSERT:
+        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+        gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+        gpioWaveTxStop();
+        break;
+
+      // Error: the waves have not been set
+      case WAVES_NONE:
+        Error("ERROR UStepDevice::startInsertion - Waves not set \n");
+        return ERR_WAVES_NOT_PRESENT;
 
       default:
-        Error("ERROR UStepDevice::setDirection - Invalid motor code \n");
-        return ERR_INVALID_MOTOR_CODE;
-      }
-    }
-
-    else
-    {
-      Error("ERROR UStepDevice::setDirection - Device not initialized. You must call initGPIO() before \n");
-      return ERR_DEVICE_NOT_INITIALIZED;
-    }
-
-    return 0;
-}
-
-int UStepDevice::moveGripperToFrontSwitch(double speed)
-{
-  // Set the gripper direction to moving forward
-  setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
-
-  // Convert the requested end effector variables to motor variables
-  double motor_speed = speed * insertion_.gear_ratio();
-  unsigned motor_port_step = insertion_.port_step();
-
-  // Verify if the motor speed is within the speed limits
-  if(verifyMotorSpeedLimits(motor_speed, RAMP_NOT_ALLOWED))
-  {
-    Error("ERROR UStepDevice::moveMotor - Requested motor speeds is invalid \n");
-    return ERR_INVALID_MOTOR_SPEED;
-  }
-
-  // Calculate the half period of each step, according to the requested speed
-  unsigned step_half_period = round((S_TO_US / (motor_speed * insertion_.steps_per_revolution())) / 2);
-
-  // Generate the motor pulses as constant speed
-  gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
-
-  // If the pulses have been successfully generated, create a wave
-  if(pulses >= 0)
-  {
-    gpioWaveClear();
-    gpioWaveAddGeneric(2, pulses);
-    int wave_id = gpioWaveCreate();
-
-    // Free the memory allocated for the pulses
-    free(pulses);
-
-    if (wave_id >= 0)
-    {
-      // Send the wave until the front switch is hit
-      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
-      while(gpioRead(front_switch_) == 0)
-        gpioSleep(PI_TIME_RELATIVE, 0, 100000);
-      gpioWaveTxStop();
-      gpioWrite(motor_port_step, PORT_STEP_OFF);
-    }
-
-    else
-    {
-      Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
-      return ERR_GPIO_WAVE_CREATE_FAIL;
+        break;
     }
   }
 
   else
   {
-    Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
-    return ERR_MALLOC;
+    Error("ERROR UStepDevice::startInsertionWithDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  gpioWrite(insertion_.port_step(), PORT_STEP_OFF);
+  gpioWrite(rotation_.port_step(), PORT_STEP_OFF);
+
+  return 0;
+}
+
+int UStepDevice::performFullDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
+{
+  if(calibrated_)
+  {
+    int result;
+
+    // PART 1 - RELEASE THE NEEDLE
+    Debug("UStepDevice::performFullDutyCyleStep - Closing the back gripper\n");
+    if((result = closeBackGripper()))
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the back gripper\n"); return result; }
+
+    Debug("UStepDevice::performFullDutyCyleStep - Opening the front gripper\n");
+    if((result = openFrontGripper()))
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the front gripper\n"); return result; }
+
+    // PART 2 - RETREAT THE MOVING GRIPPER BOX
+    if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
+        return ERR_INSERT_POS_TOO_HIGH; }
+
+    //setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
+    //if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
+    Debug("UStepDevice::performFullDutyCyleStep - Moving the gripper box backward\n");
+    if((result = translateFrontGripper(-needle_insertion_depth, default_retreating_speed_)))
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to retreat the device\n"); return result; }
+    insertion_position_ += performed_displacement_;
+
+
+    // PART 3 - GRASP THE NEEDLE
+    Debug("UStepDevice::performFullDutyCyleStep - Closing the front gripper\n");
+    if((result = closeFrontGripper()))
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the front gripper\n"); return result; }
+
+    Debug("UStepDevice::performFullDutyCyleStep - Opening the back gripper\n");
+    if((result = openBackGripper()))
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the back gripper\n"); return result; }
+
+    // PART 4 - INSERT THE NEEDLE
+    if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
+      return ERR_INSERT_POS_TOO_LOW; }
+
+    if((result = setInsertionWithDutyCycle(needle_insertion_depth, needle_insertion_speed, needle_rotation_speed, duty_cycle)))
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
+
+    Debug("UStepDevice::performFullDutyCyleStep - Moving the gripper box forward\n");
+    if((result = startInsertionWithDutyCycle()))
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to insert the needle\n"); return result; }
+    insertion_position_ -= calculated_insertion_depth_;
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::performFullDutyCyleStep - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
   }
 
   return 0;
 }
 
-int UStepDevice::setEnable(unsigned char motor, unsigned enable)
+int UStepDevice::performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed)
 {
-  if(initialized_)
+  if(calibrated_)
   {
-    switch(motor)
-    {
-      case MOTOR_INSERTION:
-        gpioWrite(insertion_.port_enable(), enable);
-        break;
+    int result;
 
-      case MOTOR_ROTATION:
-        gpioWrite(rotation_.port_enable(), enable);
-        break;
+    // PART 1 - RETREAT THE MOVING GRIPPER BOX
+    if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
+      { Error("ERROR UStepDevice::performBackwardStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
+        return ERR_INSERT_POS_TOO_HIGH; }
 
-      case MOTOR_FRONT_GRIPPER:
-        gpioWrite(front_gripper_.port_enable(), enable);
-        break;
+    Debug("UStepDevice::performBackwardStep - Moving the gripper box backward\n");
+    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
+    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to retreat the device\n"); return result; }
+    insertion_position_ += performed_displacement_;
 
-      case MOTOR_BACK_GRIPPER:
-        gpioWrite(back_gripper_.port_enable(), enable);
-        break;
 
-      default:
-        Error("ERROR UStepDevice::motorSetEnable - Invalid motor code \n");
-        return ERR_INVALID_MOTOR_CODE;
-      }
-    }
+    // PART 2 - RELEASE THE NEEDLE
+    Debug("UStepDevice::performBackwardStep - Closing the back gripper\n");
+    if((result = closeBackGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to close the back gripper\n"); return result; }
 
-    else
-    {
-      Error("ERROR UStepDevice::motorSetEnable - Device not initialized. You must call initGPIO() before \n");
-      return ERR_DEVICE_NOT_INITIALIZED;
-    }
+    Debug("UStepDevice::performBackwardStep - Opening the front gripper\n");
+    if((result = openFrontGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to open the front gripper\n"); return result; }
 
-    return 0;
+    // PART 3 - MOVE THE MOVING GRIPPER BOX FORWARD AGAIN
+    if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
+      { Error("ERROR UStepDevice::performBackwardStep - Insertion position lower limit reached. Try choosing a smaller step size\n");
+        return ERR_INSERT_POS_TOO_LOW; }
+
+    Debug("UStepDevice::performBackwardStep - Moving the gripper box forward\n");
+    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to retreat the device\n"); return result; }
+    insertion_position_ -= performed_displacement_;
+
+    // PART 4 - GRASP THE NEEDLE
+    Debug("UStepDevice::performBackwardStep - Closing the front gripper\n");
+    if((result = closeFrontGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to close the front gripper\n"); return result; }
+
+    Debug("UStepDevice::performBackwardStep - Opening the back gripper\n");
+    if((result = openBackGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to open the back gripper\n"); return result; }
+
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::performBackwardStep - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  return 0;
 }
+
+/*
+ *
+ *  PRIVATE FUNCTIONS
+ *
+ */
 
 void UStepDevice::displayParameters()
 {
@@ -1808,4 +1502,349 @@ unsigned UStepDevice::generatePulsesRampUp(unsigned port_number, double frequenc
   }
 
   return i_step;
+}
+
+int UStepDevice::setEnable(unsigned char motor, unsigned enable)
+{
+  if(initialized_)
+  {
+    switch(motor)
+    {
+      case MOTOR_INSERTION:
+        gpioWrite(insertion_.port_enable(), enable);
+        break;
+
+      case MOTOR_ROTATION:
+        gpioWrite(rotation_.port_enable(), enable);
+        break;
+
+      case MOTOR_FRONT_GRIPPER:
+        gpioWrite(front_gripper_.port_enable(), enable);
+        break;
+
+      case MOTOR_BACK_GRIPPER:
+        gpioWrite(back_gripper_.port_enable(), enable);
+        break;
+
+      default:
+        Error("ERROR UStepDevice::motorSetEnable - Invalid motor code \n");
+        return ERR_INVALID_MOTOR_CODE;
+      }
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::motorSetEnable - Device not initialized. You must call initGPIO() before \n");
+      return ERR_DEVICE_NOT_INITIALIZED;
+    }
+
+    return 0;
+}
+
+int UStepDevice::setDirection(unsigned char motor, unsigned direction)
+{
+  if(initialized_)
+  {
+    switch(motor)
+    {
+      case MOTOR_INSERTION:
+        gpioWrite(insertion_.port_direction(), direction);
+        break;
+
+      case MOTOR_ROTATION:
+        gpioWrite(rotation_.port_direction(), direction);
+        gpioWrite(front_gripper_.port_direction(), direction);
+        break;
+
+      case MOTOR_FRONT_GRIPPER:
+        gpioWrite(front_gripper_.port_direction(), direction);
+        break;
+
+      case MOTOR_BACK_GRIPPER:
+        gpioWrite(back_gripper_.port_direction(), direction);
+        break;
+
+      default:
+        Error("ERROR UStepDevice::setDirection - Invalid motor code \n");
+        return ERR_INVALID_MOTOR_CODE;
+      }
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::setDirection - Device not initialized. You must call initGPIO() before \n");
+      return ERR_DEVICE_NOT_INITIALIZED;
+    }
+
+    return 0;
+}
+
+int UStepDevice::moveMotorConstantSpeed(unsigned char motor, double displacement, double speed)
+{
+  // Input units
+  //   - motor        : The code specifying the motor to move
+  //   - displacement : The requested displacement of the end effector in revs
+  //   - speed        : The requested speed of the end effector in rev/s
+  //
+  // OBS: This function never sets the direction of the motor. It assumes the
+  // provided displacement is a positive value
+
+  double motor_displacement;
+  double motor_speed;
+
+  unsigned motor_port_step;
+  unsigned motor_displacement_step;
+
+  unsigned step_half_period;
+  unsigned duration_seconds;
+  unsigned duration_micros;
+
+  // Convert the requested end effector variables to motor variables
+  switch(motor)
+  {
+    case MOTOR_INSERTION:
+      motor_displacement = displacement * insertion_.gear_ratio();
+      motor_speed = speed * insertion_.gear_ratio();
+      motor_port_step = insertion_.port_step();
+      motor_displacement_step = round(motor_displacement * insertion_.steps_per_revolution());
+      break;
+
+    case MOTOR_ROTATION:
+      motor_displacement = displacement * rotation_.gear_ratio();
+      motor_speed = speed * rotation_.gear_ratio();
+      motor_port_step = rotation_.port_step();
+      motor_displacement_step = round(motor_displacement * rotation_.steps_per_revolution());
+      break;
+
+    case MOTOR_FRONT_GRIPPER:
+      motor_displacement = displacement * front_gripper_.gear_ratio();
+      motor_speed = speed * front_gripper_.gear_ratio();
+      motor_port_step = front_gripper_.port_step();
+      motor_displacement_step = round(motor_displacement * front_gripper_.steps_per_revolution());
+      break;
+
+    case MOTOR_BACK_GRIPPER:
+      motor_displacement = displacement * back_gripper_.gear_ratio();
+      motor_speed = speed * back_gripper_.gear_ratio();
+      motor_port_step = back_gripper_.port_step();
+      motor_displacement_step = round(motor_displacement * back_gripper_.steps_per_revolution());
+      break;
+
+    default:
+      Error("ERROR UStepDevice::moveMotor - Invalid motor code \n");
+      return ERR_INVALID_MOTOR_CODE;
+  }
+
+  // Verify if the motor speed is within the speed limits
+  if(verifyMotorSpeedLimits(motor_speed, RAMP_NOT_ALLOWED))
+  {
+    Error("ERROR UStepDevice::moveMotor - Requested motor speeds is invalid \n");
+    return ERR_INVALID_MOTOR_SPEED;
+  }
+
+  // Calculate the half period of each step and the total duration of the motion
+  double exp_total_insert_time_us = (motor_displacement / motor_speed) * S_TO_US;
+  step_half_period = round((exp_total_insert_time_us / motor_displacement_step) / 2);
+  duration_micros = motor_displacement_step * 2*step_half_period;
+  duration_seconds = floor(duration_micros*US_TO_S);
+  duration_micros = duration_micros - S_TO_US*duration_seconds;
+
+  // Generate the motor pulses as constant speed
+  gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
+
+  // If the pulses have been successfully generated, create the wave
+  if(pulses >= 0)
+  {
+    gpioWaveClear();
+    gpioWaveAddGeneric(2, pulses);
+    int wave_id = gpioWaveCreate();
+
+    // Free the memory allocated for the pulses
+    free(pulses);
+
+    if (wave_id >= 0)
+    {
+      // Perform the entire motion
+      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
+      gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
+      gpioWaveTxStop();
+      gpioWrite(motor_port_step, PORT_STEP_OFF);
+
+      // Generate feedback information
+      switch(motor)
+      {
+        case MOTOR_INSERTION:
+          performed_displacement_ = ((double)(motor_displacement_step)) / (insertion_.steps_per_revolution() * insertion_.gear_ratio());
+          break;
+
+        case MOTOR_ROTATION:
+          performed_displacement_ = ((double)(motor_displacement_step)) / (rotation_.steps_per_revolution() * rotation_.gear_ratio());
+          break;
+
+        case MOTOR_FRONT_GRIPPER:
+          performed_displacement_ = ((double)(motor_displacement_step)) / (front_gripper_.steps_per_revolution() * front_gripper_.gear_ratio());
+          break;
+
+        case MOTOR_BACK_GRIPPER:
+          performed_displacement_ = ((double)(motor_displacement_step)) / (back_gripper_.steps_per_revolution() * back_gripper_.gear_ratio());
+          break;
+      }
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
+      return ERR_GPIO_WAVE_CREATE_FAIL;
+    }
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
+    return ERR_MALLOC;
+  }
+
+  return 0;
+}
+
+int UStepDevice::moveGripperToFrontSwitch(double speed)
+{
+  // Set the gripper direction to moving forward
+  setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+
+  // Convert the requested end effector variables to motor variables
+  double motor_speed = speed * insertion_.gear_ratio();
+  unsigned motor_port_step = insertion_.port_step();
+
+  // Verify if the motor speed is within the speed limits
+  if(verifyMotorSpeedLimits(motor_speed, RAMP_NOT_ALLOWED))
+  {
+    Error("ERROR UStepDevice::moveMotor - Requested motor speeds is invalid \n");
+    return ERR_INVALID_MOTOR_SPEED;
+  }
+
+  // Calculate the half period of each step, according to the requested speed
+  unsigned step_half_period = round((S_TO_US / (motor_speed * insertion_.steps_per_revolution())) / 2);
+
+  // Generate the motor pulses as constant speed
+  gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
+
+  // If the pulses have been successfully generated, create a wave
+  if(pulses >= 0)
+  {
+    gpioWaveClear();
+    gpioWaveAddGeneric(2, pulses);
+    int wave_id = gpioWaveCreate();
+
+    // Free the memory allocated for the pulses
+    free(pulses);
+
+    if (wave_id >= 0)
+    {
+      // Send the wave until the front switch is hit
+      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
+      while(gpioRead(front_switch_) == 0)
+        gpioSleep(PI_TIME_RELATIVE, 0, 100000);
+      gpioWaveTxStop();
+      gpioWrite(motor_port_step, PORT_STEP_OFF);
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
+      return ERR_GPIO_WAVE_CREATE_FAIL;
+    }
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
+    return ERR_MALLOC;
+  }
+
+  return 0;
+}
+
+int UStepDevice::debugMoveMotorSteps(unsigned char motor, double motor_displacement_step, double motor_speed_step)
+{
+  // This function is analogous to the moveMotorConstantSpeed, but it must be used
+  // only for debug purposes. Its parameters are already given in steps, so all
+  // gear ratio parameters are ignored.
+
+  // OBS: It assumes that all motors are in the 20000 steps/rev configuration
+  // DO NOT forget to verify that
+
+  // Input units
+  //   - motor        : The code specifying the motor to move
+  //   - displacement : The requested displacement of the end effector in steps
+  //   - speed        : The requested speed of the end effector in steps/s
+
+
+  unsigned motor_port_step;
+  unsigned step_half_period;
+  unsigned duration_seconds;
+  unsigned duration_micros;
+
+  switch(motor)
+  {
+    case MOTOR_INSERTION:
+      motor_port_step = insertion_.port_step();
+      break;
+
+    case MOTOR_ROTATION:
+      motor_port_step = rotation_.port_step();
+      break;
+
+    case MOTOR_FRONT_GRIPPER:
+      motor_port_step = front_gripper_.port_step();
+      break;
+
+    case MOTOR_BACK_GRIPPER:
+      motor_port_step = back_gripper_.port_step();
+      break;
+
+    default:
+      Error("ERROR UStepDevice::moveMotor - Invalid motor code \n");
+      return ERR_INVALID_MOTOR_CODE;
+  }
+
+  step_half_period = round((S_TO_US / motor_speed_step) / 2);
+  duration_micros = motor_displacement_step * 2*step_half_period;
+  duration_seconds = floor(duration_micros*US_TO_S);
+  duration_micros = duration_micros - S_TO_US*duration_seconds;
+
+  Debug("UStepDevice::moveMotor - Preparing to send commands on port %u, with half step of %u, for a total of %u (s) and %u (us)\n", motor_port_step, step_half_period, duration_seconds, duration_micros);
+
+  gpioPulse_t *pulses = generatePulsesConstantSpeed(motor_port_step, step_half_period, 1, 2*step_half_period);
+
+  if(pulses >= 0)
+  {
+    gpioWaveClear();
+    gpioWaveAddGeneric(2, pulses);
+    int wave_id = gpioWaveCreate();
+
+    free(pulses);
+
+    if (wave_id >= 0)
+    {
+      gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
+      gpioSleep(PI_TIME_RELATIVE, duration_seconds, duration_micros);
+      gpioWaveTxStop();
+      gpioWrite(motor_port_step, PORT_STEP_OFF);
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::moveMotorConstantSpeed - Unable to call gpioWaveCreate() \n");
+      return ERR_GPIO_WAVE_CREATE_FAIL;
+    }
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
+    return ERR_MALLOC;
+  }
+
+  return 0;
 }

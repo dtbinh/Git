@@ -2,17 +2,18 @@ close all;
 clear all;
 clc;
 
-global CMD_MOVE_MOTOR;
-global CMD_MOVE_MOTOR_STEPS;
+global CMD_SET_ENABLE;
+global CMD_OPEN_FRONT_GRIPPER;		
+global CMD_CLOSE_FRONT_GRIPPER;		
+global CMD_OPEN_BACK_GRIPPER;		
+global CMD_CLOSE_BACK_GRIPPER;
+global CMD_ROTATE;
+global CMD_TRANSLATE;
 global CMD_MOVE_DC;
 global CMD_MOVE_BACK;
-global CMD_MOVE_SPIN;
+global CMD_MOVE_MOTOR;
+global CMD_MOVE_MOTOR_STEPS;
 global CMD_SET_DIRECTION;
-global CMD_SET_ENABLE;
-global CMD_OPEN_FRONT_GRIPPER;
-global CMD_CLOSE_FRONT_GRIPPER;
-global CMD_OPEN_BACK_GRIPPER;
-global CMD_CLOSE_BACK_GRIPPER;
 global CMD_SHUT_DOWN;
 
 global MOTOR_INSERTION;
@@ -43,11 +44,11 @@ preparation_rotation_speed = 0.1;
 
 % Trajectory 1 - 15 cm divided in 30 steps, V = 1, no spin
 
-n_step = 8;
-constant_step_size = 20.0;
-constant_insertion_speed = 1.0;
-constant_rotation_speed = 0.4;
-constant_duty_cycle = 0.25;
+n_step = 15;
+constant_step_size = 10.0;
+constant_insertion_speed = 0.5;
+constant_rotation_speed = 1.0;
+constant_duty_cycle = 0.0;
 
 step_size       = constant_step_size        *  ones(1, n_step);
 insertion_speed = constant_insertion_speed  *  ones(1, n_step);
@@ -90,23 +91,31 @@ while 1
     
     if(angle == 0)
         break;
-    
-    elseif(angle > 0)
-        fopen(tcpip_client);
-        fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_CLOCKWISE]);
-        pause(0.5);
-        revolutions = angle / 360.0;
-        fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
-        fclose(tcpip_client);
-    
+        
     else
+        revolutions = angle / 360.0;
         fopen(tcpip_client);
-        fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_COUNTER_CLOCKWISE]);
-        pause(0.5);
-        revolutions = -angle / 360.0;
-        fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
+        fwrite(tcpip_client, [CMD_ROTATE typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
         fclose(tcpip_client);
     end
+        
+%     elseif(angle > 0)
+%         fopen(tcpip_client);
+%         fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_CLOCKWISE]);
+%         pause(0.5);
+%         revolutions = angle / 360.0;
+%         fwrite(tcpip_client, [CMD_ROTATE typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
+%         fclose(tcpip_client);
+%     
+%     else
+%         fopen(tcpip_client);
+%         fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_COUNTER_CLOCKWISE]);
+%         pause(0.5);
+%         revolutions = -angle / 360.0;
+%         fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
+%         fclose(tcpip_client);
+%     end
+
 end
 
 % Moving the needle backward
@@ -139,23 +148,30 @@ for i_step = 1:n_step
         
         if(angle == 0)
             break;
-            
-        elseif(angle > 0)
-            fopen(tcpip_client);
-            fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_CLOCKWISE]);
-            pause(0.5);
-            revolutions = angle / 360.0;
-            fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
-            fclose(tcpip_client);
-            
         else
+            revolutions = angle / 360.0;
             fopen(tcpip_client);
-            fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_COUNTER_CLOCKWISE]);
-            pause(0.5);
-            revolutions = -angle / 360.0;
-            fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
+            fwrite(tcpip_client, [CMD_ROTATE typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
             fclose(tcpip_client);
         end
+            
+%         elseif(angle > 0)
+%             fopen(tcpip_client);
+%             fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_CLOCKWISE]);
+%             pause(0.5);
+%             revolutions = angle / 360.0;
+%             fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
+%             fclose(tcpip_client);
+%             
+%         else
+%             fopen(tcpip_client);
+%             fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_COUNTER_CLOCKWISE]);
+%             pause(0.5);
+%             revolutions = -angle / 360.0;
+%             fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
+%             fclose(tcpip_client);
+%         end
+        
     end
 end
 
