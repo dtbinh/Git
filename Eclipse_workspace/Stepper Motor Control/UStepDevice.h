@@ -177,6 +177,9 @@ class UStepDevice
    */
 
   // DESCRIPTION PENDING
+  int setEnable(unsigned char motor, unsigned enable);
+
+  // DESCRIPTION PENDING
   int setDirection(unsigned char motor, unsigned direction);
 
   // DESCRIPTION PENDING
@@ -212,9 +215,6 @@ class UStepDevice
   /*
    * BASIC MOTION FUNCTIONS
    */
-
-  // DESCRIPTION PENDING
-  int setEnable(unsigned char motor, unsigned enable);
 
   // DESCRIPTION PENDING
   int openFrontGripper();

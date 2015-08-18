@@ -20,7 +20,7 @@
 #include <netdb.h>      // Needed for the socket functions
 
 // Commands exchanged with the Matlab client
-#define CMD_SET_ENABLE              1
+#define CMD_SET_ENABLE              1             // DISABLED
 #define CMD_OPEN_FRONT_GRIPPER		  2
 #define CMD_CLOSE_FRONT_GRIPPER		  3
 #define CMD_OPEN_BACK_GRIPPER		    4
@@ -128,7 +128,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
 
   switch(input_data_buffer[0])
   {
-    case CMD_SET_ENABLE:
+    /*case CMD_SET_ENABLE:
       if(bytes_received == 3)
       {
         unsigned char motor = input_data_buffer[1];
@@ -141,7 +141,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command SET_ENABLE \n");
       }
 
-      break;
+      break;*/
 
     case CMD_OPEN_FRONT_GRIPPER:
       if(bytes_received == 1)

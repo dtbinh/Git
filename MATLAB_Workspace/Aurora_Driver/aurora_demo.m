@@ -22,7 +22,7 @@ function varargout = aurora_demo(varargin)
 
 % Edit the above text to modify the response to help aurora_demo
 
-% Last Modified by GUIDE v2.5 06-Jul-2015 15:30:14
+% Last Modified by GUIDE v2.5 17-Aug-2015 22:42:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,6 +61,8 @@ handles.output = hObject;
 
 global device sensor_missing out_volume partial_out_volume
 
+global saved_trans saved_rot i_saved
+
 handles.timer = timer(...
     'ExecutionMode', 'fixedRate', ...       % Run timer repeatedly
     'Period', 0.2, ...                        % Initial period is 1 sec.
@@ -88,6 +90,8 @@ ylim([100 600]);
 hideTrackingData(handles);
 
 [RX RY RZ] = quat2angle([1 0 1 0]);
+
+i_saved = 0;
 
 
 
@@ -275,6 +279,8 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 global device;
 
+global saved_trans saved_rot
+
 % START USER CODE
 % Necessary to provide this function to prevent timer callback
 % from causing an error after GUI code stops executing.
@@ -293,5 +299,23 @@ catch
     fprintf('ERROR DELETING THE TIMER\n');
 end
 
+assignin('base', 'global_trans', saved_trans);
+assignin('base', 'global_rot', saved_rot);
+
 % Hint: delete(hObject) closes the figure
 delete(hObject);
+
+
+% --- Executes on button press in pushbutton_save_pos.
+function pushbutton_save_pos_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_save_pos (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+global device
+global saved_trans saved_rot i_saved
+
+i_saved = i_saved + 1;
+
+saved_trans(i_saved, 1:3) = device.port_handles(1,1).trans
+saved_rot(i_saved, 1:4) = device.port_handles(1,1).rot

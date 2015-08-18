@@ -68,8 +68,9 @@ while 1
 %     end
     
     else
+        revolutions = n_revs/360.0;
         fopen(tcpip_client);
-        fwrite(tcpip_client, [CMD_ROTATE typecast(n_revs, 'uint8') typecast(rotation_speed, 'uint8')]);
+        fwrite(tcpip_client, [CMD_ROTATE typecast(revolutions, 'uint8') typecast(rotation_speed, 'uint8')]);
         fclose(tcpip_client);        
     end
     
