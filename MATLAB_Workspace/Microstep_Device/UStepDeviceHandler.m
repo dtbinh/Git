@@ -116,13 +116,44 @@ classdef UStepDeviceHandler < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %    FUNCTIONS FOR SENDING COMMANDS    %
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function rotateNeedleDegrees(obj, angle, preparation_rotation_speed)
+        function openFrontGripper(obj)
+            fopen(obj.tcpip_client);
+            fwrite(obj.tcpip_client, obj.CMD_OPEN_FRONT_GRIPPER);
+            fclose(obj.tcpip_client);
+        end
+        
+        function closeFrontGripper(obj)
+            fopen(obj.tcpip_client);
+            fwrite(obj.tcpip_client, obj.CMD_CLOSE_FRONT_GRIPPER);
+            fclose(obj.tcpip_client);
+        end
+        
+        function openBackGripper(obj)
+            fopen(obj.tcpip_client);
+            fwrite(obj.tcpip_client, obj.CMD_OPEN_BACK_GRIPPER);
+            fclose(obj.tcpip_client);
+        end
+        
+        function closeBackGripper(obj)
+            fopen(obj.tcpip_client);
+            fwrite(obj.tcpip_client, obj.CMD_CLOSE_BACK_GRIPPER);
+            fclose(obj.tcpip_client);
+        end        
+        
+        function rotateNeedleDegrees(obj, angle, rotation_speed)
             revolutions = angle / 360.0;
             fopen(obj.tcpip_client);
-            fwrite(obj.tcpip_client, [obj.CMD_ROTATE typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
+            fwrite(obj.tcpip_client, [obj.CMD_ROTATE typecast(revolutions, 'uint8') typecast(rotation_speed, 'uint8')]);
             fread(obj.tcpip_client, 1);
             fclose(obj.tcpip_client);
         end        
+        
+        function translateFrontGripper(obj, displacement, speed)
+            fopen(obj.tcpip_client);
+            fwrite(obj.tcpip_client, [obj.CMD_TRANSLATE typecast(displacement, 'uint8') typecast(speed, 'uint8')]);
+            fread(obj.tcpip_client, 1);
+            fclose(obj.tcpip_client);
+        end
         
         function moveForward(obj, distance, speed)
             fopen(obj.tcpip_client);
