@@ -731,7 +731,7 @@ int UStepDevice::performBackwardStep(double needle_insertion_depth,  double need
 
     Debug("UStepDevice::performBackwardStep - Moving the gripper box backward\n");
     setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
+    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, needle_insertion_speed)))
       { Error("ERROR UStepDevice::performBackwardStep - Unable to retreat the device\n"); return result; }
     insertion_position_ += performed_displacement_;
 

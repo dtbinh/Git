@@ -39,29 +39,23 @@ preparation_step_size = 20;
 preparation_insertion_speed = 4.0;
 preparation_rotation_speed = 0.1;
 
-maximum_aurora_error = 0.04;
+maximum_aurora_error = 0.1;
 
 % Needle initial orientation
-sensor_angle_inside_needle = -90.0;
+sensor_angle_inside_needle = 49.0;
 needle_V0 = [0 0 1];
-needle_N0 = [cos(sensor_angle_inside_needle) sin(sensor_angle_inside_needle) 0];
+needle_N0 = [-sind(sensor_angle_inside_needle) cosd(sensor_angle_inside_needle) 0];
 
-%% Open Loop Trajectory
+n_step = 6;
+step_size = 15;
+insertion_speed = 2.0;
 
-% Trajectory 1 - 15 cm divided in 30 steps, V = 1, no spin
+needle_x = zeros(1, n_step);
+needle_y = zeros(1, n_step);
+needle_z = zeros(1, n_step);
+needle_error = zeros(1, n_step);
 
-n_step = 15;
-constant_step_size = 10.0;
-constant_insertion_speed = 0.5;
-constant_rotation_speed = 1.0;
-constant_duty_cycle = 0.0;
-
-step_size       = constant_step_size        *  ones(1, n_step);
-insertion_speed = constant_insertion_speed  *  ones(1, n_step);
-rotation_speed  = constant_rotation_speed   *  ones(1, n_step);
-duty_cycle      = constant_duty_cycle       *  ones(1, n_step);
-
-correction_angles = zeros(1, n_step);
+plot_figure = 1;
 
 %% Configure the TCP/IP client for communicating with the Raspberry Pi
 
@@ -80,15 +74,6 @@ aurora_device.enablePortHandleDynamicAll();
 aurora_device.startTracking();
 
 %% Adjust the needle starting position
-
-% Grasping the needle
-fprintf('Open Loop Insertion Test\n');
-fprintf('Initializing device\n');
-fprintf('\n!!! Please verify that the device has been calibrated and both grippers are OPEN !!! \n\n');
-
-pause(3);
-
-output_file_name = input('Type the name of the file for saving the results\n','s');
 
 fprintf('Place the needle inside the device\n');
 fprintf('Make sure to align the needle tip the end of the device\n');
@@ -133,56 +118,33 @@ end
 %% Perform the open loop trajectory
 
 fprintf('\n');
-fprintf('Preparing to start the open loop trajectory\n');
+fprintf('Preparing to start the experiment. Place the gelatin\n');
 input('Hit ENTER when you are ready\n');
 
-% for i_step = 1:n_step
-%     fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, W = %.2f, DC = %.2f\n', i_step, n_step, step_size(i_step), insertion_speed(i_step), rotation_speed(i_step), duty_cycle(i_step));
-%     
-%     fopen(tcpip_client);
-%     fwrite(tcpip_client, [CMD_MOVE_DC typecast(step_size(i_step), 'uint8') typecast(insertion_speed(i_step), 'uint8') typecast(rotation_speed(i_step), 'uint8') typecast(duty_cycle(i_step), 'uint8')]);
-%     fclose(tcpip_client);
-%     
-%     while 1
-%         angle = input('Needle orientation correction - Type required anle, in CW direction\n');
-%         
-%         % Checking if ENTER was hit without typing any number
-%         if(isempty(angle))
-%             continue
-%         end
-%         
-%         correction_angles(i_step) = correction_angles(i_step) + angle;
-%         
-%         if(angle == 0)
-%             break;
-%         else
-%             revolutions = angle / 360.0;
-%             fopen(tcpip_client);
-%             fwrite(tcpip_client, [CMD_ROTATE typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
-%             fclose(tcpip_client);
-%         end
-%             
-% %         elseif(angle > 0)
-% %             fopen(tcpip_client);
-% %             fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_CLOCKWISE]);
-% %             pause(0.5);
-% %             revolutions = angle / 360.0;
-% %             fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
-% %             fclose(tcpip_client);
-% %             
-% %         else
-% %             fopen(tcpip_client);
-% %             fwrite(tcpip_client, [CMD_SET_DIRECTION MOTOR_ROTATION DIRECTION_COUNTER_CLOCKWISE]);
-% %             pause(0.5);
-% %             revolutions = -angle / 360.0;
-% %             fwrite(tcpip_client, [CMD_MOVE_SPIN typecast(revolutions, 'uint8') typecast(preparation_rotation_speed, 'uint8')]);
-% %             fclose(tcpip_client);
-% %         end
-%         
-%     end
-% end
+for i_step = 1:n_step
+    fprintf('\nPerforming step %d/%d: inserting %.2f mm\n', i_step, n_step, step_size);
+    fopen(tcpip_client);
+    fwrite(tcpip_client, [CMD_MOVE_DC typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(3.0, 'uint8') typecast(0.0, 'uint8')]);
+    fread(tcpip_client, 1);
+    fclose(tcpip_client);
+    
+    pause(1);
+    aurora_device.updateSensorDataAll();
+    aurora_error = aurora_device.getError();
+    if(aurora_error < 10*maximum_aurora_error)
+        trans = aurora_device.port_handles(1,1).trans;
+        needle_x(i_step) = trans(1);
+        needle_y(i_step) = trans(2);
+        needle_z(i_step) = trans(3);
+        needle_error(i_step) = aurora_device.port_handles(1,1).error;
+        
+        figure(plot_figure);
+        subplot(3,1,1); plot(needle_x);
+        subplot(3,1,2); plot(needle_y);
+        subplot(3,1,3); plot(needle_z);
+        pause(0.5);
+    end
+end
 
 aurora_device.stopTracking();
 delete(aurora_device);
-
-save(sprintf('%s.mat',output_file_name));

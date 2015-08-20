@@ -226,9 +226,9 @@ else
     end
     
     trans = device.port_handles(1,1).trans;
-    X = -trans(2);
-    Y = -trans(1);
-    Z = -trans(3);
+    X = trans(1);
+    Y = trans(2);
+    Z = trans(3);
     
     rot = device.port_handles(1,1).rot;
     [RX, RY, RZ] = quat2angle(rot);
@@ -266,8 +266,10 @@ else
 %     set(handles.text_Ry, 'String', sprintf('Y1 = (%.2f, %.2f, %.2f)', Y1(1), Y1(2), Y1(3)));
 %     set(handles.text_Rz, 'String', sprintf('Z1 = (%.2f, %.2f, %.2f)', Z1(1), Z1(2), Z1(3)));
     
-    V0 = [0  0 1];
-    N0 = [0 -1 0];
+    sensor_angle_inside_needle = 28.0;
+    V0 = [0 0 1];
+    N0 = [-sind(sensor_angle_inside_needle) cosd(sensor_angle_inside_needle) 0];
+
     V1 = quatrotate(rot, V0);
     N1 = quatrotate(rot, N0);
     correction_angle = measureNeedleCorrectionAngle(rot, N0);

@@ -338,6 +338,16 @@ classdef AuroraDriver < handle
                 error = 99;
             end
         end
+        
+        function sensor_available = isSensorAvailable(obj)
+            obj.updateSensorDataAll();
+            status = obj.port_handles(1,1).sensor_status;
+            if(strcmp(status, obj.SENSOR_STATUS_MISSING) || strcmp(status, obj.SENSOR_STATUS_DISABLED))
+                sensor_available = 0;
+            else
+                sensor_available = 1;
+            end
+        end
             
             
         

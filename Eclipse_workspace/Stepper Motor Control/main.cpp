@@ -20,19 +20,22 @@
 #include <netdb.h>      // Needed for the socket functions
 
 // Commands exchanged with the Matlab client
-#define CMD_SET_ENABLE              1             // DISABLED
-#define CMD_OPEN_FRONT_GRIPPER		  2
-#define CMD_CLOSE_FRONT_GRIPPER		  3
-#define CMD_OPEN_BACK_GRIPPER		    4
-#define CMD_CLOSE_BACK_GRIPPER		  5
-#define CMD_ROTATE                  6
-#define CMD_TRANSLATE               7
-#define CMD_MOVE_DC                 8
-#define CMD_MOVE_BACK               9
+#define CMD_OPEN_FRONT_GRIPPER		  1
+#define CMD_CLOSE_FRONT_GRIPPER		  2
+#define CMD_OPEN_BACK_GRIPPER		    3
+#define CMD_CLOSE_BACK_GRIPPER		  4
+#define CMD_ROTATE                  5
+#define CMD_TRANSLATE               6
+#define CMD_MOVE_DC                 7
+#define CMD_MOVE_FORWARD            8
+#define CMD_MOVE_BACKWARD           9
+
 #define CMD_MOVE_MOTOR              101           // DISABLED
 #define CMD_MOVE_MOTOR_STEPS        102           // DISABLED
 #define CMD_SET_DIRECTION           103           // DISABLED
+#define CMD_SET_ENABLE              104           // DISABLED
 #define CMD_SHUT_DOWN               255
+
 #define CMD_DONE                    42
 
 // Global parameters
@@ -254,14 +257,34 @@ int decodeReceivedMessage(ssize_t bytes_received)
       }
       break;
 
-    case CMD_MOVE_BACK:
+    case CMD_MOVE_FORWARD:
       if(bytes_received == 17)
       {
         double insertion_depth;
         double insertion_speed;
         memcpy(&insertion_depth, input_data_buffer + 1 , 8);
         memcpy(&insertion_speed, input_data_buffer + 9 , 8);
-        Debug("Received command MOVE_BACK with parameters: displacement = %f, insertion speed = %f\n", insertion_depth, insertion_speed);
+        Debug("Received command MOVE_FORWARD with parameters: displacement = %f, insertion speed = %f\n", insertion_depth, insertion_speed);
+
+        Debug("Performing a duty cycle motion... \n");
+        device.performFullDutyCyleStep(insertion_depth, insertion_speed, 1.0, 0.0);
+        sendAckByte();
+        Debug("Done, waiting for next command \n\n");
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC \n");
+      }
+      break;
+
+    case CMD_MOVE_BACKWARD:
+      if(bytes_received == 17)
+      {
+        double insertion_depth;
+        double insertion_speed;
+        memcpy(&insertion_depth, input_data_buffer + 1 , 8);
+        memcpy(&insertion_speed, input_data_buffer + 9 , 8);
+        Debug("Received command MOVE_BACKWARD with parameters: displacement = %f, insertion speed = %f\n", insertion_depth, insertion_speed);
 
         Debug("Moving the needle backward... \n");
         device.performBackwardStep(insertion_depth, insertion_speed);
