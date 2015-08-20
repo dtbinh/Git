@@ -33,10 +33,12 @@
 #define CMD_MOVE_MOTOR_STEPS        102           // DISABLED
 #define CMD_SET_DIRECTION           103           // DISABLED
 #define CMD_SHUT_DOWN               255
+#define CMD_DONE                    42
 
 // Global parameters
 const char kTCPPortNumber[] = "5555";
 const int kInputBufferSize = 1000;
+const char ack_byte = CMD_DONE;
 
 // Global Variables
 UStepDevice device;                       // Object to represent the complete device
@@ -118,6 +120,17 @@ void displayReceivedData(char *data_buffer, int bytes_received)
   printf("%u\n", data_buffer[bytes_received-1]);
 }
 
+void sendAckByte()
+{
+  ssize_t bytes_sent = -1;
+  while(bytes_sent == -1)
+  {
+    bytes_sent = send(connection_socket_fd, &ack_byte, 1, 0);
+    usleep(300000);
+  }
+
+}
+
 int decodeReceivedMessage(ssize_t bytes_received)
 {
   Debug("Received command %u with %u bytes\n", input_data_buffer[0], bytes_received);
@@ -128,20 +141,6 @@ int decodeReceivedMessage(ssize_t bytes_received)
 
   switch(input_data_buffer[0])
   {
-    /*case CMD_SET_ENABLE:
-      if(bytes_received == 3)
-      {
-        unsigned char motor = input_data_buffer[1];
-        unsigned enable = input_data_buffer[2];
-        Debug("Received command SET_ENABLE with parameters: motor = %u, enable = %u\n", motor, enable);
-        device.setEnable(motor, enable);
-      }
-      else
-      {
-        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command SET_ENABLE \n");
-      }
-
-      break;*/
 
     case CMD_OPEN_FRONT_GRIPPER:
       if(bytes_received == 1)
@@ -202,6 +201,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
 
         Debug("Performing a duty cycle motion... \n");
         device.rotateNeedle(revolutions, rotation_speed);
+        sendAckByte();
         Debug("Done, waiting for next command \n");
       }
       else
@@ -221,6 +221,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
 
         Debug("Moving the motor... \n");
         device.translateFrontGripper(displacement, speed);
+        sendAckByte();
         Debug("Done, waiting for next command \n");
       }
       else
@@ -244,6 +245,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
 
         Debug("Performing a duty cycle motion... \n");
         device.performFullDutyCyleStep(insertion_depth, insertion_speed, rotation_speed, duty_cycle);
+        sendAckByte();
         Debug("Done, waiting for next command \n\n");
       }
       else
@@ -263,6 +265,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
 
         Debug("Moving the needle backward... \n");
         device.performBackwardStep(insertion_depth, insertion_speed);
+        sendAckByte();
         Debug("Done, waiting for next command \n\n");
       }
       else

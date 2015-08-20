@@ -66,7 +66,8 @@
 #define RETREAT_SPEED       4.0
 */
 #define MIN_SPEED            0.05
-#define MAX_SPEED            2.50         // The correct value is 4.5
+#define MAX_SPEED            4.50
+#define BASE_SPEED           2.50         // The correct value is 4.5
 #define MAX_FINAL_SPEED     30.00
 #define ACC                 70.00         // The correct value is 200.0
 #define RETREAT_SPEED        3.0

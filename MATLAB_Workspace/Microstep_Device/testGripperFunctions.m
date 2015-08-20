@@ -37,7 +37,7 @@ communicationProtocolTable
 
 tcpip_client = tcpip('169.254.0.2',5555,'NetworkRole','Client');
 set(tcpip_client,'InputBufferSize',7688);
-set(tcpip_client,'Timeout',30);
+set(tcpip_client,'Timeout', 30);
 
 %% Read command from user
 
@@ -70,3 +70,9 @@ while 1
     
     pause(1);
 end
+
+
+fopen(tcpip_client);
+fwrite(tcpip_client, [CMD_MOVE_DC typecast(3.0, 'uint8') typecast(1.0, 'uint8') typecast(2.0, 'uint8') typecast(0.0, 'uint8')]);
+A = fread(tcpip_client, 1);
+fclose(tcpip_client);

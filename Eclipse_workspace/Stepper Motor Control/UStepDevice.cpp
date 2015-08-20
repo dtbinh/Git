@@ -67,10 +67,11 @@ UStepDevice::UStepDevice()
   front_switch_ = 0;
   back_switch_ = 0;
 
-  min_base_speed_ = 1.0;
-  max_base_speed_ = 1.0;
-  max_final_speed_ = 1.0;
-  max_acceleration_ = 1.0;
+  min_constant_speed_ = 1.0;
+  max_constant_speed_ = 1.0;
+  base_speed_         = 1.0;
+  max_ramp_speed_     = 1.0;
+  max_acceleration_   = 1.0;
 
   gripper_default_speed_ = 1.0;
   front_gripper_default_displacement_ = 1.0;
@@ -117,10 +118,11 @@ void UStepDevice::configureMotorParameters()
   back_switch_ = PORT_BS;
 
   // Physical parameters of the motors
-  min_base_speed_ = MIN_SPEED;
-  max_base_speed_ = MAX_SPEED;
-  max_final_speed_ = MAX_FINAL_SPEED;
-  max_acceleration_ = ACC;
+  min_constant_speed_ = MIN_SPEED;
+  max_constant_speed_ = MAX_SPEED;
+  base_speed_         = BASE_SPEED;
+  max_ramp_speed_     = MAX_FINAL_SPEED;
+  max_acceleration_   = ACC;
 
   gripper_default_speed_ = GRIPPER_SPEED;
   front_gripper_default_displacement_ = FRONT_GRIPPER_DISP;
@@ -206,17 +208,7 @@ int UStepDevice::calibrateMotorsStartingPosition()
     printf(" ----------------------------------------------------- \n");
     printf("\n");
 
-    printf("STEP 1 - Calibrating the initial position of Motor 1:\n");
-    printf("   - Please wait for the front gripper to hit the front limit switch\n");
-    moveGripperToFrontSwitch(max_base_speed_*0.7);
-    printf("   - Moving motor 1 to its initial position: %.2f mm\n", initial_insertion_position_);
-    translateFrontGripper(-initial_insertion_position_, default_retreating_speed_);
-    //setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    //moveMotorConstantSpeed(MOTOR_INSERTION, initial_insertion_position_, default_retreating_speed_);
-    insertion_position_ = initial_insertion_position_;
-    printf("   - Motor 1 calibrated \n\n");
-
-    printf("STEP 2 - Calibrating the initial position of Motor 2:\n");
+    printf("STEP 1 - Calibrating the initial position of Motor 2:\n");
     printf("   - Disabling motor 2\n");
     printf("   - Please move the back gripper to the completely open position\n");
     printf("   - Hit ENTER when you are done\n");
@@ -225,7 +217,7 @@ int UStepDevice::calibrateMotorsStartingPosition()
     setEnable(MOTOR_BACK_GRIPPER, ENABLE_MOTOR);
     printf("   - Motor 2 calibrated \n\n");
 
-    printf("STEP 3 - Calibrating the initial position of Motor 4:\n");
+    printf("STEP 2 - Calibrating the initial position of Motor 4:\n");
     printf("   - Disabling motor 4\n");
     printf("   - Please move the front gripper to the completely open position\n");
     printf("   - Hit ENTER when you are done\n");
@@ -233,6 +225,16 @@ int UStepDevice::calibrateMotorsStartingPosition()
     getchar();
     setEnable(MOTOR_FRONT_GRIPPER, ENABLE_MOTOR);
     printf("   - Motor 4 calibrated \n\n");
+
+    printf("STEP 3 - Calibrating the initial position of Motor 1:\n");
+    printf("   - Please wait for the front gripper to hit the front limit switch\n");
+    moveGripperToFrontSwitch(max_constant_speed_*0.7);
+    printf("   - Moving motor 1 to its initial position: %.2f mm\n", initial_insertion_position_);
+    translateFrontGripper(-initial_insertion_position_, default_retreating_speed_);
+    //setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
+    //moveMotorConstantSpeed(MOTOR_INSERTION, initial_insertion_position_, default_retreating_speed_);
+    insertion_position_ = initial_insertion_position_;
+    printf("   - Motor 1 calibrated \n\n");
 
     printf("Calibration function finished! \n\n");
 
@@ -401,7 +403,7 @@ int UStepDevice::rotateNeedle(double needle_revolutions, double needle_rotation_
   }
 
   // Verify if ramping is really needed
-  if(needle_rotation_speed * rotation_.gear_ratio() <= max_base_speed_)
+  if(needle_rotation_speed * rotation_.gear_ratio() <= max_constant_speed_)
   {
     Debug("UStepDevice::rotateNeedle - Slow speed request. Moving motor with constant speed\n");
     return moveMotorConstantSpeed(MOTOR_ROTATION, needle_revolutions_absolute, needle_rotation_speed);
@@ -422,7 +424,7 @@ int UStepDevice::rotateNeedle(double needle_revolutions, double needle_rotation_
   }
 
   // Generate the rotation pulses as a ramp profile, starting at the maximum base speed and accelerating until the final speed
-  double frequency_initial = max_base_speed_ * rotation_.steps_per_revolution();
+  double frequency_initial = base_speed_ * rotation_.steps_per_revolution();
   double frequency_final = motor_speed * rotation_.steps_per_revolution();
   double step_acceleration = max_acceleration_ * rotation_.steps_per_revolution();
   gpioPulse_t *pulses = generatePulsesRampUpDown(port_step, frequency_initial, frequency_final, step_acceleration, motor_steps, 0);
@@ -802,9 +804,10 @@ void UStepDevice::displayParameters()
   // Display the speed and acceleration parameters
   printf("Speed and acceleration parameters (applied to all motors) \n");
   printf("-------------------------------------------- \n");
-  printf(" - Minimum speed                             : %.2f RPS   \n", min_base_speed_);
-  printf(" - Maximum constant speed (without ramping)  : %.2f RPS   \n", max_base_speed_);
-  printf(" - Maximum speed (only reached with ramping) : %.2f RPS   \n", max_final_speed_);
+  printf(" - Minimum constant speed                    : %.2f RPS   \n", min_constant_speed_);
+  printf(" - Maximum constant speed (without ramping)  : %.2f RPS   \n", max_constant_speed_);
+  printf(" - Ramping starting speed                    : %.2f RPS   \n", base_speed_);
+  printf(" - Maximum speed (only reached with ramping) : %.2f RPS   \n", max_ramp_speed_);
   printf(" - Standard acceleration                     : %.2f RPS/s \n", max_acceleration_);
   printf("\n\n");
 
@@ -902,7 +905,7 @@ int UStepDevice::checkExistingWaves()
 int UStepDevice::verifyMotorSpeedLimits(double motor_speed, bool allow_ramp)
 {
   // Verify if the motor speed is lower than the minimum speed
-  if(motor_speed < min_base_speed_)
+  if(motor_speed < min_constant_speed_)
   {
     Error("ERROR UStepDevice::verifyMotorSpeedLimits - Motor speed is too slow \n");
     return ERR_SPEED_TOO_SMALL;
@@ -911,7 +914,7 @@ int UStepDevice::verifyMotorSpeedLimits(double motor_speed, bool allow_ramp)
   if(allow_ramp)
   {
     // Verify if the motor speed is greater than the maximum speed
-    if(motor_speed > max_final_speed_)
+    if(motor_speed > max_ramp_speed_)
     {
       Error("ERROR UStepDevice::verifyMotorSpeedLimits - Motor speed is too high \n");
       return ERR_SPEED_TOO_HIGH;
@@ -920,7 +923,7 @@ int UStepDevice::verifyMotorSpeedLimits(double motor_speed, bool allow_ramp)
   else
   {
     // Verify if the insertion motor speed is greater than the base speed
-    if(motor_speed > max_base_speed_)
+    if(motor_speed > max_constant_speed_)
     {
       Error("ERROR UStepDevice::verifyMotorSpeedLimits - Motor speed is too high \n");
       return ERR_SPEED_TOO_HIGH;
@@ -1055,7 +1058,7 @@ int UStepDevice::calculateRotationSpeed(unsigned max_rotation_time)
   Debug("If I go at constant speed, I would need to go at %f RPS\n", average_speed);
   // END DEBUG
 
-  if(average_speed <= max_base_speed_)
+  if(average_speed <= max_constant_speed_)
   {
     // If the average speed is below the base speed, move the motor at constant speed
     rot_motor_distance_step = rot_motor_distance_rev * rotation_.steps_per_revolution();
@@ -1074,8 +1077,8 @@ int UStepDevice::calculateRotationSpeed(unsigned max_rotation_time)
     // back again to the base speed.
     // The target speed can be found as the smaller solution of the second degree equation:
     //     Wt² - Wt*(2*W0 + a*Tmax) + (W0² + a*Nrot)
-    double B = -(2*max_base_speed_ + max_acceleration_ * (max_rotation_time * US_TO_S));
-    double C = pow(max_base_speed_, 2) + max_acceleration_ * rot_motor_distance_rev;
+    double B = -(2*base_speed_ + max_acceleration_ * (max_rotation_time * US_TO_S));
+    double C = pow(base_speed_, 2) + max_acceleration_ * rot_motor_distance_rev;
     double D = pow(B,2) - 4*C;
 
     if(D < 0)
@@ -1096,10 +1099,10 @@ int UStepDevice::calculateRotationSpeed(unsigned max_rotation_time)
     us_delay = floor(((S_TO_US / final_speed) / rotation_.steps_per_revolution()) / 2);
 
     // DEBUG
-    unsigned us_delay_initial = floor(((S_TO_US / max_base_speed_) / rotation_.steps_per_revolution()) / 2);
+    unsigned us_delay_initial = floor(((S_TO_US / base_speed_) / rotation_.steps_per_revolution()) / 2);
     final_speed = ((double)(S_TO_US)) / (rotation_.steps_per_revolution() * 2 * us_delay);
     //Debug("B=%f, C=%f, D=%f\n", B, C, D);
-    Debug("That is too fast. I will start at %f RPS and ramp up until %f RPS\n", max_base_speed_, final_speed);
+    Debug("That is too fast. I will start at %f RPS and ramp up until %f RPS\n", base_speed_, final_speed);
     Debug("The half step will vary from %u micros to %u micros\n", us_delay_initial, us_delay);
     // END DEBUG
 
@@ -1168,7 +1171,7 @@ int UStepDevice::generateWaveInsertionWithRotation()
   insertion_pulses = generatePulsesConstantSpeed(insertion_.port_step(), insertion_step_half_period_, num_insertion_steps, micros_rotation_);
 
   // Check if the rotation motor final speed is greater than the maximum base speed
-  if(rot_motor_speed_final <= max_base_speed_)
+  if(rot_motor_speed_final <= max_constant_speed_)
   {
     // If not, generate the rotation pulses as constant speed
     rotation_pulses = generatePulsesConstantSpeed(rotation_.port_step(), rotation_step_half_period_, num_rotation_steps, micros_rotation_);
@@ -1176,7 +1179,7 @@ int UStepDevice::generateWaveInsertionWithRotation()
   else
   {
     // If yes, generate the rotation pulses as a ramp profile,starting at the maximum base speed and accelerating until the final speed
-    double frequency_initial = max_base_speed_ * rotation_.steps_per_revolution();
+    double frequency_initial = base_speed_ * rotation_.steps_per_revolution();
     double frequency_final = rot_motor_speed_final * rotation_.steps_per_revolution();
     double step_acceleration = max_acceleration_ * rotation_.steps_per_revolution();
     rotation_pulses = generatePulsesRampUpDown(rotation_.port_step(), frequency_initial, frequency_final, step_acceleration, num_rotation_steps, micros_rotation_);

@@ -313,6 +313,34 @@ classdef AuroraDriver < handle
             crc = fread(obj.serial_port, 1, 'uint16');
         end
         
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %     NEEDLE SPECIFIC FUNCTIONS        %
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%         
+        
+        function status = readSensorStatus(obj)
+            obj.updateSensorDataAll();
+            status = obj.port_handles(1,1).sensor_status;
+        end
+        
+        function [angle, error] = measureTipOrientation(obj)
+            obj.updateSensorDataAll();
+            rot = obj.port_handles(1,1).rot;
+            [RX, RY, RZ] = quat2angle(rot);
+            angle = RY;
+            error = obj.port_handles(1,1).error;
+        end
+        
+        function error = getError(obj)
+            obj.updateSensorDataAll();
+            status = obj.port_handles(1,1).sensor_status;
+            error = obj.port_handles(1,1).error;
+            if(strcmp(status, obj.SENSOR_STATUS_MISSING) || strcmp(status, obj.SENSOR_STATUS_DISABLED))
+                error = 99;
+            end
+        end
+            
+            
+        
     end
     
     

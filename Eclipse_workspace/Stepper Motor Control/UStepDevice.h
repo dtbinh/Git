@@ -31,9 +31,10 @@ class UStepDevice
   unsigned back_switch_;
 
   // Speed and acceleration parameters of the motors
-  double min_base_speed_;
-  double max_base_speed_;
-  double max_final_speed_;
+  double min_constant_speed_;            // old min_base_speed_
+  double max_constant_speed_;
+  double base_speed_;                    // old max_base_speed_
+  double max_ramp_speed_;                // old max_final_speed_
   double max_acceleration_;
 
   // Standard speed for opening/closing the gripper
