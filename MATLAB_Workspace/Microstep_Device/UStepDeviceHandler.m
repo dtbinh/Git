@@ -232,8 +232,10 @@ classdef UStepDeviceHandler < handle
             end
             
             hold on;
-            plot(1:N, x_fw, 'r-');
-            plot(1:N, x_bw, 'b-');
+            [~, c] = find(x_bw ~= 0);
+            index = c(1);
+            plot(index:N, x_fw(index:end), 'r-');
+            plot(index:N, x_bw(index:end), 'b-');
         end
         
         function [y_fw, y_bw] = plotNeedleY(obj)
@@ -246,8 +248,10 @@ classdef UStepDeviceHandler < handle
             end
             
             hold on;
-            plot(1:N, y_fw, 'r-');
-            plot(1:N, y_bw, 'b-');
+            [~, c] = find(y_bw ~= 0);
+            index = c(1);
+            plot(index:N, y_fw(index:end), 'r-');
+            plot(index:N, y_bw(index:end), 'b-');
         end
         
        function [z_fw, z_bw] = plotNeedleZ(obj)
@@ -260,8 +264,10 @@ classdef UStepDeviceHandler < handle
             end
             
             hold on;
-            plot(1:N, z_fw, 'r-');
-            plot(1:N, z_bw, 'b-');
+            [~, c] = find(z_bw ~= 0);
+            index = c(1);
+            plot(index:N, z_fw(index:end), 'r-');
+            plot(index:N, z_bw(index:end), 'b-');
         end        
         
         

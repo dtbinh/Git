@@ -74,6 +74,9 @@ classdef AuroraDriver < handle
         
         % Global parameters
         selected_command_format;
+        
+        % State variables
+        device_init;
     end
     
     
@@ -88,6 +91,7 @@ classdef AuroraDriver < handle
             obj.serial_port.Terminator = 'CR';
             obj.n_port_handles = 0;
             obj.selected_command_format = obj.COMMAND_FORMAT_2;
+            obj.device_init = 0;
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -153,6 +157,7 @@ classdef AuroraDriver < handle
         % opening the serial port, for enabling all other functions
         function init(obj)
             obj.INIT();
+            obj.device_init = 1;
         end
         
         % Puts the Aurora SCU into Tracking mode. This enables the position
@@ -224,8 +229,8 @@ classdef AuroraDriver < handle
             obj.PENA(port_handle_id, obj.TT_PRIORITY_DYNAMIC);
         end
         
-        % Enable all Port Handles that have already been detected and 
-        % update their status        
+        % Enable all Port Handles that have already been detected and
+        % update their status
         function enablePortHandleDynamicAll(obj)
             for i_port_handle = 1:obj.n_port_handles
                 obj.enablePortHandleDynamic(obj.port_handles(1,i_port_handle).id);
@@ -235,82 +240,87 @@ classdef AuroraDriver < handle
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %            SENSOR READING            %
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
-        % Reads the current measurement of all sensors and update the 
+        % Reads the current measurement of all sensors and update the
         % corresponding Port Handle objects.
         function updateSensorDataAll(obj)
             
-            % Send a BX command for reading all sensors
-            obj.sendCommand(sprintf('BX %s', obj.READ_OUT_OF_VOLUME_ALLOWED));
-            
-            % Error checking information
-            start_sequence = fread(obj.serial_port, 1, 'uint16');
-            reply_length = fread(obj.serial_port, 1, 'uint16');
-            header_CRC = fread(obj.serial_port, 1, 'uint16');
-            
-            % Number of available Port Handles
-            num_handle_reads = fread(obj.serial_port, 1, 'uint8');
-            
-            for i_handle_reads = 1:num_handle_reads
+            if(obj.device_init == 1)
                 
-                % Get the Port Handle ID as a 2 character hexadecimal
-                handle_id = dec2hex(fread(obj.serial_port, 1, 'uint8'), 2);
+                % Send a BX command for reading all sensors
+                obj.sendCommand(sprintf('BX %s', obj.READ_OUT_OF_VOLUME_ALLOWED));
                 
-                % Get the Port Handle status as a 2 character hexadecimal
-                sensor_status = dec2hex(fread(obj.serial_port, 1, 'uint8'), 2);
+                % Error checking information
+                start_sequence = fread(obj.serial_port, 1, 'uint16');
+                reply_length = fread(obj.serial_port, 1, 'uint16');
+                header_CRC = fread(obj.serial_port, 1, 'uint16');
                 
-                % Locate the index of the current handle in the
-                % port_handles object array and update the sensor status
-                for i_port_handle = 1:obj.n_port_handles
-                    if(strcmp(obj.port_handles(1,i_port_handle).id, handle_id))
-                        handle_index = i_port_handle;
-                        obj.port_handles(1,handle_index).updateSensorStatus(sensor_status);
-                        break;
-                    end
-                end
+                % Number of available Port Handles
+                num_handle_reads = fread(obj.serial_port, 1, 'uint8');
                 
-                % If the port is not disabled, read sensor data
-                if(strcmp(sensor_status, obj.SENSOR_STATUS_DISABLED) == 0)
+                for i_handle_reads = 1:num_handle_reads
                     
-                    % If the sensor status is valid, read its translation
-                    % and rotation data
-                    if(strcmp(sensor_status, obj.SENSOR_STATUS_VALID))
-                        q0 = fread(obj.serial_port, 1, 'float32');
-                        qX = fread(obj.serial_port, 1, 'float32');
-                        qY = fread(obj.serial_port, 1, 'float32');
-                        qZ = fread(obj.serial_port, 1, 'float32');
-                        rot = [q0 qX qY qZ];
+                    % Get the Port Handle ID as a 2 character hexadecimal
+                    handle_id = dec2hex(fread(obj.serial_port, 1, 'uint8'), 2);
+                    
+                    % Get the Port Handle status as a 2 character hexadecimal
+                    sensor_status = dec2hex(fread(obj.serial_port, 1, 'uint8'), 2);
+                    
+                    % Locate the index of the current handle in the
+                    % port_handles object array and update the sensor status
+                    handle_index = 1;
+                    for i_port_handle = 1:obj.n_port_handles
+                        if(strcmp(obj.port_handles(1,i_port_handle).id, handle_id))
+                            handle_index = i_port_handle;
+                            obj.port_handles(1,handle_index).updateSensorStatus(sensor_status);
+                            break;
+                        end
+                    end
+                    
+                    % If the port is not disabled, read sensor data
+                    if(strcmp(sensor_status, obj.SENSOR_STATUS_DISABLED) == 0)
                         
-                        tX = fread(obj.serial_port, 1, 'float32');
-                        tY = fread(obj.serial_port, 1, 'float32');
-                        tZ = fread(obj.serial_port, 1, 'float32');
-                        trans = [tX tY tZ];
+                        % If the sensor status is valid, read its translation
+                        % and rotation data
+                        if(strcmp(sensor_status, obj.SENSOR_STATUS_VALID))
+                            q0 = fread(obj.serial_port, 1, 'float32');
+                            qX = fread(obj.serial_port, 1, 'float32');
+                            qY = fread(obj.serial_port, 1, 'float32');
+                            qZ = fread(obj.serial_port, 1, 'float32');
+                            rot = [q0 qX qY qZ];
+                            
+                            tX = fread(obj.serial_port, 1, 'float32');
+                            tY = fread(obj.serial_port, 1, 'float32');
+                            tZ = fread(obj.serial_port, 1, 'float32');
+                            trans = [tX tY tZ];
+                            
+                            error = fread(obj.serial_port, 1, 'float32');
+                            
+                            % Update the translation and rotation of the
+                            % corresponding Port Handle object
+                            obj.port_handles(1,handle_index).updateTrans(trans);
+                            obj.port_handles(1,handle_index).updateRot(rot);
+                            obj.port_handles(1,handle_index).updateError(error);
+                        end
                         
-                        error = fread(obj.serial_port, 1, 'float32');
+                        % Read the handle status and frame number
+                        handle_status = dec2hex(fread(obj.serial_port, 1, 'uint32'), 8);
+                        frame_number = fread(obj.serial_port, 1, 'uint32');
                         
-                        % Update the translation and rotation of the
+                        % Update the status and frame_number of the
                         % corresponding Port Handle object
-                        obj.port_handles(1,handle_index).updateTrans(trans);
-                        obj.port_handles(1,handle_index).updateRot(rot);
-                        obj.port_handles(1,handle_index).updateError(error);
+                        obj.port_handles(1,handle_index).updateStatusComplete(handle_status);
+                        obj.port_handles(1,handle_index).updateFrameNumber(frame_number);
+                        
                     end
-                    
-                    % Read the handle status and frame number
-                    handle_status = dec2hex(fread(obj.serial_port, 1, 'uint32'), 8);
-                    frame_number = fread(obj.serial_port, 1, 'uint32');
-
-                    % Update the status and frame_number of the
-                    % corresponding Port Handle object
-                    obj.port_handles(1,handle_index).updateStatusComplete(handle_status);
-                    obj.port_handles(1,handle_index).updateFrameNumber(frame_number);
-
                 end
+                
+                % More error checking information
+                system_status = fread(obj.serial_port, 1, 'uint16');
+                crc = fread(obj.serial_port, 1, 'uint16');
+                
             end
-            
-            % More error checking information
-            system_status = fread(obj.serial_port, 1, 'uint16');
-            crc = fread(obj.serial_port, 1, 'uint16');
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -339,14 +349,18 @@ classdef AuroraDriver < handle
             end
         end
         
-        function sensor_available = isSensorAvailable(obj)
-            obj.updateSensorDataAll();
-            status = obj.port_handles(1,1).sensor_status;
-            if(strcmp(status, obj.SENSOR_STATUS_MISSING) || strcmp(status, obj.SENSOR_STATUS_DISABLED))
+        function sensor_available = isSensorAvailable(obj)            
+            if(obj.device_init == 1)                
+                obj.updateSensorDataAll();
+                status = obj.port_handles(1,1).sensor_status;
+                if(strcmp(status, obj.SENSOR_STATUS_MISSING) || strcmp(status, obj.SENSOR_STATUS_DISABLED))
+                    sensor_available = 0;
+                else
+                    sensor_available = 1;
+                end
+            else                
                 sensor_available = 0;
-            else
-                sensor_available = 1;
-            end
+            end           
         end
             
             
