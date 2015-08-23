@@ -21,24 +21,29 @@ classdef UStepDeviceHandler < handle
         %
         pose_saving_delay = 1.0;
         
+        % Methods for duty cycling
+        DC_METHOD_BIDIRECTIONAL = 1;
+        DC_METHOD_FLIPPING      = 2;
+        
         % Communication protocol table (taken from the C++ code)
-        CMD_OPEN_FRONT_GRIPPER	= 1;
-        CMD_CLOSE_FRONT_GRIPPER	= 2;
-        CMD_OPEN_BACK_GRIPPER	= 3;
-        CMD_CLOSE_BACK_GRIPPER	= 4;
-        CMD_ROTATE              = 5;
-        CMD_TRANSLATE           = 6;
-        CMD_MOVE_DC             = 7;
-        CMD_MOVE_FORWARD        = 8;
-        CMD_MOVE_BACKWARD       = 9;
+        CMD_OPEN_FRONT_GRIPPER	  = 1;
+        CMD_CLOSE_FRONT_GRIPPER	  = 2;
+        CMD_OPEN_BACK_GRIPPER	  = 3;
+        CMD_CLOSE_BACK_GRIPPER	  = 4;
+        CMD_ROTATE                = 5;
+        CMD_TRANSLATE             = 6;
+        CMD_MOVE_FORWARD          = 7;
+        CMD_MOVE_BACKWARD         = 8;
+        CMD_MOVE_DC_BIDIRECTIONAL = 9;
+        CMD_MOVE_DC_FLIPPING      = 10;
         
-        CMD_DONE                = 42;
-        CMD_SHUT_DOWN           = 255;
+        CMD_DONE                  = 42;
+        CMD_SHUT_DOWN             = 255;
         
-        CMD_MOVE_MOTOR          = 101;  % DISABLED COMMAND
-        CMD_MOVE_MOTOR_STEPS    = 102;  % DISABLED COMMAND
-        CMD_SET_DIRECTION       = 103;  % DISABLED COMMAND
-        CMD_SET_ENABLE          = 104;  % DISABLED COMMAND
+        CMD_MOVE_MOTOR            = 101;  % DISABLED COMMAND
+        CMD_MOVE_MOTOR_STEPS      = 102;  % DISABLED COMMAND
+        CMD_SET_DIRECTION         = 103;  % DISABLED COMMAND
+        CMD_SET_ENABLE            = 104;  % DISABLED COMMAND
         
         % Low level communication table (taken from the C++ code)
         % Used only by the disabled commands
@@ -80,6 +85,9 @@ classdef UStepDeviceHandler < handle
         % Rotation angle in CW direction applied to the needle tip between
         % each pair of steps - should have n_step-1 elements
         interstep_rotation; 
+        
+        % Selected method for duty cycling (set in constructor)
+        duty_cycle_method;
 
     end
     
@@ -91,6 +99,9 @@ classdef UStepDeviceHandler < handle
         %             CONSTRUCTOR              %
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function obj = UStepDeviceHandler(n_step)
+            
+            % Standard method selected for Duty Cyclying
+            obj.duty_cycle_method = obj.DC_METHOD_FLIPPING;
             
             % Configure the TCP/IP client object 
             obj.tcpip_client = tcpip(obj.server_address, obj.server_port,'NetworkRole','Client');
@@ -169,9 +180,15 @@ classdef UStepDeviceHandler < handle
             fclose(obj.tcpip_client);
         end
         
-        function moveDC(obj, step_size, insertion_speed, rotation_speed, duty_cycle)
+        function moveDC(obj, step_size, insertion_speed, third_parameter, duty_cycle)
             fopen(obj.tcpip_client);
-            fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(rotation_speed, 'uint8') typecast(duty_cycle, 'uint8')]);
+            if(obj.duty_cycle_method == obj.DC_METHOD_BIDIRECTIONAL)
+                rotation_speed = third_parameter;
+                fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC_BIDIRECTIONAL typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(rotation_speed, 'uint8') typecast(duty_cycle, 'uint8')]);
+            else
+                minimum_insertion = third_parameter;
+                fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC_FLIPPING typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(minimum_insertion, 'uint8') typecast(duty_cycle, 'uint8')]);
+            end
             fread(obj.tcpip_client, 1);
             fclose(obj.tcpip_client);
         end

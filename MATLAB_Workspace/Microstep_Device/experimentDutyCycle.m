@@ -22,11 +22,11 @@ preparation_rotation_speed = 0.1;
 % Insertion trajectory
 n_step = 15;
 n_step_no_rotation = 0;
-step_size = 10;
+step_size = 8;
 insertion_speed = 1.0;
-rotation_speed = 1.0;
+minimum_insertion = 1.0;
 
-duty_cycle = 0.10;
+duty_cycle = 0.50;
 
 
 
@@ -106,25 +106,25 @@ fprintf('\nPreparing to start the experiment. Place the gelatin\n');
 input('Hit ENTER when you are ready\n');
 
 for i_step = 1:n_step_no_rotation
-    fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, W = %.2f, DC = %.2f\n', i_step, n_step, step_size, insertion_speed, rotation_speed, duty_cycle);
+    fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, mS = %.2f, DC = %.2f\n', i_step, n_step, step_size, insertion_speed, minimum_insertion, duty_cycle);
     
     % Measure needle pose before moving
     ustep_device.savePoseForward(aurora_device, i_step);
     
     % Move needle
     ustep_device.moveForward(step_size, insertion_speed);
-    ustep_device.saveCommandsDC(i_step, step_size, insertion_speed, rotation_speed, duty_cycle);
+    ustep_device.saveCommandsDC(i_step, step_size, insertion_speed, minimum_insertion, 0.0);
 end
 
 for i_step = n_step_no_rotation+1:n_step
-    fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, W = %.2f, DC = %.2f\n', i_step, n_step, step_size, insertion_speed, rotation_speed, duty_cycle);
+    fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, mS = %.2f, DC = %.2f\n', i_step, n_step, step_size, insertion_speed, minimum_insertion, duty_cycle);
     
     % Measure needle pose before moving
     ustep_device.savePoseForward(aurora_device, i_step);
     
     % Move needle
-    ustep_device.moveDC(step_size, insertion_speed, rotation_speed, duty_cycle);
-    ustep_device.saveCommandsDC(i_step, step_size, insertion_speed, rotation_speed, duty_cycle);
+    ustep_device.moveDC(step_size, insertion_speed, minimum_insertion, duty_cycle);
+    ustep_device.saveCommandsDC(i_step, step_size, insertion_speed, minimum_insertion, duty_cycle);
 end
 
 % Measure the final needle pose

@@ -26,17 +26,18 @@
 #define CMD_CLOSE_BACK_GRIPPER		  4
 #define CMD_ROTATE                  5
 #define CMD_TRANSLATE               6
-#define CMD_MOVE_DC                 7
-#define CMD_MOVE_FORWARD            8
-#define CMD_MOVE_BACKWARD           9
+#define CMD_MOVE_FORWARD            7
+#define CMD_MOVE_BACKWARD           8
+#define CMD_MOVE_DC_BIDIRECTIONAL   9
+#define CMD_MOVE_DC_FLIPPING        10
+
+#define CMD_DONE                    42
+#define CMD_SHUT_DOWN               255
 
 #define CMD_MOVE_MOTOR              101           // DISABLED
 #define CMD_MOVE_MOTOR_STEPS        102           // DISABLED
 #define CMD_SET_DIRECTION           103           // DISABLED
 #define CMD_SET_ENABLE              104           // DISABLED
-#define CMD_SHUT_DOWN               255
-
-#define CMD_DONE                    42
 
 // Global parameters
 const char kTCPPortNumber[] = "5555";
@@ -233,30 +234,6 @@ int decodeReceivedMessage(ssize_t bytes_received)
       }
       break;
 
-    case CMD_MOVE_DC:
-      if(bytes_received == 33)
-      {
-        double insertion_depth;
-        double insertion_speed;
-        double rotation_speed;
-        double duty_cycle;
-        memcpy(&insertion_depth, input_data_buffer + 1 , 8);
-        memcpy(&insertion_speed, input_data_buffer + 9 , 8);
-        memcpy(&rotation_speed , input_data_buffer + 17, 8);
-        memcpy(&duty_cycle     , input_data_buffer + 25, 8);
-        Debug("Received command MOVE_DC with parameters: displacement = %f, insertion speed = %f, rotation speed = %f, DC = %f\n", insertion_depth, insertion_speed, rotation_speed, duty_cycle);
-
-        Debug("Performing a duty cycle motion... \n");
-        device.performFullDutyCyleStep(insertion_depth, insertion_speed, rotation_speed, duty_cycle);
-        sendAckByte();
-        Debug("Done, waiting for next command \n\n");
-      }
-      else
-      {
-        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC \n");
-      }
-      break;
-
     case CMD_MOVE_FORWARD:
       if(bytes_received == 17)
       {
@@ -267,7 +244,7 @@ int decodeReceivedMessage(ssize_t bytes_received)
         Debug("Received command MOVE_FORWARD with parameters: displacement = %f, insertion speed = %f\n", insertion_depth, insertion_speed);
 
         Debug("Performing a duty cycle motion... \n");
-        device.performFullDutyCyleStep(insertion_depth, insertion_speed, 1.0, 0.0);
+        device.performBidirectionalDutyCyleStep(insertion_depth, insertion_speed, 1.0, 0.0);
         sendAckByte();
         Debug("Done, waiting for next command \n\n");
       }
@@ -294,6 +271,54 @@ int decodeReceivedMessage(ssize_t bytes_received)
       else
       {
         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_BACK \n");
+      }
+      break;
+
+    case CMD_MOVE_DC_BIDIRECTIONAL:
+      if(bytes_received == 33)
+      {
+        double insertion_depth;
+        double insertion_speed;
+        double rotation_speed;
+        double duty_cycle;
+        memcpy(&insertion_depth, input_data_buffer + 1 , 8);
+        memcpy(&insertion_speed, input_data_buffer + 9 , 8);
+        memcpy(&rotation_speed , input_data_buffer + 17, 8);
+        memcpy(&duty_cycle     , input_data_buffer + 25, 8);
+        Debug("Received command MOVE_DC_BIDIRECTIONAL with parameters: displacement = %f, insertion speed = %f, rotation speed = %f, DC = %f\n", insertion_depth, insertion_speed, rotation_speed, duty_cycle);
+
+        Debug("Performing a duty cycle motion... \n");
+        device.performBidirectionalDutyCyleStep(insertion_depth, insertion_speed, rotation_speed, duty_cycle);
+        sendAckByte();
+        Debug("Done, waiting for next command \n\n");
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC_BIDIRECTIONAL \n");
+      }
+      break;
+
+    case CMD_MOVE_DC_FLIPPING:
+      if(bytes_received == 33)
+      {
+        double insertion_depth;
+        double insertion_speed;
+        double minimum_insertion;
+        double duty_cycle;
+        memcpy(&insertion_depth  , input_data_buffer + 1 , 8);
+        memcpy(&insertion_speed  , input_data_buffer + 9 , 8);
+        memcpy(&minimum_insertion, input_data_buffer + 17, 8);
+        memcpy(&duty_cycle       , input_data_buffer + 25, 8);
+        Debug("Received command MOVE_DC_FLIPPING with parameters: displacement = %f, insertion speed = %f, minimum insertion = %f, DC = %f\n", insertion_depth, insertion_speed, minimum_insertion, duty_cycle);
+
+        Debug("Performing a duty cycle motion... \n");
+        device.performFlippingDutyCyleStep(insertion_depth, insertion_speed, minimum_insertion, duty_cycle);
+        sendAckByte();
+        Debug("Done, waiting for next command \n\n");
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC_FLIPPING \n");
       }
       break;
 

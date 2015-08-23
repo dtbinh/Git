@@ -2,9 +2,9 @@ close all;
 clear all;
 clc;
 
-step_size = 5.0;
-insertion_speed = 0.5;
-rotation_speed = 1.0;
+step_size = 8.0;
+insertion_speed = 1.0;
+minimum_insertion = 1.0;
 duty_cycle = 0.5;
 
 %% Start communication with the Raspberry Pi TCP/IP server
@@ -16,9 +16,9 @@ ustep_device = UStepDeviceHandler(2);
 fprintf('Duty Cycle Test function\n\n');
 while 1
     
-    fprintf('Current parameters: \t S = %.2f mm \t V = %.2f mm/s \t W = %.2f rev/s \t DC = %.2f\n', step_size, insertion_speed, rotation_speed, duty_cycle);
+    fprintf('Current parameters: \t S = %.2f mm \t V = %.2f mm/s \t mS = %.2f mm \t DC = %.2f\n', step_size, insertion_speed, minimum_insertion, duty_cycle);
     fprintf('Select one command:\n');
-    command = input('1: Change S \n2: Change V \n3: Change W \n4: Change DC \n5: Perform one step\n');
+    command = input('1: Change S \n2: Change V \n3: Change mS \n4: Change DC \n5: Perform one step\n');
     
     if(command == 1)
         new_step_size = input('Type the requested step size in mm\n');
@@ -39,13 +39,11 @@ while 1
         end
         
     elseif(command == 3)
-        new_rotation_speed = input('Type the requested rotation speed in rev/s\n');
-        if(new_rotation_speed < 0)
-            fprintf('Error: The rotation speed must always be positive\n');
-        elseif(new_rotation_speed > 4)
-            fprintf('Error: The requested rotation speed is too high!\n');
+        new_minimum_insertion = input('Type the requested minimum insertion in mm\n');
+        if(new_minimum_insertion < 0)
+            fprintf('Error: The minimum insertion must always be positive\n');
         else
-            rotation_speed = new_rotation_speed;
+            minimum_insertion = new_minimum_insertion;
         end
         
     elseif(command == 4)
@@ -57,7 +55,7 @@ while 1
         end
     elseif(command == 5)
         fprintf('Starting motion\n');
-        ustep_device.moveDC(step_size, insertion_speed, rotation_speed, duty_cycle)
+        ustep_device.moveDC(step_size, insertion_speed, minimum_insertion, duty_cycle)
     else
         fprintf('Invalid option\n\n');
     end

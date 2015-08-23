@@ -133,6 +133,7 @@ void UStepDevice::configureMotorParameters()
   min_insertion_position_ = MIN_INSERT_POS;
   initial_insertion_position_ = START_INSERT_POS;
   default_retreating_speed_ = RETREAT_SPEED;
+  default_flipping_speed_ = FLIPPING_SPEED;
 
   // Duty cycle parameters
   dc_max_threshold_ = MAX_DC;
@@ -492,220 +493,60 @@ int UStepDevice::translateFrontGripper(double front_gripper_displacement, double
   return moveMotorConstantSpeed(MOTOR_INSERTION, absolute_displacement, front_gripper_speed);
 }
 
-int UStepDevice::setInsertionWithDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
-{
-  // Input units
-  //   - insert_depth : The requested insertion distance in millimeters
-  //   - insert_speed : The requested insertion speed in millimeters/second
-  //   - rot_speed    : The requested rotation speed in revolutions/second
-  //   - duty_cycle   : The requested duty cycle
-
-  if(calibrated_)
-  {
-    // Convert the insertion quantities from millimeters to revolutions
-    double insertion_motor_distance = needle_insertion_depth * insertion_.gear_ratio();
-    double insertion_motor_speed = needle_insertion_speed * insertion_.gear_ratio();
-    double rotation_motor_speed = needle_rotation_speed * rotation_.gear_ratio();
-
-    int result;
-
-    // Verify if the requested speeds are inside the allowed range
-    result = verifyMotorSpeedLimits(insertion_motor_speed, RAMP_NOT_ALLOWED);
-    if(result)
-    {
-      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested insertion motor speeds is invalid \n");
-      return result;
-    }
-    result = verifyMotorSpeedLimits(rotation_motor_speed, RAMP_ALLOWED);
-    if(result)
-    {
-      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested rotation motor speeds is invalid \n");
-      return result;
-    }
-
-    // Before generating new waves, clear all wave variables
-    clearWaves();
-
-    // Calculate all necessary parameters for generating the duty cycle motion
-    if((result = calculateDutyCycleMotionParameters(insertion_motor_distance, insertion_motor_speed, rotation_motor_speed, duty_cycle)))
-    {
-      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Bad parameters \n");
-      return result;
-    }
-
-    // If the duty cycle is smaller than 1 or there are remaining steps to be
-    // performed after all duty cycle periods, generate a wave with insertion only
-    if(micros_pure_insertion_ > 0 || micros_remaining_ > 0)
-    {
-      if((result = generateWavePureInsertion()))
-      {
-        Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave pure insertion \n");
-        return result;
-      }
-    }
-
-    // If the duty cycle is greater than 0 generate a wave containing insertion and rotation
-    if(micros_rotation_ > 0)
-    {
-      if((result = generateWaveInsertionWithRotation()))
-      {
-        Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave insertion with rotation \n");
-        return result;
-      }
-    }
-
-    calculateFeedbackInformation();
-  }
-
-  else
-  {
-    Error("ERROR UStepDevice::setInsertionWithDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
-    return ERR_DEVICE_NOT_CALIBRATED;
-  }
-
-  return 0;
-}
-
-int UStepDevice::startInsertionWithDutyCycle()
-{
-  if(calibrated_)
-  {
-    Debug("\nDEBUG 0\n");
-    Debug("Wave rot = %d, during %u(s) and %u(us)\n", wave_insertion_with_rotation_, seconds_rotation_, micros_rotation_);
-    Debug("Wave insert = %d, during %u(s) and %u(us)\n", wave_pure_insertion_, seconds_pure_insertion_, micros_pure_insertion_);
-    Debug("Number of DC periods = %u, remaining micros = %u\n", num_dc_periods_, micros_remaining_);
-
-    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
-    //setDirection(MOTOR_ROTATION, DIRECTION_COUNTER_CLOCKWISE);
-
-    switch (checkExistingWaves())
-    {
-      case WAVES_ALL:
-        for(unsigned n = 0; n < num_dc_periods_; n++)
-        {
-          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
-        gpioWaveTxStop();
-        break;
-
-      case WAVES_INSERT_ROT:
-        for(unsigned n = 0; n < num_dc_periods_; n++)
-        {
-          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioWaveTxStop();
-        break;
-
-      case WAVES_ROT_REMAIN:
-        for(unsigned n = 0; n < num_dc_periods_; n++)
-        {
-          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
-        gpioWaveTxStop();
-        break;
-
-      case WAVES_ROT:
-        for(unsigned n = 0; n < num_dc_periods_; n++)
-        {
-          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
-          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
-          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
-          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
-        }
-        gpioWaveTxStop();
-        break;
-
-      case WAVES_INSERT:
-        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
-        gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
-        gpioWaveTxStop();
-        break;
-
-      // Error: the waves have not been set
-      case WAVES_NONE:
-        Error("ERROR UStepDevice::startInsertion - Waves not set \n");
-        return ERR_WAVES_NOT_PRESENT;
-
-      default:
-        break;
-    }
-  }
-
-  else
-  {
-    Error("ERROR UStepDevice::startInsertionWithDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
-    return ERR_DEVICE_NOT_CALIBRATED;
-  }
-
-  gpioWrite(insertion_.port_step(), PORT_STEP_OFF);
-  gpioWrite(rotation_.port_step(), PORT_STEP_OFF);
-
-  return 0;
-}
-
-int UStepDevice::performFullDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
+int UStepDevice::performBidirectionalDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
 {
   if(calibrated_)
   {
     int result;
 
-    // PART 1 - RELEASE THE NEEDLE
-    Debug("UStepDevice::performFullDutyCyleStep - Closing the back gripper\n");
-    if((result = closeBackGripper()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the back gripper\n"); return result; }
-
-    Debug("UStepDevice::performFullDutyCyleStep - Opening the front gripper\n");
-    if((result = openFrontGripper()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the front gripper\n"); return result; }
-
-    // PART 2 - RETREAT THE MOVING GRIPPER BOX
-    if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
-        return ERR_INSERT_POS_TOO_HIGH; }
-
-    //setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    //if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
-    Debug("UStepDevice::performFullDutyCyleStep - Moving the gripper box backward\n");
-    if((result = translateFrontGripper(-needle_insertion_depth, default_retreating_speed_)))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to retreat the device\n"); return result; }
-    insertion_position_ += performed_displacement_;
-
-
-    // PART 3 - GRASP THE NEEDLE
-    Debug("UStepDevice::performFullDutyCyleStep - Closing the front gripper\n");
-    if((result = closeFrontGripper()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the front gripper\n"); return result; }
-
-    Debug("UStepDevice::performFullDutyCyleStep - Opening the back gripper\n");
-    if((result = openBackGripper()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the back gripper\n"); return result; }
+    // PARTS 1 TO 3 - RETREAT THE MOVING GRIPPER
+    if((result = prepareDutyCyleStep(needle_insertion_depth)))
+      { Error("ERROR UStepDevice::performBidirectionalDutyCyleStep - Unable to prepare the duty cycle\n"); return result; }
 
     // PART 4 - INSERT THE NEEDLE
     if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
+      { Error("ERROR UStepDevice::performBidirectionalDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
       return ERR_INSERT_POS_TOO_LOW; }
 
-    if((result = setInsertionWithDutyCycle(needle_insertion_depth, needle_insertion_speed, needle_rotation_speed, duty_cycle)))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
+    if((result = setBidirectionalDutyCycle(needle_insertion_depth, needle_insertion_speed, needle_rotation_speed, duty_cycle)))
+      { Error("ERROR UStepDevice::performBidirectionalDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
 
-    Debug("UStepDevice::performFullDutyCyleStep - Moving the gripper box forward\n");
-    if((result = startInsertionWithDutyCycle()))
-      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to insert the needle\n"); return result; }
+    Debug("UStepDevice::performBidirectionalDutyCyleStep - Moving the gripper box forward\n");
+    if((result = startBidirectionalDutyCycle()))
+      { Error("ERROR UStepDevice::performBidirectionalDutyCyleStep - Unable to insert the needle\n"); return result; }
+    insertion_position_ -= calculated_insertion_depth_;
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::performBidirectionalDutyCyleStep - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  return 0;
+}
+
+int UStepDevice::performFlippingDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double minimum_insertion_depth, double duty_cycle)
+{
+  if(calibrated_)
+  {
+    int result;
+
+    // PARTS 1 TO 3 - RETREAT THE MOVING GRIPPER
+    if((result = prepareDutyCyleStep(needle_insertion_depth)))
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to prepare the duty cycle\n"); return result; }
+
+    // PART 4 - INSERT THE NEEDLE
+    if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
+      return ERR_INSERT_POS_TOO_LOW; }
+
+    if((result = setFlippingDutyCycle(needle_insertion_depth, needle_insertion_speed, minimum_insertion_depth, duty_cycle)))
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
+
+    Debug("UStepDevice::performFlippingDutyCyleStep - Moving the gripper box forward\n");
+    if((result = startFlippingDutyCycle()))
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to insert the needle\n"); return result; }
     insertion_position_ -= calculated_insertion_depth_;
   }
 
@@ -727,14 +568,12 @@ int UStepDevice::performBackwardStep(double needle_insertion_depth,  double need
     // PART 1 - RETREAT THE MOVING GRIPPER BOX
     if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
       { Error("ERROR UStepDevice::performBackwardStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
-        return ERR_INSERT_POS_TOO_HIGH; }
+      return ERR_INSERT_POS_TOO_HIGH; }
 
     Debug("UStepDevice::performBackwardStep - Moving the gripper box backward\n");
-    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, needle_insertion_speed)))
+    if((result = translateFrontGripper(-needle_insertion_depth, needle_insertion_speed)))
       { Error("ERROR UStepDevice::performBackwardStep - Unable to retreat the device\n"); return result; }
     insertion_position_ += performed_displacement_;
-
 
     // PART 2 - RELEASE THE NEEDLE
     Debug("UStepDevice::performBackwardStep - Closing the back gripper\n");
@@ -751,9 +590,8 @@ int UStepDevice::performBackwardStep(double needle_insertion_depth,  double need
         return ERR_INSERT_POS_TOO_LOW; }
 
     Debug("UStepDevice::performBackwardStep - Moving the gripper box forward\n");
-    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
-    if((result = moveMotorConstantSpeed(MOTOR_INSERTION, needle_insertion_depth, default_retreating_speed_)))
-      { Error("ERROR UStepDevice::performBackwardStep - Unable to retreat the device\n"); return result; }
+    if((result = translateFrontGripper(needle_insertion_depth, default_retreating_speed_)))
+      { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to retreat the device\n"); return result; }
     insertion_position_ -= performed_displacement_;
 
     // PART 4 - GRASP THE NEEDLE
@@ -853,6 +691,7 @@ void UStepDevice::clearWaves()
 
   wave_insertion_with_rotation_ = -1;
   wave_pure_insertion_ = -1;
+  wave_half_rotation_ = -1;
 
   has_wave_pure_insertion_ = false;
   has_wave_insertion_with_rotation_ = false;
@@ -861,11 +700,19 @@ void UStepDevice::clearWaves()
   num_dc_periods_ = 0;
   insertion_step_half_period_ = 0;
   rotation_step_half_period_ = 0;
-  micros_rotation_ = 0;
-  micros_pure_insertion_ = 0;
   micros_remaining_ = 0;
+
   seconds_rotation_ = 0;
   seconds_pure_insertion_ = 0;
+  micros_rotation_ = 0;
+  micros_pure_insertion_ = 0;
+
+  seconds_flipped_ = 0;
+  seconds_unflipped_ = 0;
+  seconds_half_rotation_ = 0;
+  micros_flipped_ = 0;
+  micros_unflipped_ = 0;
+  micros_half_rotation_ = 0;
 
   micros_real_rotation_duration_ = 0;
   calculated_insertion_speed_ = 0;
@@ -979,11 +826,6 @@ int UStepDevice::calculateDutyCycleMotionParameters(double insert_motor_distance
     // Export the relevant calculated values to member variables
     insertion_step_half_period_ = half_step_insert_time_us;
     micros_pure_insertion_ = total_insert_time_us;
-
-    num_dc_periods_ = 0;
-    rotation_step_half_period_ = 0;
-    micros_rotation_ = 0;
-    micros_remaining_ = 0;
   }
 
   // Duty cycle > 0 : insertion with rotation
@@ -1142,6 +984,96 @@ int UStepDevice::calculateFeedbackInformation()
   return 0;
 }
 
+int UStepDevice::calculateFlippingDutyCycleTimes(unsigned total_insertion_steps, unsigned minimum_insertion_steps, unsigned total_rotation_steps, double duty_cycle)
+{
+  // Input units
+  //   - total_insertion_steps   : The requested displacement of the insertion motor in steps
+  //   - minimum_insertion_steps : The minimum amount of steps that can be performed continously speed of the insertion motor in rev/s
+  //   - total_rotation_steps    : The requested displacement of the rotation motor in steps
+  //   - duty_cycle              : The requested duty cycle
+
+
+  // Auxiliar variables
+  double minimum_duty_cycle_steps;
+  double unflipped_steps_percentage;
+
+  // The number of steps in each motion block
+  unsigned duty_cycle_period_steps;     // Total amount of steps in an entire DC period
+  unsigned unflipped_steps;             // Steps in the unflipped part of the DC period
+  unsigned flipped_steps;               // Steps in the flipped part of the DC period
+  unsigned remaining_steps;             // Remaining steps to be performed after all DC periods
+
+
+  // Duty cycle = 0 : all insertion in the flipped direction
+  if(duty_cycle <= dc_min_threshold_)
+  {
+    // Calculate the total time of insertion
+    micros_flipped_ = total_insertion_steps*2*insertion_step_half_period_;
+    seconds_flipped_ = floor(micros_flipped_*US_TO_S);
+    micros_flipped_ = micros_flipped_ - S_TO_US*seconds_flipped_;
+
+    calculated_duty_cycle_ = 0;
+  }
+
+  // Duty cycle > 0 : insertion with rotation
+  else
+  {
+    if(duty_cycle >= dc_max_threshold_)
+      duty_cycle = 1.0;
+
+    // Calculate the minimum number of steps in a duty cycle period
+    minimum_duty_cycle_steps = minimum_insertion_steps *(2/duty_cycle);
+
+    // Calculate the number of duty cycle periods to divide the insertion
+    num_dc_periods_ = round(total_insertion_steps / minimum_duty_cycle_steps);
+
+    // Calculate the number of steps in each period
+    duty_cycle_period_steps = floor(total_insertion_steps / num_dc_periods_);
+    remaining_steps = total_insertion_steps - num_dc_periods_*duty_cycle_period_steps;
+
+    // Calculate the number of flipped and unflipped steps in each period
+    unflipped_steps_percentage = duty_cycle / 2;
+    unflipped_steps = floor(duty_cycle_period_steps*unflipped_steps_percentage);
+    flipped_steps = duty_cycle_period_steps - unflipped_steps;
+
+    Debug("\nCalculate DC Flipping motion:\n");
+    Debug("Total steps = %u, Ndc = %u, Steps per DC = %u, Remaining steps %u\n", total_insertion_steps, num_dc_periods_, duty_cycle_period_steps, remaining_steps);
+    Debug("Steps flipped = %u, unflipped = %u\n", flipped_steps, unflipped_steps);
+
+    micros_flipped_ = flipped_steps*2*insertion_step_half_period_;
+    seconds_flipped_ = floor(micros_flipped_*US_TO_S);
+    micros_flipped_ = micros_flipped_ - S_TO_US*seconds_flipped_;
+
+    micros_unflipped_ = unflipped_steps*2*insertion_step_half_period_;
+    seconds_unflipped_ = floor(micros_unflipped_*US_TO_S);
+    micros_unflipped_ = micros_unflipped_ - S_TO_US*seconds_unflipped_;
+
+    micros_remaining_ = remaining_steps*2*insertion_step_half_period_;
+
+    // Calculate the total time of flipping
+    micros_half_rotation_ = total_rotation_steps*2*rotation_step_half_period_;
+    seconds_half_rotation_ = floor(micros_half_rotation_*US_TO_S);
+    micros_half_rotation_ = micros_half_rotation_ - S_TO_US*seconds_half_rotation_;
+
+    calculated_duty_cycle_ = 1 - ((double)(flipped_steps-unflipped_steps))/duty_cycle_period_steps;
+  }
+
+  // Calculate feedback information
+  double total_insert_distance_rev = ((double)(total_insertion_steps)) / insertion_.steps_per_revolution();
+  calculated_insertion_depth_ = total_insert_distance_rev / insertion_.gear_ratio();
+
+  double minimum_insert_distance_rev = ((double)(unflipped_steps)) / insertion_.steps_per_revolution();
+  calculated_minimum_insertion_depth_ = minimum_insert_distance_rev / insertion_.gear_ratio();
+
+  double total_insert_time = US_TO_S * ((double)(total_insertion_steps*2*insertion_step_half_period_));
+  calculated_insertion_speed_ = calculated_insertion_depth_ / total_insert_time;
+
+  Debug("\nFEEDBACK: Real insertion depth = %f, Real insert speed = %f\n", calculated_insertion_depth_, calculated_insertion_speed_);
+  Debug("FEEDBACK: Minimum insertion depth = %f, Real DC = %f%% \n", calculated_minimum_insertion_depth_, 100*calculated_duty_cycle_);
+
+  return 0;
+}
+
 int UStepDevice::generateWaveInsertionWithRotation()
 {
   unsigned num_insertion_steps;       // The number of insertion steps that will fit in 'micros_rotation_' micros
@@ -1280,6 +1212,66 @@ int UStepDevice::generateWavePureInsertion()
   {
     Error("ERROR UStepDevice::generateWavePureInsertion - Malloc error \n");
     return ERR_MALLOC;
+  }
+
+  return 0;
+}
+
+int UStepDevice::generateWavesFlippingDutyCycle()
+{
+  // Generate one pair of insertion pulses with constant speed
+  gpioPulse_t *insertion_pulses = generatePulsesConstantSpeed(insertion_.port_step(), insertion_step_half_period_, 1, 2*insertion_step_half_period_);
+
+  // If the pulses have been successfully generated, create the wave
+  if(insertion_pulses >= 0)
+  {
+    gpioWaveAddGeneric(2, insertion_pulses);
+    wave_pure_insertion_ = gpioWaveCreate();
+
+    // Free the memory allocated for the pulses
+    free(insertion_pulses);
+
+    if (wave_pure_insertion_ < 0)
+    {
+      Error("ERROR UStepDevice::generateWavesFlippingDutyCycle - Unable to call gpioWaveCreate() \n");
+      return ERR_GPIO_WAVE_CREATE_FAIL;
+    }
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::generateWavesFlippingDutyCycle - Malloc error \n");
+    return ERR_MALLOC;
+  }
+
+  // Create the half rotation wave only if DC > 0
+  if(num_dc_periods_ > 0)
+  {
+    // Generate 180 degrees of rotation pulses with constant speed
+    unsigned rotation_steps = (rotation_.steps_per_revolution() * rotation_.gear_ratio())/ 2;
+    gpioPulse_t *rotation_pulses = generatePulsesConstantSpeed(rotation_.port_step(), rotation_step_half_period_, rotation_steps, rotation_steps*2*rotation_step_half_period_);
+
+    // If the pulses have been successfully generated, create the wave
+    if(rotation_pulses >= 0)
+    {
+      gpioWaveAddGeneric(2*rotation_steps, rotation_pulses);
+      wave_half_rotation_ = gpioWaveCreate();
+
+      // Free the memory allocated for the pulses
+      free(rotation_pulses);
+
+      if (wave_half_rotation_ < 0)
+      {
+        Error("ERROR UStepDevice::generateWavesFlippingDutyCycle - Unable to call gpioWaveCreate() \n");
+        return ERR_GPIO_WAVE_CREATE_FAIL;
+      }
+    }
+
+    else
+    {
+      Error("ERROR UStepDevice::generateWavesFlippingDutyCycle - Malloc error \n");
+      return ERR_MALLOC;
+    }
   }
 
   return 0;
@@ -1848,6 +1840,343 @@ int UStepDevice::debugMoveMotorSteps(unsigned char motor, double motor_displacem
     Error("ERROR UStepDevice::moveMotorConstantSpeed - Malloc error \n");
     return ERR_MALLOC;
   }
+
+  return 0;
+}
+
+int UStepDevice::prepareDutyCyleStep(double needle_insertion_depth)
+{
+  int result;
+
+  // PART 1 - RELEASE THE NEEDLE
+  Debug("UStepDevice::performFullDutyCyleStep - Closing the back gripper\n");
+  if((result = closeBackGripper()))
+  { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the back gripper\n"); return result; }
+
+  Debug("UStepDevice::performFullDutyCyleStep - Opening the front gripper\n");
+  if((result = openFrontGripper()))
+  { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the front gripper\n"); return result; }
+
+  // PART 2 - RETREAT THE MOVING GRIPPER BOX
+  if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
+  { Error("ERROR UStepDevice::performFullDutyCyleStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
+  return ERR_INSERT_POS_TOO_HIGH; }
+
+  Debug("UStepDevice::performFullDutyCyleStep - Moving the gripper box backward\n");
+  if((result = translateFrontGripper(-needle_insertion_depth, default_retreating_speed_)))
+  { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to retreat the device\n"); return result; }
+  insertion_position_ += performed_displacement_;
+
+  // PART 3 - GRASP THE NEEDLE
+  Debug("UStepDevice::performFullDutyCyleStep - Closing the front gripper\n");
+  if((result = closeFrontGripper()))
+  { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to close the front gripper\n"); return result; }
+
+  Debug("UStepDevice::performFullDutyCyleStep - Opening the back gripper\n");
+  if((result = openBackGripper()))
+  { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the back gripper\n"); return result; }
+
+  return 0;
+}
+
+int UStepDevice::setBidirectionalDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
+{
+  // Input units
+  //   - insert_depth : The requested insertion distance in millimeters
+  //   - insert_speed : The requested insertion speed in millimeters/second
+  //   - rot_speed    : The requested rotation speed in revolutions/second
+  //   - duty_cycle   : The requested duty cycle
+
+  if(calibrated_)
+  {
+    // Convert the insertion quantities from millimeters to revolutions
+    double insertion_motor_distance = needle_insertion_depth * insertion_.gear_ratio();
+    double insertion_motor_speed = needle_insertion_speed * insertion_.gear_ratio();
+    double rotation_motor_speed = needle_rotation_speed * rotation_.gear_ratio();
+
+    int result;
+
+    // Verify if the requested speeds are inside the allowed range
+    result = verifyMotorSpeedLimits(insertion_motor_speed, RAMP_NOT_ALLOWED);
+    if(result)
+    {
+      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested insertion motor speeds is invalid \n");
+      return result;
+    }
+    result = verifyMotorSpeedLimits(rotation_motor_speed, RAMP_ALLOWED);
+    if(result)
+    {
+      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested rotation motor speeds is invalid \n");
+      return result;
+    }
+
+    // Before generating new waves, clear all wave variables
+    clearWaves();
+
+    // Calculate all necessary parameters for generating the duty cycle motion
+    if((result = calculateDutyCycleMotionParameters(insertion_motor_distance, insertion_motor_speed, rotation_motor_speed, duty_cycle)))
+    {
+      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Bad parameters \n");
+      return result;
+    }
+
+    // If the duty cycle is smaller than 1 or there are remaining steps to be
+    // performed after all duty cycle periods, generate a wave with insertion only
+    if(micros_pure_insertion_ > 0 || micros_remaining_ > 0)
+    {
+      if((result = generateWavePureInsertion()))
+      {
+        Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave pure insertion \n");
+        return result;
+      }
+    }
+
+    // If the duty cycle is greater than 0 generate a wave containing insertion and rotation
+    if(micros_rotation_ > 0)
+    {
+      if((result = generateWaveInsertionWithRotation()))
+      {
+        Error("ERROR UStepDevice::setInsertionWithDutyCycle - Unable to create wave insertion with rotation \n");
+        return result;
+      }
+    }
+
+    calculateFeedbackInformation();
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::setInsertionWithDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  return 0;
+}
+
+int UStepDevice::startBidirectionalDutyCycle()
+{
+  if(calibrated_)
+  {
+    Debug("\nDEBUG 0\n");
+    Debug("Wave rot = %d, during %u(s) and %u(us)\n", wave_insertion_with_rotation_, seconds_rotation_, micros_rotation_);
+    Debug("Wave insert = %d, during %u(s) and %u(us)\n", wave_pure_insertion_, seconds_pure_insertion_, micros_pure_insertion_);
+    Debug("Number of DC periods = %u, remaining micros = %u\n", num_dc_periods_, micros_remaining_);
+
+    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+    //setDirection(MOTOR_ROTATION, DIRECTION_COUNTER_CLOCKWISE);
+
+    switch (checkExistingWaves())
+    {
+      case WAVES_ALL:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
+        gpioWaveTxStop();
+        break;
+
+      case WAVES_INSERT_ROT:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioWaveTxStop();
+        break;
+
+      case WAVES_ROT_REMAIN:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
+        gpioWaveTxStop();
+        break;
+
+      case WAVES_ROT:
+        for(unsigned n = 0; n < num_dc_periods_; n++)
+        {
+          setDirection(MOTOR_ROTATION, duty_cycle_rotation_direction_);
+          duty_cycle_rotation_direction_ = 1 - duty_cycle_rotation_direction_;
+          gpioWaveTxSend(wave_insertion_with_rotation_, PI_WAVE_MODE_ONE_SHOT);
+          gpioSleep(PI_TIME_RELATIVE, seconds_rotation_, micros_rotation_);
+        }
+        gpioWaveTxStop();
+        break;
+
+      case WAVES_INSERT:
+        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+        gpioSleep(PI_TIME_RELATIVE, seconds_pure_insertion_, micros_pure_insertion_);
+        gpioWaveTxStop();
+        break;
+
+      // Error: the waves have not been set
+      case WAVES_NONE:
+        Error("ERROR UStepDevice::startInsertion - Waves not set \n");
+        return ERR_WAVES_NOT_PRESENT;
+
+      default:
+        break;
+    }
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::startInsertionWithDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  gpioWrite(insertion_.port_step(), PORT_STEP_OFF);
+  gpioWrite(rotation_.port_step(), PORT_STEP_OFF);
+
+  return 0;
+}
+
+int UStepDevice::setFlippingDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double minimum_insertion_depth, double duty_cycle)
+{
+  // Input units
+  //   - insert_depth     : The requested insertion distance in millimeters
+  //   - insert_speed     : The requested insertion speed in millimeters/second
+  //   - min_insert_depth : The minimum continuous insertion distance in millimeters
+  //   - duty_cycle       : The requested duty cycle
+
+  if(calibrated_)
+  {
+    int result;
+
+    double needle_rotation_revolutions = 0.5;
+
+    // Convert the insertion quantities from millimeters to revolutions and steps
+    double insert_motor_distance = needle_insertion_depth * insertion_.gear_ratio();
+    double minimum_motor_distance = minimum_insertion_depth * insertion_.gear_ratio();
+    double insert_motor_speed = needle_insertion_speed * insertion_.gear_ratio();
+
+    double rotation_motor_distance = needle_rotation_revolutions * rotation_.gear_ratio();
+    double rotation_motor_speed = default_flipping_speed_ * rotation_.gear_ratio();
+
+    unsigned insert_motor_distance_step = round(insert_motor_distance * insertion_.steps_per_revolution());
+    unsigned minimum_motor_distance_step = round(minimum_motor_distance * insertion_.steps_per_revolution());
+    unsigned rotation_motor_distance_step = round(rotation_motor_distance * rotation_.steps_per_revolution());
+
+    // Verify if the requested speeds are inside the allowed range
+    result = verifyMotorSpeedLimits(insert_motor_speed, RAMP_NOT_ALLOWED);
+    if(result)
+    {
+      Error("ERROR UStepDevice::setInsertionWithDutyCycle - Requested insertion motor speeds is invalid \n");
+      return result;
+    }
+
+    // Before generating new waves, clear all wave variables
+    clearWaves();
+
+    // Calculate the half periods for the insertion and rotation motors
+    insertion_step_half_period_ = round(((S_TO_US / insert_motor_speed) / insertion_.steps_per_revolution()) / 2);
+    rotation_step_half_period_ = round(((S_TO_US / rotation_motor_speed) / rotation_.steps_per_revolution()) / 2);
+
+    // Calculate the timing for each wave to be sent
+    calculateFlippingDutyCycleTimes(insert_motor_distance_step, minimum_motor_distance_step, rotation_motor_distance_step, duty_cycle);
+
+    // Generate waves
+    generateWavesFlippingDutyCycle();
+
+
+    // CALCULAR FEEDBACK
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::setFlippingDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  return 0;
+}
+
+int UStepDevice::startFlippingDutyCycle()
+{
+  if(calibrated_)
+  {
+    Debug("\nPerforming a flipping duty cycle step\n");
+    Debug("Nd = %u, Flipped = %u(s), %u(ms), Unflipped = %u(s), %u(ms)\n", num_dc_periods_, seconds_flipped_, micros_flipped_, seconds_unflipped_, micros_unflipped_);
+    Debug("Rotation = %u(s), %u(ms), Remaining = %u(ms)\n", seconds_half_rotation_, micros_half_rotation_,  micros_remaining_);
+
+    double pause_for_rotation_in_seconds = 0.25;
+    unsigned seconds_pause = floor(pause_for_rotation_in_seconds);
+    unsigned micros_pause = (pause_for_rotation_in_seconds-seconds_pause)*S_TO_US;
+
+    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+
+    // Case 1 - DC > 0
+    if(num_dc_periods_ > 0)
+    {
+
+      for(unsigned n = 0; n < num_dc_periods_; n++)
+      {
+        // Insert the needle in the flipped direction for Tflipped
+        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+        gpioSleep(PI_TIME_RELATIVE, seconds_flipped_, micros_flipped_);
+        gpioWaveTxStop();
+
+        // Rotate the needle in 180º
+        gpioSleep(PI_TIME_RELATIVE, seconds_pause, micros_pause);
+        setDirection(MOTOR_ROTATION, DIRECTION_CLOCKWISE);
+        gpioWaveTxSend(wave_half_rotation_, PI_WAVE_MODE_ONE_SHOT);
+        gpioSleep(PI_TIME_RELATIVE, seconds_half_rotation_, micros_half_rotation_);
+        gpioSleep(PI_TIME_RELATIVE, seconds_pause, micros_pause);
+
+        // Insert the needle in the unflipped direction for Tunflipped
+        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+        gpioSleep(PI_TIME_RELATIVE, seconds_unflipped_, micros_unflipped_);
+        gpioWaveTxStop();
+
+        // Rotate the needle back to the original direction
+        gpioSleep(PI_TIME_RELATIVE, seconds_pause, micros_pause);
+        setDirection(MOTOR_ROTATION, DIRECTION_COUNTER_CLOCKWISE);
+        gpioWaveTxSend(wave_half_rotation_, PI_WAVE_MODE_ONE_SHOT);
+        gpioSleep(PI_TIME_RELATIVE, seconds_half_rotation_, micros_half_rotation_);
+        gpioSleep(PI_TIME_RELATIVE, seconds_pause, micros_pause);
+      }
+
+      // Perform the remaining insertion
+      if(micros_remaining_ > 0)
+      {
+        gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+        gpioSleep(PI_TIME_RELATIVE, 0, micros_remaining_);
+        gpioWaveTxStop();
+      }
+    }
+
+    // Case 1 - DC = 0
+    else
+    {
+      gpioWaveTxSend(wave_pure_insertion_, PI_WAVE_MODE_REPEAT);
+      gpioSleep(PI_TIME_RELATIVE, seconds_flipped_, micros_flipped_);
+      gpioWaveTxStop();
+    }
+
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::startFlippingDutyCycle - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  gpioWrite(insertion_.port_step(), PORT_STEP_OFF);
+  gpioWrite(rotation_.port_step(), PORT_STEP_OFF);
 
   return 0;
 }

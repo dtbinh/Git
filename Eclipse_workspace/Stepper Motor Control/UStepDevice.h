@@ -63,6 +63,9 @@ class UStepDevice
   // Standard speed for retreating the gripper box during the duty cycle step
   double default_retreating_speed_;
 
+  // Standard speed for flipping the needle in 180 degrees
+  double default_flipping_speed_;
+
   // Duty cycle threshold parameters
   double dc_max_threshold_;
   double dc_min_threshold_;
@@ -85,6 +88,7 @@ class UStepDevice
   // Waves
   int wave_insertion_with_rotation_;
   int wave_pure_insertion_;
+  int wave_half_rotation_;
 
   // Wave flags
   bool has_wave_pure_insertion_;
@@ -95,15 +99,26 @@ class UStepDevice
   unsigned num_dc_periods_;
   unsigned insertion_step_half_period_;
   unsigned rotation_step_half_period_;
-  unsigned micros_rotation_;
-  unsigned micros_pure_insertion_;
   unsigned micros_remaining_;
+
+  // Time parameters for the Bidirectional Duty Cycle
   unsigned seconds_rotation_;
   unsigned seconds_pure_insertion_;
+  unsigned micros_rotation_;
+  unsigned micros_pure_insertion_;
+
+  // Time parameters for the Flipping Duty Cycle
+  unsigned seconds_flipped_;
+  unsigned seconds_unflipped_;
+  unsigned seconds_half_rotation_;
+  unsigned micros_flipped_;
+  unsigned micros_unflipped_;
+  unsigned micros_half_rotation_;
 
   // Feed back variables
   double performed_displacement_;                   // Analogous to calculated_insertion_depth_, but set inside the moveMotorConstantSpeed function
   double calculated_insertion_depth_;
+  double calculated_minimum_insertion_depth_;
   double calculated_insertion_speed_;
   double calculated_rotation_speed_;
   double calculated_duty_cycle_;
@@ -143,6 +158,8 @@ class UStepDevice
   // DESCRIPTION PENDING
   int calculateFeedbackInformation();
 
+  int calculateFlippingDutyCycleTimes(unsigned total_insertion_steps, unsigned minimum_insertion_steps, unsigned total_rotation_steps, double duty_cycle);
+
   /*
    * WAVE GENERATION FUNCTIONS
    */
@@ -155,6 +172,9 @@ class UStepDevice
 
   // Generate a wave containing one step of the insertion motor
   int generateWavePureInsertion();
+
+  // DESCRIPTION PENDING
+  int generateWavesFlippingDutyCycle();
 
   // Build an array of pulses with constant speed
   // This function is called from the 'generateWavePureInsertion()' function
@@ -191,6 +211,25 @@ class UStepDevice
 
   // DESCRIPTION PENDING
   int debugMoveMotorSteps(unsigned char motor, double motor_displacement_step, double motor_speed_step);
+
+  // DESCRIPTION PENDING
+  int prepareDutyCyleStep(double needle_insertion_depth);
+
+  // Calculate the duty cycle motion parameters and create the motion waves
+  // OBS: This function should be set as PRIVATE
+  int setBidirectionalDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
+
+  // Send the duty cycle motion waves
+  // OBS: This function should be set as PRIVATE
+  int startBidirectionalDutyCycle();
+
+  // Calculate the duty cycle motion parameters and create the motion waves
+  // OBS: This function should be set as PRIVATE
+  int setFlippingDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double minimum_insertion_depth, double duty_cycle);
+
+  // Send the duty cycle motion waves
+  // OBS: This function should be set as PRIVATE
+  int startFlippingDutyCycle();
 
  public:
 
@@ -239,16 +278,11 @@ class UStepDevice
    * DUTY CYCLE STEP FUNCTIONS
    */
 
-  // Calculate the duty cycle motion parameters and create the motion waves
-  // OBS: This function should be set as PRIVATE
-  int setInsertionWithDutyCycle(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
-
-  // Send the duty cycle motion waves
-  // OBS: This function should be set as PRIVATE
-  int startInsertionWithDutyCycle();
+  // DESCRIPTION PENDING
+  int performBidirectionalDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
 
   // DESCRIPTION PENDING
-  int performFullDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle);
+  int performFlippingDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double minimum_insertion_depth, double duty_cycle);
 
   // DESCRIPTION PENDING
   int performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed);
