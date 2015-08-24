@@ -31,6 +31,9 @@
 #define CMD_MOVE_DC_BIDIRECTIONAL   9
 #define CMD_MOVE_DC_FLIPPING        10
 
+#define CMD_MOVE_DC_FLIPPING_PART1  11
+#define CMD_MOVE_DC_FLIPPING_PART2  12
+
 #define CMD_DONE                    42
 #define CMD_SHUT_DOWN               255
 
@@ -319,6 +322,54 @@ int decodeReceivedMessage(ssize_t bytes_received)
       else
       {
         Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC_FLIPPING \n");
+      }
+      break;
+
+    case CMD_MOVE_DC_FLIPPING_PART1:
+      if(bytes_received == 33)
+      {
+        double insertion_depth;
+        double insertion_speed;
+        double minimum_insertion;
+        double duty_cycle;
+        memcpy(&insertion_depth  , input_data_buffer + 1 , 8);
+        memcpy(&insertion_speed  , input_data_buffer + 9 , 8);
+        memcpy(&minimum_insertion, input_data_buffer + 17, 8);
+        memcpy(&duty_cycle       , input_data_buffer + 25, 8);
+        Debug("Received command MOVE_DC_FLIPPING_PART1 with parameters: displacement = %f, insertion speed = %f, minimum insertion = %f, DC = %f\n", insertion_depth, insertion_speed, minimum_insertion, duty_cycle);
+
+        Debug("Performing a duty cycle motion... \n");
+        device.performFlippingDutyCyleStepPart1(insertion_depth, insertion_speed, minimum_insertion, duty_cycle);
+        sendAckByte();
+        Debug("Done, waiting for next command \n\n");
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC_FLIPPING_PART1 \n");
+      }
+      break;
+
+    case CMD_MOVE_DC_FLIPPING_PART2:
+      if(bytes_received == 33)
+      {
+        double insertion_depth;
+        double insertion_speed;
+        double minimum_insertion;
+        double duty_cycle;
+        memcpy(&insertion_depth  , input_data_buffer + 1 , 8);
+        memcpy(&insertion_speed  , input_data_buffer + 9 , 8);
+        memcpy(&minimum_insertion, input_data_buffer + 17, 8);
+        memcpy(&duty_cycle       , input_data_buffer + 25, 8);
+        Debug("Received command MOVE_DC_FLIPPING_PART2 with parameters: displacement = %f, insertion speed = %f, minimum insertion = %f, DC = %f\n", insertion_depth, insertion_speed, minimum_insertion, duty_cycle);
+
+        Debug("Performing a duty cycle motion... \n");
+        device.performFlippingDutyCyleStepPart2(insertion_depth, insertion_speed, minimum_insertion, duty_cycle);
+        sendAckByte();
+        Debug("Done, waiting for next command \n\n");
+      }
+      else
+      {
+        Warn("WARNING Main::decodeReceivedMessage - Bad parameters for command MOVE_DC_FLIPPING_PART2 \n");
       }
       break;
 

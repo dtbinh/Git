@@ -286,6 +286,10 @@ class UStepDevice
 
   // DESCRIPTION PENDING
   int performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed);
+
+  // DEBUG FUNCTIONS
+  int performFlippingDutyCyleStepPart1(double needle_insertion_depth,  double needle_insertion_speed, double minimum_insertion_depth, double duty_cycle);
+  int performFlippingDutyCyleStepPart2(double needle_insertion_depth,  double needle_insertion_speed, double minimum_insertion_depth, double duty_cycle);
 };
 
 #endif /* USTEPDEVICE_H_ */

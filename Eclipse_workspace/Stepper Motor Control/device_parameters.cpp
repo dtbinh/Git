@@ -79,25 +79,25 @@
 // The default speed the 'Engrenagem Guia's will spin, in rev/s
 #define GRIPPER_SPEED         0.20
 
-#define FLIPPING_SPEED       0.10         // Needle flipping speed in RPS
+#define FLIPPING_SPEED       0.20         // Needle flipping speed in RPS
 
 // The default angle the front gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 // Possible values range from 126.5 to 132
 //#define FRONT_GRIPPER_DISP    0.3532
-#define FRONT_GRIPPER_DISP    (125.0 / 360)
+#define FRONT_GRIPPER_DISP    (123.0 / 360)
 
 // The default angle the back gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 //#define BACK_GRIPPER_DISP     0.3532
 #define BACK_GRIPPER_DISP    (127.0 / 360)
 
 // Time delay for sleeping afte each gripper function in micros
-#define GRIPPER_DELAY        250000           // 50 ms
+#define GRIPPER_DELAY        500000           // 500 ms
 
 // Insertion length position limits in millimeters
 // !!!!!!!!!!!! ATENTION: These parameter change, every time the back limit switch is moved !!!!!!!!!!!!!!
-#define MAX_INSERT_POS    100.0
+#define MAX_INSERT_POS     15.0
 #define MIN_INSERT_POS      1.0
-#define START_INSERT_POS    10.0
+#define START_INSERT_POS    5.0
 
 
 // Threshold values for the duty cycle

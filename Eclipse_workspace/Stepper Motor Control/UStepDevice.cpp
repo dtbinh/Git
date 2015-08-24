@@ -559,6 +559,64 @@ int UStepDevice::performFlippingDutyCyleStep(double needle_insertion_depth,  dou
   return 0;
 }
 
+int UStepDevice::performFlippingDutyCyleStepPart1(double needle_insertion_depth,  double needle_insertion_speed, double minimum_insertion_depth, double duty_cycle)
+{
+  if(calibrated_)
+  {
+    int result;
+
+    // PARTS 1 TO 3 - RETREAT THE MOVING GRIPPER
+    if((result = prepareDutyCyleStep(needle_insertion_depth)))
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to prepare the duty cycle\n"); return result; }
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::performFullDutyCyleStep - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  return 0;
+}
+
+int UStepDevice::performFlippingDutyCyleStepPart2(double needle_insertion_depth,  double needle_insertion_speed, double minimum_insertion_depth, double duty_cycle)
+{
+  if(calibrated_)
+  {
+    int result;
+
+    // PART 4 - INSERT THE NEEDLE
+    if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
+      return ERR_INSERT_POS_TOO_LOW; }
+
+    if((result = setFlippingDutyCycle(needle_insertion_depth, needle_insertion_speed, minimum_insertion_depth, duty_cycle)))
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
+
+    Debug("UStepDevice::performFlippingDutyCyleStep - Moving the gripper box forward\n");
+    if((result = startFlippingDutyCycle()))
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to insert the needle\n"); return result; }
+    insertion_position_ -= calculated_insertion_depth_;
+  }
+
+  else
+  {
+    Error("ERROR UStepDevice::performFullDutyCyleStep - Device not calibrated. You must call calibrateMotorsStartingPosition() before \n");
+    return ERR_DEVICE_NOT_CALIBRATED;
+  }
+
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
 int UStepDevice::performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed)
 {
   if(calibrated_)

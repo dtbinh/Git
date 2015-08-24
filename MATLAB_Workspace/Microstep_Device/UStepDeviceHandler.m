@@ -37,6 +37,9 @@ classdef UStepDeviceHandler < handle
         CMD_MOVE_DC_BIDIRECTIONAL = 9;
         CMD_MOVE_DC_FLIPPING      = 10;
         
+        CMD_MOVE_DC_FLIPPING_PART1 = 11;
+        CMD_MOVE_DC_FLIPPING_PART2 = 12;
+        
         CMD_DONE                  = 42;
         CMD_SHUT_DOWN             = 255;
         
@@ -192,6 +195,20 @@ classdef UStepDeviceHandler < handle
             fread(obj.tcpip_client, 1);
             fclose(obj.tcpip_client);
         end
+        
+        function moveDCPart1(obj, step_size, insertion_speed, minimum_insertion, duty_cycle)
+            fopen(obj.tcpip_client);
+            fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC_FLIPPING_PART1 typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(minimum_insertion, 'uint8') typecast(duty_cycle, 'uint8')]);
+            fread(obj.tcpip_client, 1);
+            fclose(obj.tcpip_client);            
+        end
+        
+        function moveDCPart2(obj, step_size, insertion_speed, minimum_insertion, duty_cycle)
+            fopen(obj.tcpip_client);
+            fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC_FLIPPING_PART2 typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(minimum_insertion, 'uint8') typecast(duty_cycle, 'uint8')]);
+            fread(obj.tcpip_client, 1);
+            fclose(obj.tcpip_client);            
+        end        
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % FUNCTIONS FOR SAVING THE NEEDLE POSE %
