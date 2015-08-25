@@ -1,4 +1,4 @@
-function [radius, arc_length] = measureNeedleCurvature(pose1, pose2)
+function [radius, arc_length] = measureNeedleCurvature(pose1, pose2, step_size)
 
 if(quatnorm(pose1.orientation) == 0 || quatnorm(pose1.orientation) == 0)
     
@@ -19,9 +19,15 @@ else
     
     theta = acos(dot(v1, v2));
 %     theta_deg = rad2deg(theta);
+
+%% Method 1: use the aurora measurements for angle and distance
     
     radius = distance / (2*sin(theta/2));
-    
     arc_length = radius * theta;
+    
+%% Method 2: use the aurora measurements only for angle
+
+%     arc_length = step_size;
+%     radius = arc_length / theta;
     
 end

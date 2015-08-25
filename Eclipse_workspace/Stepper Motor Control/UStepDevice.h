@@ -66,6 +66,9 @@ class UStepDevice
   // Standard speed for flipping the needle in 180 degrees
   double default_flipping_speed_;
 
+  double gripper_angle_correction_speed_;
+  double gripper_correction_angle_;
+
   // Duty cycle threshold parameters
   double dc_max_threshold_;
   double dc_min_threshold_;

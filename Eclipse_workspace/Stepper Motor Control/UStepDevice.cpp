@@ -92,6 +92,10 @@ UStepDevice::UStepDevice()
   insertion_position_ = 0.0;
   default_retreating_speed_ = 1.0;
 
+  default_flipping_speed_ = 1.0;
+  gripper_angle_correction_speed_ = 1.0;
+  gripper_correction_angle_ = 0.0;
+
   configured_ = false;
   initialized_ = false;
   calibrated_ = false;
@@ -133,7 +137,10 @@ void UStepDevice::configureMotorParameters()
   min_insertion_position_ = MIN_INSERT_POS;
   initial_insertion_position_ = START_INSERT_POS;
   default_retreating_speed_ = RETREAT_SPEED;
+
   default_flipping_speed_ = FLIPPING_SPEED;
+  gripper_angle_correction_speed_ = ANGLE_CORRECTION_SPEED;
+  gripper_correction_angle_ = CORRECTION_ANGLE;
 
   // Duty cycle parameters
   dc_max_threshold_ = MAX_DC;
@@ -608,22 +615,26 @@ int UStepDevice::performFlippingDutyCyleStepPart2(double needle_insertion_depth,
   return 0;
 }
 
-
-
-
-
-
-
-
-
-
 int UStepDevice::performBackwardStep(double needle_insertion_depth,  double needle_insertion_speed)
 {
   if(calibrated_)
   {
     int result;
 
-    // PART 1 - RETREAT THE MOVING GRIPPER BOX
+    // PART 1 - GRASP THE NEEDLE
+    Debug("UStepDevice::performBackwardStep - Closing the front gripper\n");
+    if((result = closeFrontGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to close the front gripper\n"); return result; }
+
+    Debug("UStepDevice::performBackwardStep - Opening the back gripper\n");
+    if((result = openBackGripper()))
+      { Error("ERROR UStepDevice::performBackwardStep - Unable to open the back gripper\n"); return result; }
+
+    // Compensate the undesired needle spin caused by a problem on the front gripper closing
+    rotateNeedle(gripper_correction_angle_, gripper_angle_correction_speed_);
+    gpioSleep(PI_TIME_RELATIVE, 0, micros_gripper_delay_);
+
+    // PART 2 - RETREAT THE MOVING GRIPPER BOX
     if(insertion_position_ + needle_insertion_depth > max_insertion_position_)
       { Error("ERROR UStepDevice::performBackwardStep - Insertion position upper limit reached. Try choosing a smaller step size\n");
       return ERR_INSERT_POS_TOO_HIGH; }
@@ -651,15 +662,6 @@ int UStepDevice::performBackwardStep(double needle_insertion_depth,  double need
     if((result = translateFrontGripper(needle_insertion_depth, default_retreating_speed_)))
       { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to retreat the device\n"); return result; }
     insertion_position_ -= performed_displacement_;
-
-    // PART 4 - GRASP THE NEEDLE
-    Debug("UStepDevice::performBackwardStep - Closing the front gripper\n");
-    if((result = closeFrontGripper()))
-      { Error("ERROR UStepDevice::performBackwardStep - Unable to close the front gripper\n"); return result; }
-
-    Debug("UStepDevice::performBackwardStep - Opening the back gripper\n");
-    if((result = openBackGripper()))
-      { Error("ERROR UStepDevice::performBackwardStep - Unable to open the back gripper\n"); return result; }
 
   }
 
@@ -1933,6 +1935,10 @@ int UStepDevice::prepareDutyCyleStep(double needle_insertion_depth)
   Debug("UStepDevice::performFullDutyCyleStep - Opening the back gripper\n");
   if((result = openBackGripper()))
   { Error("ERROR UStepDevice::performFullDutyCyleStep - Unable to open the back gripper\n"); return result; }
+
+  // Compensate the undesired needle spin caused by a problem on the front gripper closing
+  rotateNeedle(gripper_correction_angle_, gripper_angle_correction_speed_);
+  gpioSleep(PI_TIME_RELATIVE, 0, micros_gripper_delay_);
 
   return 0;
 }
