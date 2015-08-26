@@ -6,7 +6,7 @@ clc;
 
 aurora_present = 1;
 
-sensor_angle_inside_needle = 25.0;
+sensor_angle_inside_needle = 15.0;
 
 % Needle initial orientation
 needle_V0 = [0 0 1];
@@ -22,9 +22,9 @@ n_step = 22;
 n_step_no_rotation = 0;
 step_size = 8;
 insertion_speed = 1.0;
-minimum_insertion = 2.0;
+minimum_insertion = 4.0;
 
-duty_cycle = 0.5;
+duty_cycle = 1.00;
 
 %% Configure the TCP/IP client for communicating with the Raspberry Pi
 

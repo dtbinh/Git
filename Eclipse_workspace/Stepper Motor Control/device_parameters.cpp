@@ -99,7 +99,7 @@
 
 // Insertion length position limits in millimeters
 // !!!!!!!!!!!! ATENTION: These parameter change, every time the back limit switch is moved !!!!!!!!!!!!!!
-#define MAX_INSERT_POS     15.0
+#define MAX_INSERT_POS     30.0
 #define MIN_INSERT_POS      1.0
 #define START_INSERT_POS    5.0
 
