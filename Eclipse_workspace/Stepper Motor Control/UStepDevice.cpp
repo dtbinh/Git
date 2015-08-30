@@ -95,6 +95,7 @@ UStepDevice::UStepDevice()
   default_flipping_speed_ = 1.0;
   gripper_angle_correction_speed_ = 1.0;
   gripper_correction_angle_ = 0.0;
+  needle_correction_displacement_ = 0.0;
 
   configured_ = false;
   initialized_ = false;
@@ -141,6 +142,7 @@ void UStepDevice::configureMotorParameters()
   default_flipping_speed_ = FLIPPING_SPEED;
   gripper_angle_correction_speed_ = ANGLE_CORRECTION_SPEED;
   gripper_correction_angle_ = CORRECTION_ANGLE;
+  needle_correction_displacement_ = CORRECTION_TRANSLATION;
 
   // Duty cycle parameters
   dc_max_threshold_ = MAX_DC;
@@ -511,9 +513,14 @@ int UStepDevice::performBidirectionalDutyCyleStep(double needle_insertion_depth,
       { Error("ERROR UStepDevice::performBidirectionalDutyCyleStep - Unable to prepare the duty cycle\n"); return result; }
 
     // PART 4 - INSERT THE NEEDLE
-    if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
+    if(insertion_position_ - (needle_insertion_depth + needle_correction_displacement_) < min_insertion_position_)
       { Error("ERROR UStepDevice::performBidirectionalDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
       return ERR_INSERT_POS_TOO_LOW; }
+
+    // Perform an initial displacement for correcting the translation lag on the device
+    if((result = translateFrontGripper(needle_correction_displacement_, needle_insertion_speed)))
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to perform the correction displacement\n"); return result; }
+    insertion_position_ -= performed_displacement_;
 
     if((result = setBidirectionalDutyCycle(needle_insertion_depth, needle_insertion_speed, needle_rotation_speed, duty_cycle)))
       { Error("ERROR UStepDevice::performBidirectionalDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
@@ -544,9 +551,14 @@ int UStepDevice::performFlippingDutyCyleStep(double needle_insertion_depth,  dou
       { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to prepare the duty cycle\n"); return result; }
 
     // PART 4 - INSERT THE NEEDLE
-    if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
+    if(insertion_position_ - (needle_insertion_depth + needle_correction_displacement_) < min_insertion_position_)
       { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
       return ERR_INSERT_POS_TOO_LOW; }
+
+    // Perform an initial displacement for correcting the translation lag on the device
+    if((result = translateFrontGripper(needle_correction_displacement_, needle_insertion_speed)))
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to perform the correction displacement\n"); return result; }
+    insertion_position_ -= performed_displacement_;
 
     if((result = setFlippingDutyCycle(needle_insertion_depth, needle_insertion_speed, minimum_insertion_depth, duty_cycle)))
       { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
@@ -620,6 +632,8 @@ int UStepDevice::performBackwardStep(double needle_insertion_depth,  double need
   if(calibrated_)
   {
     int result;
+
+    needle_insertion_depth += needle_correction_displacement_;
 
     // PART 1 - GRASP THE NEEDLE
     Debug("UStepDevice::performBackwardStep - Closing the front gripper\n");
@@ -1907,6 +1921,8 @@ int UStepDevice::debugMoveMotorSteps(unsigned char motor, double motor_displacem
 int UStepDevice::prepareDutyCyleStep(double needle_insertion_depth)
 {
   int result;
+
+  needle_insertion_depth += needle_correction_displacement_;
 
   // PART 1 - RELEASE THE NEEDLE
   Debug("UStepDevice::performFullDutyCyleStep - Closing the back gripper\n");

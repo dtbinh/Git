@@ -6,7 +6,7 @@ clc;
 
 aurora_present = 1;
 
-sensor_angle_inside_needle = 40.0;
+sensor_angle_inside_needle = -90.0;
 
 % Needle initial orientation
 needle_V0 = [0 0 1];
@@ -16,16 +16,22 @@ n_preparation_step = 12;
 preparation_step_size = 10;
 preparation_insertion_speed = 2.5;
 preparation_rotation_speed = 0.1;
+insertion_correction_speed = 1.0;
 
 % Insertion trajectory
-n_step = 22;
-n_step_no_rotation = 0;
+pre_insertion = 10.0;
 step_size = 8;
 insertion_speed = 1.0;
-rotation_speed = 1.0;
-% minimum_insertion = 4.0;
 
-duty_cycle = 0.75;
+n_step = 14;
+minimum_insertion = [1.00 1.00 1.00 1.00 2.00 1.00 1.00 1.00 1.00 1.00 1.00 2.00 2.00 1.00];
+duty_cycle        = [0.00 0.00 0.00 0.25 0.50 0.25 0.00 0.00 0.00 0.00 0.00 0.50 0.50 0.00];
+rotation_steps    = [0    0    0    0    1    0    0    0    0    0    0    0    0    0];
+
+% n_step = 4;
+% minimum_insertion = [1.00 1.00 1.00 1.00];
+% duty_cycle        = [0.00 0.00 0.00 0.00];
+% rotation_steps    = [0    0    1    0];
 
 %% Configure the TCP/IP client for communicating with the Raspberry Pi
 
@@ -45,7 +51,8 @@ end
 
 %% Set file name for storing the results
 
-fprintf('Duty Cycle Experiment - DC = %.2f\n', duty_cycle);
+fprintf('Open Loop Trajectory Experiment\n');
+simulateDutyCyclePlanarTrajectory(duty_cycle, rotation_steps, pre_insertion);
 output_file_name = input('Type the name of the file for saving the results\n','s');
 
 experiment_start = tic;
@@ -81,6 +88,10 @@ if(aurora_present)
         while 1
             angle = input('Type the correction angle, in CW direction, to adjust the needle orientation:\n');
             
+            if(isempty(angle))
+                continue;
+            end
+            
             if(angle == 0)
                 fprintf('Needle orientation adjusted.\n');
                 fprintf('Next time, you should set the variable "sensor_angle_inside_needle" to %.2f\n', sensor_angle_inside_needle+correction_angle);
@@ -99,43 +110,63 @@ if(aurora_present)
     end
 end
 
-ustep_device.closeFrontGripper();
-ustep_device.openBackGripper();
+aurora_device.BEEP('2');
+fprintf('Check if there is %.2f mm of needle outside the device\n', pre_insertion);
+answer = input('Is this correct? (y/n)\n','s');
+if(~(strcmp(answer, 'y') || strcmp(answer, 'Y') || strcmp(answer, 'yes') || strcmp(answer, 'Yes') || strcmp(answer, 'YES')))
+    
+    ustep_device.closeBackGripper();
+    ustep_device.openFrontGripper();
+    ustep_device.translateFrontGripper(-preparation_step_size, preparation_insertion_speed);
+    ustep_device.closeFrontGripper();
+    ustep_device.openBackGripper();
+    
+    correction_displacement = 0;
+    while 1
+        displacement = input('Type the required displacement in mm\n');
+        
+        if(isempty(displacement))
+            continue;
+        end
+        
+        if(displacement == 0)
+            break;
+        else
+            correction_displacement = correction_displacement + displacement;
+            ustep_device.translateFrontGripper(displacement, insertion_correction_speed);
+        end
+    end
+    
+    ustep_device.closeBackGripper();
+    ustep_device.openFrontGripper();    
+    ustep_device.translateFrontGripper(preparation_step_size-correction_displacement, preparation_insertion_speed);
+    ustep_device.closeFrontGripper();
+    ustep_device.openBackGripper();
+end
 
 preparation_time = toc(experiment_start);
 insertion_start = tic;
 
 %% Perform forward steps
 
-aurora_device.BEEP('2');
 fprintf('\nPreparing to start the experiment. Place the gelatin\n');
 input('Hit ENTER when you are ready\n');
 
-for i_step = 1:n_step_no_rotation
-%     fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, mS = %.2f, DC = %.2f\n', i_step, n_step, step_size, insertion_speed, minimum_insertion, duty_cycle);
-    fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, W = %.2f, DC = %.2f\n', i_step, n_step, step_size, insertion_speed, rotation_speed, duty_cycle);
+for i_step = 1:n_step
+    fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, mS = %.2f, DC = %.2f\n', i_step, n_step, step_size, insertion_speed, minimum_insertion(i_step), duty_cycle(i_step));
+    
+    % Verify if this step includes a 180 degrees rotation
+    if(rotation_steps(i_step))
+        fprintf('This steps contains a needle flip. Rotating the needle in 180 degrees\n');
+        ustep_device.rotateNeedleDegrees(180, preparation_rotation_speed);
+    end
     
     % Measure needle pose before moving
     ustep_device.savePoseForward(aurora_device, i_step);
     
     % Move needle
-    ustep_device.moveForward(step_size, insertion_speed);
-%     ustep_device.saveCommandsDC(i_step, step_size, insertion_speed, minimum_insertion, 0.0);
-    ustep_device.saveCommandsDC(i_step, step_size, insertion_speed, rotation_speed, 0.0);
-end
-
-for i_step = n_step_no_rotation+1:n_step
-%     fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, mS = %.2f, DC = %.2f\n', i_step, n_step, step_size, insertion_speed, minimum_insertion, duty_cycle);
-    fprintf('\nPerforming step %d/%d: S = %.2f, V = %.2f, W = %.2f, DC = %.2f\n', i_step, n_step, step_size, insertion_speed, rotation_speed, duty_cycle);
-    
-    % Measure needle pose before moving
-    ustep_device.savePoseForward(aurora_device, i_step);
-    
-    % Move needle
-%     ustep_device.moveDC(step_size, insertion_speed, minimum_insertion, duty_cycle);
-%     ustep_device.saveCommandsDC(i_step, step_size, insertion_speed, minimum_insertion, duty_cycle);
-    ustep_device.moveDC(step_size, insertion_speed, rotation_speed, duty_cycle);
-    ustep_device.saveCommandsDC(i_step, step_size, insertion_speed, rotation_speed, duty_cycle);
+    ustep_device.moveDC(step_size, insertion_speed, minimum_insertion(i_step), duty_cycle(i_step));
+    ustep_device.saveCommandsDC(i_step, step_size, insertion_speed, minimum_insertion(i_step), duty_cycle(i_step));
 end
 
 % Measure the final needle pose

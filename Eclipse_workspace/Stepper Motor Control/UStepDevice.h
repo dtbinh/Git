@@ -68,6 +68,7 @@ class UStepDevice
 
   double gripper_angle_correction_speed_;
   double gripper_correction_angle_;
+  double needle_correction_displacement_;
 
   // Duty cycle threshold parameters
   double dc_max_threshold_;

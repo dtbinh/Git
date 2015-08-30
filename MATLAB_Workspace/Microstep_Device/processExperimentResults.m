@@ -60,3 +60,9 @@ for i_step = 1:n_step
     radius_of_curvature_fw_diag(i_step) = radius_of_curvature_fw(i_step, i_step);
     radius_of_curvature_bw_diag(i_step) = radius_of_curvature_bw(i_step, i_step);
 end
+
+
+
+[r, c] = find(needle_z_bw ~= 0);
+delta_Z = range(needle_z_bw(c(1):end))
+

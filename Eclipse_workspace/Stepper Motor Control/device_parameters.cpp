@@ -85,14 +85,14 @@
 // The default angle the front gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 // Possible values range from 126.5 to 132
 //#define FRONT_GRIPPER_DISP    0.3532
-#define FRONT_GRIPPER_DISP    (126.0 / 360)
+#define FRONT_GRIPPER_DISP    (128.0 / 360)
 
 // The default angle the back gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 //#define BACK_GRIPPER_DISP     0.3532
-#define BACK_GRIPPER_DISP    (127.0 / 360)
+#define BACK_GRIPPER_DISP    (128.0 / 360)
 
-//#define CORRECTION_ANGLE     (-1.2 / 360)
-#define CORRECTION_ANGLE     (-1.6 / 360)
+#define CORRECTION_ANGLE          (-1.6 / 360)
+#define CORRECTION_TRANSLATION      (0.7)
 
 // Time delay for sleeping afte each gripper function in micros
 #define GRIPPER_DELAY        500000           // 500 ms
