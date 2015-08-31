@@ -21,6 +21,10 @@ classdef UStepDeviceHandler < handle
         %
         pose_saving_delay = 1.0;
         
+        % Device mode
+        MODE_MICROSTEP           = 1;
+        MODE_TELESCOPING_SUPPORT = 2;
+        
         % Methods for duty cycling
         DC_METHOD_BIDIRECTIONAL = 1;
         DC_METHOD_FLIPPING      = 2;
@@ -89,6 +93,9 @@ classdef UStepDeviceHandler < handle
         % each pair of steps - should have n_step-1 elements
         interstep_rotation; 
         
+        % Device assembly mode (set in constructor)
+        device_mode;
+        
         % Selected method for duty cycling (set in constructor)
         duty_cycle_method;
 
@@ -102,6 +109,9 @@ classdef UStepDeviceHandler < handle
         %             CONSTRUCTOR              %
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         function obj = UStepDeviceHandler(n_step)
+            
+            % Device assembly mode
+            obj.device_mode = obj.MODE_TELESCOPING_SUPPORT;
             
             % Standard method selected for Duty Cyclying
             obj.duty_cycle_method = obj.DC_METHOD_FLIPPING;
@@ -171,26 +181,43 @@ classdef UStepDeviceHandler < handle
         
         function moveForward(obj, distance, speed)
             fopen(obj.tcpip_client);
-            fwrite(obj.tcpip_client, [obj.CMD_MOVE_FORWARD typecast(distance, 'uint8') typecast(speed, 'uint8')]);
+            if(obj.device_mode == obj.MODE_MICROSTEP)
+                fwrite(obj.tcpip_client, [obj.CMD_MOVE_FORWARD typecast(distance, 'uint8') typecast(speed, 'uint8')]);
+            else
+                fwrite(obj.tcpip_client, [obj.CMD_TRANSLATE typecast(distance, 'uint8') typecast(speed, 'uint8')]);
+            end
             fread(obj.tcpip_client, 1);
             fclose(obj.tcpip_client);
         end
            
         function moveBackward(obj, distance, speed)
             fopen(obj.tcpip_client);
-            fwrite(obj.tcpip_client, [obj.CMD_MOVE_BACKWARD typecast(distance, 'uint8') typecast(speed, 'uint8')]);
+            if(obj.device_mode == obj.MODE_MICROSTEP)
+                fwrite(obj.tcpip_client, [obj.CMD_MOVE_BACKWARD typecast(distance, 'uint8') typecast(speed, 'uint8')]);
+            else
+                fwrite(obj.tcpip_client, [obj.CMD_TRANSLATE typecast(-distance, 'uint8') typecast(speed, 'uint8')]);
+            end
             fread(obj.tcpip_client, 1);
             fclose(obj.tcpip_client);
         end
         
         function moveDC(obj, step_size, insertion_speed, third_parameter, duty_cycle)
             fopen(obj.tcpip_client);
-            if(obj.duty_cycle_method == obj.DC_METHOD_BIDIRECTIONAL)
-                rotation_speed = third_parameter;
-                fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC_BIDIRECTIONAL typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(rotation_speed, 'uint8') typecast(duty_cycle, 'uint8')]);
+            if(obj.device_mode == obj.MODE_MICROSTEP)
+                if(obj.duty_cycle_method == obj.DC_METHOD_BIDIRECTIONAL)
+                    rotation_speed = third_parameter;
+                    fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC_BIDIRECTIONAL typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(rotation_speed, 'uint8') typecast(duty_cycle, 'uint8')]);
+                else
+                    minimum_insertion = third_parameter;
+                    fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC_FLIPPING typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(minimum_insertion, 'uint8') typecast(duty_cycle, 'uint8')]);
+                end
             else
-                minimum_insertion = third_parameter;
-                fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC_FLIPPING typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(minimum_insertion, 'uint8') typecast(duty_cycle, 'uint8')]);
+                if(obj.duty_cycle_method == obj.DC_METHOD_BIDIRECTIONAL)
+                    fprintf('ERROR: Bidirectional duty cycle is not implemented on the Telescoping support mode!!!\n');
+                else
+                    minimum_insertion = third_parameter;
+                    fwrite(obj.tcpip_client, [obj.CMD_MOVE_DC_FLIPPING_PART2 typecast(step_size, 'uint8') typecast(insertion_speed, 'uint8') typecast(minimum_insertion, 'uint8') typecast(duty_cycle, 'uint8')]);
+                end
             end
             fread(obj.tcpip_client, 1);
             fclose(obj.tcpip_client);

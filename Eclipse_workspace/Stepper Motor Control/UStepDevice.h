@@ -19,6 +19,8 @@ class UStepDevice
    * DEVICE PARAMETERS
    */
 
+  bool telescoping_support_mode_;
+
   // Actuators
   StepperMotor insertion_;
   StepperMotor rotation_;
@@ -211,7 +213,7 @@ class UStepDevice
   int moveMotorConstantSpeed(unsigned char motor, double displacement, double speed);
 
   // DESCRIPTION PENDING
-  int moveGripperToFrontSwitch(double speed);
+  int moveGripperToLimitSwitch(double speed);
 
   // DESCRIPTION PENDING
   int debugMoveMotorSteps(unsigned char motor, double motor_displacement_step, double motor_speed_step);

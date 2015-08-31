@@ -63,6 +63,8 @@
 
 UStepDevice::UStepDevice()
 {
+  telescoping_support_mode_ = false;
+
   emergency_button_ = 0;
   front_switch_ = 0;
   back_switch_ = 0;
@@ -106,6 +108,8 @@ UStepDevice::UStepDevice()
 
 void UStepDevice::configureMotorParameters()
 {
+  telescoping_support_mode_ = TELESCOPING_MODE;
+
   // Run a function in an external source file that fills the MotorParameters
   // structures with all the configuration parameters of the device
   // OBS: Ideally this information should be read from a configuration file
@@ -218,33 +222,55 @@ int UStepDevice::calibrateMotorsStartingPosition()
     printf(" ----------------------------------------------------- \n");
     printf("\n");
 
-    printf("STEP 1 - Calibrating the initial position of Motor 2:\n");
-    printf("   - Disabling motor 2\n");
-    printf("   - Please move the back gripper to the completely open position\n");
-    printf("   - Hit ENTER when you are done\n");
-    setEnable(MOTOR_BACK_GRIPPER, DISABLE_MOTOR);
-    getchar();
-    setEnable(MOTOR_BACK_GRIPPER, ENABLE_MOTOR);
-    printf("   - Motor 2 calibrated \n\n");
+    if(telescoping_support_mode_)
+    {
+      printf("STEP 1 - Calibrating the initial position of Motor 4:\n");
+      printf("   - Disabling motor 4\n");
+      printf("   - Please move the gripper to the completely open position\n");
+      printf("   - Hit ENTER when you are done\n");
+      setEnable(MOTOR_FRONT_GRIPPER, DISABLE_MOTOR);
+      getchar();
+      setEnable(MOTOR_FRONT_GRIPPER, ENABLE_MOTOR);
+      printf("   - Motor 4 calibrated \n\n");
 
-    printf("STEP 2 - Calibrating the initial position of Motor 4:\n");
-    printf("   - Disabling motor 4\n");
-    printf("   - Please move the front gripper to the completely open position\n");
-    printf("   - Hit ENTER when you are done\n");
-    setEnable(MOTOR_FRONT_GRIPPER, DISABLE_MOTOR);
-    getchar();
-    setEnable(MOTOR_FRONT_GRIPPER, ENABLE_MOTOR);
-    printf("   - Motor 4 calibrated \n\n");
+      printf("STEP 2 - Calibrating the initial position of Motor 1:\n");
+      printf("   - Please wait for the gripper to hit the back limit switch\n");
+      moveGripperToLimitSwitch(max_constant_speed_*0.7);
+      printf("   - Moving motor 1 to its initial position: %.2f mm\n", initial_insertion_position_);
+      translateFrontGripper(max_insertion_position_-initial_insertion_position_, default_retreating_speed_);
+      insertion_position_ = initial_insertion_position_;
+      printf("   - Motor 1 calibrated \n\n");
+    }
+    else
+    {
+      printf("STEP 1 - Calibrating the initial position of Motor 2:\n");
+      printf("   - Disabling motor 2\n");
+      printf("   - Please move the back gripper to the completely open position\n");
+      printf("   - Hit ENTER when you are done\n");
+      setEnable(MOTOR_BACK_GRIPPER, DISABLE_MOTOR);
+      getchar();
+      setEnable(MOTOR_BACK_GRIPPER, ENABLE_MOTOR);
+      printf("   - Motor 2 calibrated \n\n");
 
-    printf("STEP 3 - Calibrating the initial position of Motor 1:\n");
-    printf("   - Please wait for the front gripper to hit the front limit switch\n");
-    moveGripperToFrontSwitch(max_constant_speed_*0.7);
-    printf("   - Moving motor 1 to its initial position: %.2f mm\n", initial_insertion_position_);
-    translateFrontGripper(-initial_insertion_position_, default_retreating_speed_);
-    //setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
-    //moveMotorConstantSpeed(MOTOR_INSERTION, initial_insertion_position_, default_retreating_speed_);
-    insertion_position_ = initial_insertion_position_;
-    printf("   - Motor 1 calibrated \n\n");
+      printf("STEP 2 - Calibrating the initial position of Motor 4:\n");
+      printf("   - Disabling motor 4\n");
+      printf("   - Please move the front gripper to the completely open position\n");
+      printf("   - Hit ENTER when you are done\n");
+      setEnable(MOTOR_FRONT_GRIPPER, DISABLE_MOTOR);
+      getchar();
+      setEnable(MOTOR_FRONT_GRIPPER, ENABLE_MOTOR);
+      printf("   - Motor 4 calibrated \n\n");
+
+      printf("STEP 3 - Calibrating the initial position of Motor 1:\n");
+      printf("   - Please wait for the front gripper to hit the front limit switch\n");
+      moveGripperToLimitSwitch(max_constant_speed_*0.7);
+      printf("   - Moving motor 1 to its initial position: %.2f mm\n", initial_insertion_position_);
+      translateFrontGripper(-initial_insertion_position_, default_retreating_speed_);
+      insertion_position_ = initial_insertion_position_;
+      printf("   - Motor 1 calibrated \n\n");
+    }
+
+
 
     printf("Calibration function finished! \n\n");
 
@@ -499,7 +525,19 @@ int UStepDevice::translateFrontGripper(double front_gripper_displacement, double
     setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
     absolute_displacement = -front_gripper_displacement;
   }
-  return moveMotorConstantSpeed(MOTOR_INSERTION, absolute_displacement, front_gripper_speed);
+
+  int result = moveMotorConstantSpeed(MOTOR_INSERTION, absolute_displacement, front_gripper_speed);
+
+  if(front_gripper_displacement > 0)
+  {
+    insertion_position_ -= performed_displacement_;
+  }
+  else
+  {
+    insertion_position_ += performed_displacement_;
+  }
+
+  return result;
 }
 
 int UStepDevice::performBidirectionalDutyCyleStep(double needle_insertion_depth,  double needle_insertion_speed, double needle_rotation_speed, double duty_cycle)
@@ -606,15 +644,15 @@ int UStepDevice::performFlippingDutyCyleStepPart2(double needle_insertion_depth,
 
     // PART 4 - INSERT THE NEEDLE
     if(insertion_position_ - needle_insertion_depth < min_insertion_position_)
-      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStepPart2 - Insertion position lower limit reached. There may be an error in your insertion step cycle\n");
       return ERR_INSERT_POS_TOO_LOW; }
 
     if((result = setFlippingDutyCycle(needle_insertion_depth, needle_insertion_speed, minimum_insertion_depth, duty_cycle)))
-      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to set the insertion parameters\n"); return result; }
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStepPart2 - Unable to set the insertion parameters\n"); return result; }
 
-    Debug("UStepDevice::performFlippingDutyCyleStep - Moving the gripper box forward\n");
+    Debug("UStepDevice::performFlippingDutyCyleStepPart2 - Moving the gripper box forward\n");
     if((result = startFlippingDutyCycle()))
-      { Error("ERROR UStepDevice::performFlippingDutyCyleStep - Unable to insert the needle\n"); return result; }
+      { Error("ERROR UStepDevice::performFlippingDutyCyleStepPart2 - Unable to insert the needle\n"); return result; }
     insertion_position_ -= calculated_insertion_depth_;
   }
 
@@ -1776,10 +1814,18 @@ int UStepDevice::moveMotorConstantSpeed(unsigned char motor, double displacement
   return 0;
 }
 
-int UStepDevice::moveGripperToFrontSwitch(double speed)
+int UStepDevice::moveGripperToLimitSwitch(double speed)
 {
-  // Set the gripper direction to moving forward
-  setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+  if(telescoping_support_mode_)
+  {
+    // Set the gripper direction to moving backward
+    setDirection(MOTOR_INSERTION, DIRECTION_BACKWARD);
+  }
+  else
+  {
+    // Set the gripper direction to moving forward
+    setDirection(MOTOR_INSERTION, DIRECTION_FORWARD);
+  }
 
   // Convert the requested end effector variables to motor variables
   double motor_speed = speed * insertion_.gear_ratio();
@@ -1810,10 +1856,20 @@ int UStepDevice::moveGripperToFrontSwitch(double speed)
 
     if (wave_id >= 0)
     {
-      // Send the wave until the front switch is hit
       gpioWaveTxSend(wave_id, PI_WAVE_MODE_REPEAT);
-      while(gpioRead(front_switch_) == 0)
-        gpioSleep(PI_TIME_RELATIVE, 0, 100000);
+
+      if(telescoping_support_mode_)
+      {
+        // Send the wave until the front switch is hit
+        while(gpioRead(back_switch_) == 0)
+          gpioSleep(PI_TIME_RELATIVE, 0, 100000);
+      }
+      else
+      {
+        // Send the wave until the front switch is hit
+        while(gpioRead(front_switch_) == 0)
+          gpioSleep(PI_TIME_RELATIVE, 0, 100000);
+      }
       gpioWaveTxStop();
       gpioWrite(motor_port_step, PORT_STEP_OFF);
     }

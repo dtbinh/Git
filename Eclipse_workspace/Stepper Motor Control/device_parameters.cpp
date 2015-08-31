@@ -18,6 +18,7 @@
  * project.
  */
 
+#define TELESCOPING_MODE 1
 
 // Pinout of the interface board
    // These are the Raspberry Pi ports that I have connected to each one of the
@@ -85,7 +86,7 @@
 // The default angle the front gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 // Possible values range from 126.5 to 132
 //#define FRONT_GRIPPER_DISP    0.3532
-#define FRONT_GRIPPER_DISP    (128.0 / 360)
+#define FRONT_GRIPPER_DISP    (129.0 / 360)
 
 // The default angle the back gripper must spin to firmly grasp the needle - about 90 degrees (0.25 revolutions)
 //#define BACK_GRIPPER_DISP     0.3532
@@ -99,9 +100,9 @@
 
 // Insertion length position limits in millimeters
 // !!!!!!!!!!!! ATENTION: These parameter change, every time the back limit switch is moved !!!!!!!!!!!!!!
-#define MAX_INSERT_POS     30.0
-#define MIN_INSERT_POS      1.0
-#define START_INSERT_POS    5.0
+#define MAX_INSERT_POS    115.0
+#define MIN_INSERT_POS      0.0
+#define START_INSERT_POS  114.5
 
 
 // Threshold values for the duty cycle

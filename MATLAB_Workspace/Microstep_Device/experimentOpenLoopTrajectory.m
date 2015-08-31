@@ -5,21 +5,22 @@ clc;
 %% Global parameters
 
 aurora_present = 1;
+telescoping_suport_mode = 1;
 
-sensor_angle_inside_needle = -90.0;
+sensor_angle_inside_needle = -180.0;
 
 % Needle initial orientation
 needle_V0 = [0 0 1];
 needle_N0 = [-sind(sensor_angle_inside_needle) cosd(sensor_angle_inside_needle) 0];
 
-n_preparation_step = 12;
+n_preparation_step = 10;
 preparation_step_size = 10;
-preparation_insertion_speed = 2.5;
+preparation_insertion_speed = 2.0;
 preparation_rotation_speed = 0.1;
 insertion_correction_speed = 1.0;
 
 % Insertion trajectory
-pre_insertion = 10.0;
+pre_insertion = 11.0;
 step_size = 8;
 insertion_speed = 1.0;
 
@@ -29,8 +30,8 @@ duty_cycle        = [0.00 0.00 0.00 0.25 0.50 0.25 0.00 0.00 0.00 0.00 0.00 0.50
 rotation_steps    = [0    0    0    0    1    0    0    0    0    0    0    0    0    0];
 
 % n_step = 4;
-% minimum_insertion = [1.00 1.00 1.00 1.00];
-% duty_cycle        = [0.00 0.00 0.00 0.00];
+% minimum_insertion = [1.00 1.00 2.00 1.00];
+% duty_cycle        = [0.00 0.25 0.50 0.00];
 % rotation_steps    = [0    0    1    0];
 
 %% Configure the TCP/IP client for communicating with the Raspberry Pi
@@ -59,17 +60,22 @@ experiment_start = tic;
 
 %% Adjust the needle starting position
 
+fprintf('Place the needle inside the device \nMake sure to leave exactly %.2f mm of needle outside the device\n', pre_insertion);
+input('When you are done, hit ENTER to close the front gripper\n');
+ustep_device.closeFrontGripper();
+
 if(aurora_present)
-    fprintf('Place the needle inside the device \nMake sure to align the needle tip to the end of the device\n');
-    input('When you are done, hit ENTER to close the front gripper\n');
-    ustep_device.closeFrontGripper();
     
     % Moving the needle forward until it gets detected by the Aurora system
     fprintf('Adjusting the needle initial orientation\n');
     
     % Moving the needle backward
-    for i_preparation_step = 1:n_preparation_step
-        ustep_device.moveForward(preparation_step_size, preparation_insertion_speed);
+    if(telescoping_suport_mode)
+        ustep_device.moveForward(preparation_step_size*n_preparation_step, preparation_insertion_speed);
+    else
+        for i_preparation_step = 1:n_preparation_step
+            ustep_device.moveForward(preparation_step_size, preparation_insertion_speed);
+        end
     end
     
     % Adjusting the needle orientation
@@ -105,49 +111,61 @@ if(aurora_present)
     end
     
     % Moving the needle backward
-    for i_preparation_step = 1:n_preparation_step
-        ustep_device.moveBackward(preparation_step_size, preparation_insertion_speed);
+    if(telescoping_suport_mode)
+        ustep_device.moveBackward(preparation_step_size*n_preparation_step, preparation_insertion_speed);
+    else
+        for i_preparation_step = 1:n_preparation_step
+            ustep_device.moveBackward(preparation_step_size, preparation_insertion_speed);
+        end
     end
+    
+    aurora_device.BEEP('2');
 end
 
-aurora_device.BEEP('2');
-fprintf('Check if there is %.2f mm of needle outside the device\n', pre_insertion);
-answer = input('Is this correct? (y/n)\n','s');
-if(~(strcmp(answer, 'y') || strcmp(answer, 'Y') || strcmp(answer, 'yes') || strcmp(answer, 'Yes') || strcmp(answer, 'YES')))
-    
-    ustep_device.closeBackGripper();
-    ustep_device.openFrontGripper();
-    ustep_device.translateFrontGripper(-preparation_step_size, preparation_insertion_speed);
-    ustep_device.closeFrontGripper();
-    ustep_device.openBackGripper();
-    
-    correction_displacement = 0;
-    while 1
-        displacement = input('Type the required displacement in mm\n');
+if(telescoping_suport_mode == 0)
+    fprintf('Check if there is %.2f mm of needle outside the device\n', pre_insertion);
+    answer = input('Is this correct? (y/n)\n','s');
+    if(~(strcmp(answer, 'y') || strcmp(answer, 'Y') || strcmp(answer, 'yes') || strcmp(answer, 'Yes') || strcmp(answer, 'YES')))
         
-        if(isempty(displacement))
-            continue;
+        ustep_device.closeBackGripper();
+        ustep_device.openFrontGripper();
+        ustep_device.translateFrontGripper(-preparation_step_size, preparation_insertion_speed);
+        ustep_device.closeFrontGripper();
+        ustep_device.openBackGripper();
+        
+        correction_displacement = 0;
+        while 1
+            displacement = input('Type the required displacement in mm\n');
+            
+            if(isempty(displacement))
+                continue;
+            end
+            
+            if(displacement == 0)
+                break;
+            else
+                correction_displacement = correction_displacement + displacement;
+                ustep_device.translateFrontGripper(displacement, insertion_correction_speed);
+            end
         end
         
-        if(displacement == 0)
-            break;
-        else
-            correction_displacement = correction_displacement + displacement;
-            ustep_device.translateFrontGripper(displacement, insertion_correction_speed);
-        end
+        ustep_device.closeBackGripper();
+        ustep_device.openFrontGripper();
+        ustep_device.translateFrontGripper(preparation_step_size-correction_displacement, preparation_insertion_speed);
+        ustep_device.closeFrontGripper();
+        ustep_device.openBackGripper();
     end
-    
-    ustep_device.closeBackGripper();
-    ustep_device.openFrontGripper();    
-    ustep_device.translateFrontGripper(preparation_step_size-correction_displacement, preparation_insertion_speed);
-    ustep_device.closeFrontGripper();
-    ustep_device.openBackGripper();
 end
 
 preparation_time = toc(experiment_start);
 insertion_start = tic;
 
 %% Perform forward steps
+
+if(telescoping_suport_mode)
+    fprintf('\nAdjust the position of the telescoping support\n');
+    input('Hit ENTER when you are ready\n');
+end
 
 fprintf('\nPreparing to start the experiment. Place the gelatin\n');
 input('Hit ENTER when you are ready\n');
@@ -177,7 +195,9 @@ removing_start = tic;
 
 %% Perform backward steps
 
-aurora_device.BEEP('3');
+if(aurora_present)
+    aurora_device.BEEP('3');
+end
 fprintf('\nNeedle insertion complete!\n');
 input('Hit ENTER to start retreating the needle\n');
 
@@ -197,7 +217,9 @@ end
 
 %% Save the results and close the program
 
-aurora_device.BEEP('4');
+if(aurora_present)    
+    aurora_device.BEEP('4');
+end
 removing_time = toc(removing_start);
 experiment_time = toc(experiment_start);
 
