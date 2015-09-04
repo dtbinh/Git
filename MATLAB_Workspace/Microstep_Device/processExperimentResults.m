@@ -64,5 +64,5 @@ end
 
 
 [r, c] = find(needle_z_bw ~= 0);
-delta_Z = range(needle_z_bw(c(1):end))
+delta_Z = range(needle_z_bw(c(1):end));
 

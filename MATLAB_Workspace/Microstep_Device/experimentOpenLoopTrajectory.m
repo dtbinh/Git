@@ -4,7 +4,7 @@ clc;
 
 %% Global parameters
 
-aurora_present = 1;
+aurora_present = 0;
 telescoping_suport_mode = 1;
 
 sensor_angle_inside_needle = -180.0;
@@ -20,7 +20,7 @@ preparation_rotation_speed = 0.1;
 insertion_correction_speed = 1.0;
 
 % Insertion trajectory
-pre_insertion = 11.0;
+pre_insertion = 10.0;
 step_size = 8;
 insertion_speed = 1.0;
 
@@ -53,7 +53,7 @@ end
 %% Set file name for storing the results
 
 fprintf('Open Loop Trajectory Experiment\n');
-simulateDutyCyclePlanarTrajectory(duty_cycle, rotation_steps, pre_insertion);
+[px, py] = simulateDutyCyclePlanarTrajectory(duty_cycle, rotation_steps, pre_insertion);
 output_file_name = input('Type the name of the file for saving the results\n','s');
 
 experiment_start = tic;

@@ -1,4 +1,4 @@
-function simulateDutyCyclePlanarTrajectory(duty_cycle, rotation_steps, pre_insertion)
+function [px, py] = simulateDutyCyclePlanarTrajectory(duty_cycle, rotation_steps, pre_insertion)
 
 % Global parameters
 r = 0.178;
@@ -57,10 +57,10 @@ else
     ry = range(py);
     rmax = 1.1 * max(rx, ry);
     
-    figure;
-    plot(py, -px);
-    xlim([-rmax/4 rmax/4]);
-    ylim([-rmax 0]);
+%     figure;
+%     plot(py, -px);
+%     xlim([-rmax/4 rmax/4]);
+%     ylim([-rmax 0]);
     
 end
 
