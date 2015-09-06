@@ -1,7 +1,7 @@
 function [px, py] = simulateDutyCyclePlanarTrajectory(duty_cycle, rotation_steps, pre_insertion)
 
 % Global parameters
-r = 0.178;
+r = 0.20782;
 step_size = 8;
 v = 0.001;
 

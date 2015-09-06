@@ -2,6 +2,7 @@
 
 % Starting position
 pre_insertion = 10.0;
+pre_insertion = 0.0;
 starting_x =  276.70 + pre_insertion;
 starting_y = -124.00;
 % starting_z = -153.00;
@@ -55,4 +56,4 @@ hold on;
 plot(py_nop, -px_nop, 'g-');
 plot(-y_pos(first_valid_pose:end), -x_pos(first_valid_pose:end), 'r-');
 
-final_z = z_pos(end)
+final_z = z_pos(end);
