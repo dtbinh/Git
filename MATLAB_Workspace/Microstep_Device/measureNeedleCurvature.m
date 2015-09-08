@@ -22,7 +22,10 @@ else
 
 %% Method 1: use the aurora measurements for angle and distance
     
-    radius = distance / (2*sin(theta/2));
+%     radius = distance / (2*sin(theta/2));
+    
+    radius = distance / sqrt(2*(1 - dot(v1,v2)));
+    
     arc_length = radius * theta;
     
 %% Method 2: use the aurora measurements only for angle

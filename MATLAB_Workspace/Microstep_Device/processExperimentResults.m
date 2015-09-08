@@ -61,7 +61,11 @@ for i_step = 1:n_step
     radius_of_curvature_bw_diag(i_step) = radius_of_curvature_bw(i_step, i_step);
 end
 
-
+if(n_step == 22)
+    experiment_radius = mean([mean(radius_of_curvature_fw_diag(end-2:end)) mean(radius_of_curvature_bw_diag(end-2:end))]);
+else
+    experiment_radius = mean([mean(radius_of_curvature_fw_diag(end-1:end)) mean(radius_of_curvature_bw_diag(end-2:end))]);
+end
 
 [r, c] = find(needle_z_bw ~= 0);
 delta_Z = range(needle_z_bw(c(1):end));

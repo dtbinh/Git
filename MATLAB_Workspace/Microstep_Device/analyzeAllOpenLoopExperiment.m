@@ -6,7 +6,8 @@ clc;
 
 % Starting position
 pre_insertion = 10.0;
-starting_x =  276.70 + pre_insertion;
+% starting_x =  276.70 + pre_insertion;
+starting_x =  276.70;
 starting_y = -124.00;
 starting_z = -153.00;
 

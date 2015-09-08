@@ -1,8 +1,8 @@
-function [px, py] = simulateDutyCyclePlanarTrajectory(duty_cycle, rotation_steps, pre_insertion)
+function [px, py] = simulateDutyCyclePlanarTrajectory(step_size, duty_cycle, rotation_steps, pre_insertion)
 
 % Global parameters
 r = 0.178;
-step_size = 8;
+% step_size = 8;
 v = 0.001;
 
 n_duty_cycle = length(duty_cycle);
@@ -16,13 +16,20 @@ else
     curvature_sign = 1 -2*mod(cumsum(rotation_steps), 2);
     k = (1/r) * (1 - duty_cycle) .* curvature_sign;
     
-    px = zeros(1, n_step*step_size + 1 + pre_insertion);
-    py = zeros(1, n_step*step_size + 1 + pre_insertion);
-    theta = zeros(1, n_step*step_size + 1 + pre_insertion);
+%     px = zeros(1, n_step*step_size + 1 + pre_insertion);
+%     py = zeros(1, n_step*step_size + 1 + pre_insertion);
+%     theta = zeros(1, n_step*step_size + 1 + pre_insertion);
+    
+    px = zeros(1, sum(step_size) + 1 + pre_insertion);
+    py = zeros(1, sum(step_size) + 1 + pre_insertion);
+    theta = zeros(1, sum(step_size) + 1 + pre_insertion);
+    
+    index = 0;
     
     for i_mm = 1:pre_insertion
         
-        index = i_mm;
+%         index = i_mm;
+        index = index + 1;
         
         d = (2/(k(1)^2))*(1 - cos(k(1)*v));
         t = theta(index) + (k(1)*v)/2;
@@ -36,9 +43,10 @@ else
     for i_step = 1:n_step
         
         
-        for i_mm = 1:step_size
+        for i_mm = 1:step_size(i_step)
             
-            index = step_size*(i_step-1) + i_mm + pre_insertion;
+%             index = step_size*(i_step-1) + i_mm + pre_insertion;
+            index = index + 1;
             
             d = (2/(k(i_step)^2))*(1 - cos(k(i_step)*v));
             t = theta(index) + (k(i_step)*v)/2;
