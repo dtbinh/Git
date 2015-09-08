@@ -1,7 +1,9 @@
 function [px, py] = simulateDutyCyclePlanarTrajectory(step_size, duty_cycle, rotation_steps, pre_insertion)
 
 % Global parameters
-r = 0.178;
+
+r = 0.20782;            % Raio da gelatina P
+% r = 0.178;            % Raio da gelatina G
 % step_size = 8;
 v = 0.001;
 

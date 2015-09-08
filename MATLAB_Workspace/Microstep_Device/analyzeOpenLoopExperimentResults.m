@@ -4,6 +4,7 @@ close all
 
 % Starting position
 pre_insertion = 10.0;
+pre_insertion = 0.0;
 starting_x =  276.70 + pre_insertion;
 starting_y = -124.00;
 % starting_z = -153.00;
@@ -115,3 +116,5 @@ scale = 12;
 plot(x_offset - scale*py_tip                     , y_offset + scale*px_tip, 'g-');
 plot(x_offset - scale*py_em                      , y_offset + scale*px_em, 'b-');
 plot(x_offset + scale*y_pos(first_valid_pose:end), y_offset + scale*x_pos(first_valid_pose:end), 'r-');
+
+final_z = z_pos(end);
