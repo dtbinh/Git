@@ -1,22 +1,8 @@
 close all;
 clear all;
-clc;
+% clc;
 
 %% Global parameters
-
-% Starting position
-pre_insertion = 10.0;
-% starting_x =  276.70 + pre_insertion;
-starting_x =  276.70;
-starting_y = -124.00;
-% starting_z = -153.00;
-% starting_z = -153.00;
-starting_z = -144.00;
-
-% Target position
-target_x = 121.296802;
-target_y = -6.9101994;
-target_z = 0.0;
 
 % Result files for the Micro Step mode
 MSD_file{1} = 'Results_150826_OL02_01.mat';
@@ -34,98 +20,94 @@ TSD_file{4} = 'Results_150830_TSD01_04.mat';
 TSD_file{5} = 'Results_150830_TSD01_05.mat';
 n_TSD_file = length(TSD_file);
 
-
-MSD_z = zeros(1, n_MSD_file);
-TSD_z = zeros(1, n_TSD_file);
+MSD_error_x = zeros(1, n_MSD_file);
+MSD_error_y = zeros(1, n_MSD_file);
+MSD_error_z = zeros(1, n_MSD_file);
+MSD_error_total = zeros(1, n_MSD_file);
+MSD_delta_z = zeros(1, n_MSD_file);
+MSD_delta_theta = zeros(1, n_MSD_file);
 
 for i_MSD_file = 1:n_MSD_file
+    clear angle
     load(MSD_file{i_MSD_file});
-    analyzeOpenLoopExperimentResults
-    MSD_z(i_MSD_file) = final_z;
+    analyzeOpenLoopExperimentResults;
+    
+    MSD_error_x(i_MSD_file) = error_x;
+    MSD_error_y(i_MSD_file) = error_y;
+    MSD_error_z(i_MSD_file) = error_z;
+    MSD_error_total(i_MSD_file) = error_total;
+    
+    MSD_delta_z(i_MSD_file) = delta_z;
+    MSD_delta_theta(i_MSD_file) = delta_theta;
 end
 
+TSD_error_x = zeros(1, n_TSD_file);
+TSD_error_y = zeros(1, n_TSD_file);
+TSD_error_z = zeros(1, n_TSD_file);
+TSD_error_total = zeros(1, n_TSD_file);
+TSD_delta_z = zeros(1, n_TSD_file);
+TSD_delta_theta = zeros(1, n_TSD_file);
+
 for i_TSD_file = 1:n_TSD_file
+    clear angle
     load(TSD_file{i_TSD_file});
-    analyzeOpenLoopExperimentResults
-    TSD_z(i_TSD_file) = final_z;
+    analyzeOpenLoopExperimentResults;
+    
+    TSD_error_x(i_TSD_file) = error_x;
+    TSD_error_y(i_TSD_file) = error_y;
+    TSD_error_z(i_TSD_file) = error_z;
+    TSD_error_total(i_TSD_file) = error_total;
+    
+    TSD_delta_z(i_TSD_file) = delta_z;
+    TSD_delta_theta(i_TSD_file) = delta_theta;
 end
 
+TSD_delta_theta(1) = TSD_delta_theta(1) + 360;
+MSD_delta_theta(2) = -5.92;
+MSD_delta_theta(4) = -3.28;
+MSD_delta_theta(5) = 5.43;
 
-%% Extract the final position of all MSD experiments
+%% Calculate the means and standard deviations
 
-MSD_x = zeros(1, n_MSD_file);
-MSD_y = zeros(1, n_MSD_file);
-MSD_z = zeros(1, n_MSD_file);
+MSD_error_x_mean = mean(MSD_error_x);
+MSD_error_y_mean = mean(MSD_error_y);
+MSD_error_z_mean = mean(MSD_error_z);
+MSD_error_total_mean = mean(MSD_error_total);
+MSD_delta_theta_mean = mean(MSD_delta_theta);
 
-for i_MSD_file = 1:n_MSD_file
-    
-    file_data = load(MSD_file{i_MSD_file});
-    
-    final_pose_fw = file_data.ustep_device.needle_pose_fw(end);
-    final_pose_bw = file_data.ustep_device.needle_pose_bw(end);
-    
-    MSD_x(i_MSD_file) = starting_x - mean([final_pose_fw.y final_pose_bw.y]);
-    MSD_y(i_MSD_file) = starting_y - mean([final_pose_fw.x final_pose_bw.x]);
-    MSD_z(i_MSD_file) = starting_z - mean([final_pose_fw.z final_pose_bw.z]);
+MSD_error_x_std = std(MSD_error_x);
+MSD_error_y_std = std(MSD_error_y);
+MSD_error_z_std = std(MSD_error_z);
+MSD_error_total_std = std(MSD_error_total);
+MSD_delta_theta_std = std(MSD_delta_theta);
+
+TSD_error_x_mean = mean(TSD_error_x);
+TSD_error_y_mean = mean(TSD_error_y);
+TSD_error_z_mean = mean(TSD_error_z);
+TSD_error_total_mean = mean(TSD_error_total);
+TSD_delta_theta_mean = mean(TSD_delta_theta);
+
+TSD_error_x_std = std(TSD_error_x);
+TSD_error_y_std = std(TSD_error_y);
+TSD_error_z_std = std(TSD_error_z);
+TSD_error_total_std = std(TSD_error_total);
+TSD_delta_theta_std = std(TSD_delta_theta);
+
+%% Display the results in a table forma
+
+fprintf('MSD FINAL RESULTS\n\n');
+fprintf('\terror-X \terror-Y \terror-Z \terror-Total \tDTheta\n');
+for i = 1:n_MSD_file
+    fprintf('%d:\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.1f\n', i, MSD_error_x(i), MSD_error_y(i), MSD_error_z(i), MSD_error_total(i), MSD_delta_theta(i));
 end
+fprintf('mean:\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.1f\n', MSD_error_x_mean, MSD_error_y_mean, MSD_error_z_mean, MSD_error_total_mean, MSD_delta_theta_mean);
+fprintf('std:\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.1f\n', MSD_error_x_std, MSD_error_y_std, MSD_error_z_std, MSD_error_total_std, MSD_delta_theta_std);
+fprintf('\n\n\n');
 
-
-
-
-%% Extract the final position of all TSD experiments
-
-TSD_x = zeros(1, n_TSD_file);
-TSD_y = zeros(1, n_TSD_file);
-TSD_z = zeros(1, n_TSD_file);
-
-for i_TSD_file = 1:n_TSD_file
-    
-    file_data = load(TSD_file{i_TSD_file});
-    
-    final_pose_fw = file_data.ustep_device.needle_pose_fw(end);
-    final_pose_bw = file_data.ustep_device.needle_pose_bw(end);
-    
-    TSD_x(i_TSD_file) = starting_x - mean([final_pose_fw.y final_pose_bw.y]);
-    TSD_y(i_TSD_file) = starting_y - mean([final_pose_fw.x final_pose_bw.x]);
-    TSD_z(i_TSD_file) = starting_z - mean([final_pose_fw.z final_pose_bw.z]);
+fprintf('TSD FINAL RESULTS\n\n');
+fprintf('\terror-X \terror-Y \terror-Z \terror-Total \tDTheta\n');
+for i = 1:n_TSD_file
+    fprintf('%d:\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.1f\n', i, TSD_error_x(i), TSD_error_y(i), TSD_error_z(i), TSD_error_total(i), TSD_delta_theta(i));
 end
-
-%% Calculate the mean and the standard deviation of the experiments
-
-% MSD_x_error = (starting_x - MSD_x) - target_x;
-% MSD_y_error = (starting_y - MSD_y) - target_y;
-% MSD_z_error = (starting_z - MSD_z) - target_z;
-
-MSD_x_mean = mean(MSD_x)
-MSD_y_mean = mean(MSD_y)
-MSD_z_mean = mean(MSD_z)
-
-MSD_x_std = std(MSD_x)
-MSD_y_std = std(MSD_y)
-MSD_z_std = std(MSD_z)
-
-TSD_x_mean = mean(TSD_x)
-TSD_y_mean = mean(TSD_y)
-TSD_z_mean = mean(TSD_z)
-
-TSD_x_std = std(TSD_x)
-TSD_y_std = std(TSD_y)
-TSD_z_std = std(TSD_z)
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
+fprintf('mean:\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.1f\n', TSD_error_x_mean, TSD_error_y_mean, TSD_error_z_mean, TSD_error_total_mean, TSD_delta_theta_mean);
+fprintf('std:\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.1f\n', TSD_error_x_std, TSD_error_y_std, TSD_error_z_std, TSD_error_total_std, TSD_delta_theta_std);

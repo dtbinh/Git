@@ -1,4 +1,4 @@
-function [px, py] = simulateDutyCyclePlanarTrajectory(step_size, duty_cycle, rotation_steps, pre_insertion)
+function [px, py, px_step, py_step] = simulateDutyCyclePlanarTrajectory(step_size, duty_cycle, rotation_steps, pre_insertion)
 
 % Global parameters
 
@@ -26,6 +26,9 @@ else
     py = zeros(1, sum(step_size) + 1 + pre_insertion);
     theta = zeros(1, sum(step_size) + 1 + pre_insertion);
     
+    px_step = zeros(1, n_step);
+    py_step = zeros(1, n_step);
+    
     index = 0;
     
     for i_mm = 1:pre_insertion
@@ -44,6 +47,8 @@ else
     
     for i_step = 1:n_step
         
+        px_step(i_step) = 10^6*px(index+1);
+        py_step(i_step) = 10^6*py(index+1);        
         
         for i_mm = 1:step_size(i_step)
             
