@@ -65,20 +65,74 @@ step_size_em       = [dsensor pre_insertion   8    8    8    8    8    8    8   
 duty_cycle_em      = [0.99999 0.99            0.00 0.00 0.00 0.25 0.50 0.25 0.00 0.00 0.00 0.00 0.00 0.50 0.50     ]; 
 rotation_steps_em  = [0       0               0    0    0    0    1    0    0    0    0    0    0    0    0        ];    
 
-[px_tip_simulated, py_tip_simulated, px_tip_steps, py_tip_steps] = simulateDutyCyclePlanarTrajectory(step_size_tip, duty_cycle_tip, rotation_steps_tip, 0.0);
-[px_em_simulated , py_em_simulated , px_em_steps , py_em_steps ] = simulateDutyCyclePlanarTrajectory(step_size_em, duty_cycle_em, rotation_steps_em, 0.0);
+[px_tip_1, py_tip_1, px_tip_steps_1, py_tip_steps_1] = simulateDutyCyclePlanarTrajectory(step_size_tip, duty_cycle_tip, rotation_steps_tip, 0.0);
+[px_em_1 , py_em_1 , px_em_steps_1 , py_em_steps_1 ] = simulateDutyCyclePlanarTrajectory(step_size_em, duty_cycle_em, rotation_steps_em, 0.0);
 
-% rx = range(px_tip_simulated);
-% ry = range(py_tip_simulated);
-% rmax = 1.2 * max(rx, ry);
+% Correção da trajetória com os valores da regressão linear
+duty_cycle_tip     = [        0.99            0.00 0.00 0.00 0.52 0.72 0.52 0.00 0.00 0.00 0.00 0.00 0.72 0.72 0.00];
+duty_cycle_em      = [0.99999 0.99            0.00 0.00 0.00 0.52 0.72 0.52 0.00 0.00 0.00 0.00 0.00 0.72 0.72     ]; 
+
+[px_tip_2, py_tip_2, px_tip_steps_2, py_tip_steps_2] = simulateDutyCyclePlanarTrajectory(step_size_tip, duty_cycle_tip, rotation_steps_tip, 0.0);
+[px_em_2 , py_em_2 , px_em_steps_2 , py_em_steps_2 ] = simulateDutyCyclePlanarTrajectory(step_size_em, duty_cycle_em, rotation_steps_em, 0.0);
+
+% Correção da trajetória usando os valores experimentais
+duty_cycle_tip     = [        0.99            0.00 0.00 0.00 0.49 0.82 0.49 0.00 0.00 0.00 0.00 0.00 0.82 0.82 0.00];
+duty_cycle_em      = [0.99999 0.99            0.00 0.00 0.00 0.49 0.82 0.49 0.00 0.00 0.00 0.00 0.00 0.82 0.82     ]; 
+
+[px_tip_3, py_tip_3, px_tip_steps_3, py_tip_steps_3] = simulateDutyCyclePlanarTrajectory(step_size_tip, duty_cycle_tip, rotation_steps_tip, 0.0);
+[px_em_3 , py_em_3 , px_em_steps_3 , py_em_steps_3 ] = simulateDutyCyclePlanarTrajectory(step_size_em, duty_cycle_em, rotation_steps_em, 0.0);
+
+% Correção inclusive do valor dc = 0
+duty_cycle_tip     = [        0.99            0.32 0.32 0.32 0.52 0.72 0.52 0.32 0.32 0.32 0.32 0.32 0.72 0.72 0.32];
+duty_cycle_em      = [0.99999 0.99            0.32 0.32 0.32 0.52 0.72 0.52 0.32 0.32 0.32 0.32 0.32 0.72 0.72     ]; 
+
+[px_tip_4, py_tip_4, px_tip_steps_4, py_tip_steps_4] = simulateDutyCyclePlanarTrajectory(step_size_tip, duty_cycle_tip, rotation_steps_tip, 0.0);
+[px_em_4 , py_em_4 , px_em_steps_4 , py_em_steps_4 ] = simulateDutyCyclePlanarTrajectory(step_size_em, duty_cycle_em, rotation_steps_em, 0.0);
+
+
+% Select which trajectory will be used
+px_tip_simulated = px_tip_4;
+py_tip_simulated = py_tip_4;
+px_tip_steps = px_tip_steps_4;
+py_tip_steps = py_tip_steps_4;
+px_em_simulated = px_em_4;
+py_em_simulated = py_em_4;
+px_em_steps = px_em_steps_4;
+py_em_steps = py_em_steps_4;
+
+% px_tip_simulated = px_tip_1;
+% py_tip_simulated = py_tip_1;
+% px_tip_steps = px_tip_steps_1;
+% py_tip_steps = py_tip_steps_1;
+% px_em_simulated = px_em_1;
+% py_em_simulated = py_em_1;
+% px_em_steps = px_em_steps_1;
+% py_em_steps = py_em_steps_1;
+
+rx = range(px_tip_simulated);
+ry = range(py_tip_simulated);
+rmax = 1.2 * max(rx, ry);
+
+% figure;
+% plot(-py_tip_1, -px_tip_1, 'b-');
+% hold on
+% plot(-py_tip_2, -px_tip_2, 'g-');
+% plot(-py_tip_3, -px_tip_3, 'r-');
+% plot(-py_tip_4, -px_tip_4, 'k-');
+% % plot(-py_tip_steps(2:end), -px_tip_steps(2:end), 'bo', 'MarkerEdgeColor', 'r', 'MarkerSize', 12);
+% % plot(-py_tip_steps(2:end), -px_tip_steps(2:end), 'ko', 'MarkerSize', 8);
+% % plot(-py_tip_steps(7), -px_tip_steps(7), 'ro', 'MarkerSize', 8);
+% xlim([-rmax/2 rmax/2]);
+% ylim([-1.1*rmax 0.1*rmax]);
+
 % figure;
 % plot(-py_tip_simulated, -px_tip_simulated, 'b-');
 % xlim([-rmax/2 rmax/2]);
 % ylim([-1.1*rmax 0.1*rmax]);
-
 % hold on;
-% plot(-py_em_simulated, -px_em_simulated+dsensor, 'b-');
-% plot(-y_pos_measure(first_valid_pose:end), -x_pos_measure(first_valid_pose:end)+dsensor, 'r-');
+% plot(-py_tip_steps(2:end), -px_tip_steps(2:end), 'bo', 'MarkerSize', 6, 'MarkerFaceColor', 'b');
+% plot(-py_tip_steps(7), -px_tip_steps(7), 'ro', 'MarkerSize', 6, 'MarkerFaceColor', 'r');
+
 
 % I = imread('TSD_01 (cropped).JPG');
 % figure
@@ -107,24 +161,34 @@ rotation_steps_em  = [0       0               0    0    0    0    1    0    0   
 % imshow(I);
 % hold on;
 % x_offset = 490;
-% y_offset = 70;
+% y_offset = 50;
 % scale = 12;
 % plot(x_offset - scale*py_tip_simulated           , y_offset + scale*px_tip_simulated, 'b-', 'LineWidth', 3);
-% % plot(x_offset - scale*py_em_simulated            , y_offset + scale*(px_em_simulated-dsensor), 'b-');
+% % plot(x_offset - scale*py_em_simulated            , y_offset + scale*(px_em_simulated-dsensor), 'r-');
 % % plot(x_offset - scale*y_pos_measure(first_valid_pose:end), y_offset + scale*(x_pos_measure(first_valid_pose:end)-dsensor), 'g-');
+% set(gca,'position',[0 0 1 1],'units','normalized')
+% 
+% figure
+% imshow(I);
+% hold on;
+% plot(x_offset - scale*py_tip_simulated           , y_offset + scale*px_tip_simulated, 'b-', 'LineWidth', 1);
+% plot(x_offset - scale*py_tip_steps(2:end)        , y_offset + scale*px_tip_steps(2:end), 'bo', 'MarkerSize', 6, 'MarkerFaceColor', 'b');
+% plot(x_offset - scale*py_tip_steps(7)        , y_offset + scale*px_tip_steps(7), 'ro', 'MarkerSize', 6, 'MarkerFaceColor', 'r');
 % set(gca,'position',[0 0 1 1],'units','normalized')
 
 I = imread('TSD_04 (cropped).JPG');
 figure
 imshow(I);
 hold on;
-x_offset = 470;
-y_offset = 90;
+x_offset = 475;
+y_offset = 80;
 scale = 12;
-plot(x_offset - scale*py_tip_simulated           , y_offset + scale*px_tip_simulated, 'b-', 'LineWidth', 3);
-plot(x_offset - scale*py_tip_steps(2:end)        , y_offset + scale*px_tip_steps(2:end), 'r*');
-% plot(x_offset - scale*py_em_simulated            , y_offset + scale*(px_em_simulated-dsensor), 'b-');
-% plot(x_offset - scale*y_pos_measure(first_valid_pose:end), y_offset + scale*(x_pos_measure(first_valid_pose:end)-dsensor), 'g-');
+plot(x_offset - scale*py_tip_simulated           , y_offset + scale*px_tip_simulated, 'b-', 'LineWidth', 1);
+% plot(x_offset - scale*py_tip_steps(2:end)        , y_offset + scale*px_tip_steps(2:end), 'bo', 'MarkerFaceColor', 'g', 'MarkerEdgeColor', 'g', 'MarkerSize', 10);
+% plot(x_offset - scale*py_tip_steps(2:end)        , y_offset + scale*px_tip_steps(2:end), 'bo', 'MarkerEdgeColor', 'r', 'MarkerSize', 12);
+% plot(x_offset - scale*py_tip_steps(2:end)        , y_offset + scale*px_tip_steps(2:end), 'bo', 'MarkerSize', 10);
+% plot(x_offset - scale*py_em_simulated            , y_offset + scale*(px_em_simulated-dsensor), 'g-');
+% plot(x_offset - scale*y_pos_measure(first_valid_pose:end), y_offset + scale*(x_pos_measure(first_valid_pose:end)-dsensor), 'r-');
 set(gca,'position',[0 0 1 1],'units','normalized')
 
 %% Measure the experiment performance
